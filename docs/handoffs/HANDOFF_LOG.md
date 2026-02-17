@@ -190,3 +190,39 @@
 
 ### Blocking Questions
 - None.
+
+## 2026-02-17T03:36:38Z - Codex
+
+### Scope Worked
+- Remediated critical dependency vulnerability flagged by Vercel/npm audit.
+
+### Last Agent Accomplished
+- Upgraded `next` to `15.5.12` via npm.
+- Updated lockfile (`package-lock.json`) to reflect patched dependency graph.
+- Verified vulnerability status and project readiness with audit, tests, build, and env check.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/package.json`
+- `/Users/bborn/home-school-helper/package-lock.json`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm audit --omit=dev`
+- Result: pass (0 vulnerabilities).
+- Command: `npm test`
+- Result: pass (6 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass (`Next.js 15.5.12`).
+- Command: `npm run check:env`
+- Result: pass.
+
+### Open Risks / Issues
+- None for vulnerability remediation; core product features (Supabase/realtime/auth) are still pending implementation.
+
+### Next Steps (Ordered)
+1. Proceed with Supabase schema + RLS implementation.
+2. Add parent onboarding/session creation endpoints and persistence.
+3. Replace in-memory nudge queue with Supabase realtime-backed delivery.
+
+### Blocking Questions
+- None.
