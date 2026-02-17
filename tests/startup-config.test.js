@@ -9,6 +9,7 @@ test("startup validation fails when required env vars are missing", () => {
   const result = spawnSync(process.execPath, [scriptPath], {
     env: {
       ...process.env,
+      DISABLE_DOTENV_LOAD: "1",
       ANTHROPIC_API_KEY: "",
       ANTHROPIC_MODEL: ""
     },
@@ -23,6 +24,7 @@ test("startup validation succeeds when required env vars are present", () => {
   const result = spawnSync(process.execPath, [scriptPath], {
     env: {
       ...process.env,
+      DISABLE_DOTENV_LOAD: "1",
       ANTHROPIC_API_KEY: "test_key",
       ANTHROPIC_MODEL: "claude-test"
     },

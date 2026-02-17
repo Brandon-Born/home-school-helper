@@ -128,3 +128,65 @@
 
 ### Blocking Questions
 - None.
+
+## 2026-02-17T03:16:24Z - Codex
+
+### Scope Worked
+- Fixed env validation behavior so local `.env` values are loaded by `npm run check:env`.
+
+### Last Agent Accomplished
+- Updated `/Users/bborn/home-school-helper/scripts/validate-env.mjs` to parse and load `.env` and `.env.local` before validation.
+- Added `DISABLE_DOTENV_LOAD=1` test control in `/Users/bborn/home-school-helper/tests/startup-config.test.js` to keep tests deterministic.
+- Re-ran tests and env checks successfully.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/scripts/validate-env.mjs`
+- `/Users/bborn/home-school-helper/tests/startup-config.test.js`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (6 tests, 0 failures).
+- Command: `ANTHROPIC_API_KEY=test_key ANTHROPIC_MODEL=claude-test npm run check:env`
+- Result: pass.
+
+### Open Risks / Issues
+- If `.env` contains empty values, validation correctly fails; ensure local secrets are actually populated.
+
+### Next Steps (Ordered)
+1. Populate real Anthropic values in local `.env`.
+2. Run `npm run check:env` without inline env overrides.
+3. Continue with Supabase schema/RLS implementation.
+
+### Blocking Questions
+- None.
+
+## 2026-02-17T03:22:51Z - Codex
+
+### Scope Worked
+- Addressed Vercel deployment block for vulnerable Next.js/React versions.
+
+### Last Agent Accomplished
+- Updated dependency versions in `/Users/bborn/home-school-helper/package.json`:
+  - `next` from `15.1.6` to `15.1.12`
+  - `react` from `19.0.0` to `19.2.4`
+  - `react-dom` from `19.0.0` to `19.2.4`
+
+### Files Touched
+- `/Users/bborn/home-school-helper/package.json`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: none (dependency manifest update only).
+- Result: not run in this step.
+
+### Open Risks / Issues
+- Lockfile update and install are still required before deploy.
+
+### Next Steps (Ordered)
+1. Run `npm install` to update lockfile.
+2. Run `npm test`.
+3. Commit and push dependency update, then redeploy on Vercel.
+
+### Blocking Questions
+- None.
