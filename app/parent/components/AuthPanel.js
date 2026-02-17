@@ -1,6 +1,6 @@
 "use client";
 
-export function AuthPanel({ session, parentProfile, loading, onRefresh, onSignOut, onSignIn }) {
+export function AuthPanel({ session, needsReauth, parentProfile, loading, onRefresh, onSignOut, onSignIn }) {
   const cardStyle = {
     border: "1px solid #dadada",
     borderRadius: 12,
@@ -12,9 +12,13 @@ export function AuthPanel({ session, parentProfile, loading, onRefresh, onSignOu
   if (!session) {
     return (
       <section style={cardStyle}>
-        <p>Sign in with Google to manage child profiles and sessions.</p>
+        <p>
+          {needsReauth
+            ? "Your session expired. Sign in again to continue managing sessions."
+            : "Sign in with Google to manage child profiles and sessions."}
+        </p>
         <button onClick={onSignIn} type="button">
-          Continue with Google
+          {needsReauth ? "Sign in again" : "Continue with Google"}
         </button>
       </section>
     );

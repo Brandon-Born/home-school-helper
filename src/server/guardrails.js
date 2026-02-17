@@ -21,6 +21,30 @@ export function containsUnsafeContent(text) {
   return UNSAFE_CONTENT_PATTERNS.some((pattern) => pattern.test(text));
 }
 
+function normalizeComparisonText(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[^\p{L}\p{N}\s]/gu, "")
+    .trim();
+}
+
+export function containsParentGuidanceLeak(assistantText, parentGuidance) {
+  const normalizedAssistant = normalizeComparisonText(assistantText);
+  const normalizedGuidance = normalizeComparisonText(parentGuidance);
+
+  if (!normalizedAssistant || !normalizedGuidance) {
+    return false;
+  }
+
+  // Ignore very short guidance fragments that can create noisy matches.
+  if (normalizedGuidance.length < 18) {
+    return false;
+  }
+
+  return normalizedAssistant.includes(normalizedGuidance);
+}
+
 export function looksLikeDirectAnswer(text) {
   if (!text) {
     return false;
@@ -46,7 +70,12 @@ export function buildScaffoldHint(studentPrompt) {
   ].join(" ");
 }
 
-export function applyTutorGuardrails({ assistantText, studentPrompt, allowDirectAnswer }) {
+export function applyTutorGuardrails({
+  assistantText,
+  studentPrompt,
+  parentGuidance,
+  allowDirectAnswer
+}) {
   const policyApplied = [];
   let finalText = (assistantText || "").trim();
 
@@ -58,6 +87,11 @@ export function applyTutorGuardrails({ assistantText, studentPrompt, allowDirect
   if (containsUnsafeContent(finalText)) {
     finalText = "I can’t help with that request. Let’s switch to a safe learning question.";
     policyApplied.push("unsafe_content_blocked");
+  }
+
+  if (containsParentGuidanceLeak(finalText, parentGuidance)) {
+    finalText = "Let’s keep going one step at a time. Tell me what you notice first.";
+    policyApplied.push("parent_guidance_redacted");
   }
 
   if (!allowDirectAnswer && looksLikeDirectAnswer(finalText)) {

@@ -31,7 +31,7 @@ Stabilize cloud voice UX (Google STT V2 + Chirp 3), auth robustness, and launch-
 ## First Tasks To Execute
 1. Verify Google Speech env config in each environment (local/Vercel) and run child cloud voice flow end-to-end.
 2. Add deeper SSE sequencing tests for stream `snapshot` + `message_append` framing under deterministic harnesses.
-3. Add explicit parent re-auth CTA surface when token refresh fails.
+3. Add route-level tests for speech and session endpoints covering rate-limit and provider-failure behavior.
 4. Consider migrating SSE transcript stream to direct Supabase Realtime channels if lower-latency fan-out is needed.
 
 ## Hard Rules

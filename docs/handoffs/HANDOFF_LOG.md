@@ -1,5 +1,160 @@
 # Handoff Log
 
+## 2026-02-17T19:02:31Z - Codex
+
+### Scope Worked
+- Refactored child and parent console orchestration to reduce cross-cutting concerns in single hooks.
+- Refactored duplicated tutor-turn route orchestration into a shared server orchestrator.
+- Preserved previously added guardrail/audit/rate-limit behavior and validated the full test suite.
+
+### Last Agent Accomplished
+- Child hook split:
+  - Extracted voice/runtime behavior into `/Users/bborn/home-school-helper/app/child/hooks/useChildVoiceRuntime.js`.
+  - Simplified `/Users/bborn/home-school-helper/app/child/hooks/useChildConsole.js` to session/join/send/stream composition.
+- Parent hook split:
+  - Extracted parent auth/session lifecycle into `/Users/bborn/home-school-helper/app/parent/hooks/useParentSession.js`.
+  - Extracted transcript SSE handling into `/Users/bborn/home-school-helper/app/parent/hooks/useParentTranscriptStream.js`.
+  - Simplified `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js` to form/session action composition.
+- Tutor route orchestration:
+  - Added `/Users/bborn/home-school-helper/src/server/session-turn-orchestrator.js`.
+  - Updated duplicated route logic to use orchestrator:
+    - `/Users/bborn/home-school-helper/app/api/session/[id]/child-turn/route.js`
+    - `/Users/bborn/home-school-helper/app/api/session/[id]/parent-nudge/route.js`
+  - Added orchestrator coverage in `/Users/bborn/home-school-helper/tests/session-turn-orchestrator.test.js`.
+- Confirmed earlier hardening from this workstream remains wired:
+  - Guardrail leak prevention (`src/server/guardrails.js`, `src/server/tutor-service.js`).
+  - Policy-event persistence (`src/server/session-foundation/policy-event-service.js`).
+  - Rate-limits on high-risk routes (`src/server/rate-limit.js` + route handlers).
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/api/session/[id]/child-turn/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/parent-nudge/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/speech/synthesize/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/speech/transcribe/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/join/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/start/route.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/useChildConsole.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/useChildVoiceRuntime.js`
+- `/Users/bborn/home-school-helper/app/parent/components/AuthPanel.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentSession.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentTranscriptStream.js`
+- `/Users/bborn/home-school-helper/app/parent/page.js`
+- `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+- `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
+- `/Users/bborn/home-school-helper/docs/SECURITY_AND_COMPLIANCE.md`
+- `/Users/bborn/home-school-helper/docs/START_HERE.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+- `/Users/bborn/home-school-helper/src/server/guardrails.js`
+- `/Users/bborn/home-school-helper/src/server/rate-limit.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation/policy-event-service.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation-service.js`
+- `/Users/bborn/home-school-helper/src/server/session-turn-orchestrator.js`
+- `/Users/bborn/home-school-helper/src/server/tutor-service.js`
+- `/Users/bborn/home-school-helper/tests/guardrails.test.js`
+- `/Users/bborn/home-school-helper/tests/policy-event-service.test.js`
+- `/Users/bborn/home-school-helper/tests/rate-limit.test.js`
+- `/Users/bborn/home-school-helper/tests/session-turn-orchestrator.test.js`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (49 tests, 0 failures).
+
+### Open Risks / Issues
+- Rate limiting is still in-process and should move to distributed backing for multi-instance guarantees.
+- Transcript retention/deletion automation and E2E path coverage remain pending.
+
+### Next Steps (Ordered)
+1. Implement 30-day transcript retention deletion job (DB-side scheduled task) and tests.
+2. Add route-level tests for speech endpoints and join/session flows under provider failure and rate-limit responses.
+3. Expand SSE sequencing tests for deterministic `snapshot` + ordered `message_append` behavior.
+4. Evaluate migrating polling SSE fan-out to Supabase Realtime channels.
+5. Implement remaining launch compliance surfaces (consent record UX, export/delete flows).
+
+### Blocking Questions
+- None.
+
+## 2026-02-17T18:46:33Z - Codex
+
+### Scope Worked
+- Implemented safety and audit hardening against the current v1 spec gaps: parent-guidance leak prevention, policy-event persistence, and baseline API rate limiting.
+- Added explicit parent re-auth CTA state to the parent surface when token refresh fails.
+- Updated docs to reflect new API/security behavior and refreshed immediate-next-step priorities.
+
+### Last Agent Accomplished
+- Guardrails hardening:
+  - Added deterministic parent-guidance leak detection/redaction in `/Users/bborn/home-school-helper/src/server/guardrails.js`.
+  - Wired tutor pipeline to pass parent guidance into guardrails in `/Users/bborn/home-school-helper/src/server/tutor-service.js`.
+  - Added test coverage in `/Users/bborn/home-school-helper/tests/guardrails.test.js`.
+- Policy event persistence:
+  - Added policy-event service in `/Users/bborn/home-school-helper/src/server/session-foundation/policy-event-service.js`.
+  - Exported service from `/Users/bborn/home-school-helper/src/server/session-foundation-service.js`.
+  - Wired child and parent tutor routes to persist model/prompt + policy actions:
+    - `/Users/bborn/home-school-helper/app/api/session/[id]/child-turn/route.js`
+    - `/Users/bborn/home-school-helper/app/api/session/[id]/parent-nudge/route.js`
+  - Added coverage in `/Users/bborn/home-school-helper/tests/policy-event-service.test.js`.
+- Rate limiting:
+  - Added shared rate-limiter module `/Users/bborn/home-school-helper/src/server/rate-limit.js`.
+  - Enforced limits on high-risk routes:
+    - `/Users/bborn/home-school-helper/app/api/session/start/route.js`
+    - `/Users/bborn/home-school-helper/app/api/session/join/route.js`
+    - `/Users/bborn/home-school-helper/app/api/session/[id]/child-turn/route.js`
+    - `/Users/bborn/home-school-helper/app/api/session/[id]/parent-nudge/route.js`
+    - `/Users/bborn/home-school-helper/app/api/session/[id]/speech/transcribe/route.js`
+    - `/Users/bborn/home-school-helper/app/api/session/[id]/speech/synthesize/route.js`
+  - Added tests in `/Users/bborn/home-school-helper/tests/rate-limit.test.js`.
+- Parent re-auth CTA:
+  - Added explicit re-auth state handling in `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js`.
+  - Surfaced CTA in `/Users/bborn/home-school-helper/app/parent/components/AuthPanel.js`.
+  - Passed state through `/Users/bborn/home-school-helper/app/parent/page.js`.
+- Documentation updates:
+  - API rate-limit contract additions in `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`.
+  - Security notes update in `/Users/bborn/home-school-helper/docs/SECURITY_AND_COMPLIANCE.md`.
+  - Next-task updates in `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md` and `/Users/bborn/home-school-helper/docs/START_HERE.md`.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/api/session/[id]/child-turn/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/parent-nudge/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/speech/synthesize/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/speech/transcribe/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/join/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/start/route.js`
+- `/Users/bborn/home-school-helper/app/parent/components/AuthPanel.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js`
+- `/Users/bborn/home-school-helper/app/parent/page.js`
+- `/Users/bborn/home-school-helper/src/server/guardrails.js`
+- `/Users/bborn/home-school-helper/src/server/rate-limit.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation/policy-event-service.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation-service.js`
+- `/Users/bborn/home-school-helper/src/server/tutor-service.js`
+- `/Users/bborn/home-school-helper/tests/guardrails.test.js`
+- `/Users/bborn/home-school-helper/tests/policy-event-service.test.js`
+- `/Users/bborn/home-school-helper/tests/rate-limit.test.js`
+- `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+- `/Users/bborn/home-school-helper/docs/SECURITY_AND_COMPLIANCE.md`
+- `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
+- `/Users/bborn/home-school-helper/docs/START_HERE.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (48 tests, 0 failures).
+
+### Open Risks / Issues
+- Current rate limiting is in-process per runtime instance; distributed/global enforcement is still needed for production-scale abuse resistance.
+- Transcript retention/deletion automation is still not implemented.
+- SSE transport still uses polling fan-out and needs deeper sequencing/integration test coverage.
+
+### Next Steps (Ordered)
+1. Implement 30-day transcript retention deletion job (DB-side scheduled task) and tests.
+2. Add route-level tests for speech endpoints and join/session flows under injected provider failure and rate-limit conditions.
+3. Expand SSE sequencing tests to validate `snapshot` + ordered `message_append` framing under deterministic harnesses.
+4. Evaluate/plan migration from polling SSE fan-out to Supabase Realtime channels for lower-latency scale.
+5. Implement remaining launch compliance surfaces (consent record UX, export/delete flows).
+
+### Blocking Questions
+- None.
+
 ## 2026-02-17T18:29:26Z - Codex
 
 ### Scope Worked

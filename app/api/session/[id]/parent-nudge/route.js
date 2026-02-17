@@ -3,13 +3,20 @@ import { requireParentContext } from "../../../../../src/server/auth.js";
 import { handleRouteError } from "../../../../../src/server/route-errors.js";
 import {
   ensureParentOwnsSession,
-  getSessionTutorContext,
-  persistSessionMessage
+  getSessionTutorContext
 } from "../../../../../src/server/session-foundation-service.js";
-import { generateTutorTurn } from "../../../../../src/server/tutor-service.js";
+import { enforceRateLimit } from "../../../../../src/server/rate-limit.js";
+import { runSessionTutorTurn } from "../../../../../src/server/session-turn-orchestrator.js";
 
 export async function POST(request, { params }) {
   try {
+    enforceRateLimit(request, {
+      scope: "parent_nudge",
+      maxRequests: 30,
+      windowMs: 60_000,
+      keySuffix: params.id
+    });
+
     const payload = await request.json();
     const { parent } = await requireParentContext(request);
 
@@ -19,29 +26,16 @@ export async function POST(request, { params }) {
       parentId: parent.id
     });
 
-    const result = await generateTutorTurn({
+    const result = await runSessionTutorTurn({
       sessionId: params.id,
       source: "parent-nudge",
       studentInput: payload.nudge_text,
       parentGuidance: payload.parent_guidance ?? payload.nudge_text,
       profile: tutorContext.profile,
       dailyContext: tutorContext.dailyContext,
-      allowDirectAnswer: tutorContext.allowDirectAnswer
-    });
-
-    await persistSessionMessage({
-      sessionId: params.id,
-      actorType: "parent",
-      visibilityScope: "parent_only",
-      content: payload.nudge_text
-    });
-
-    await persistSessionMessage({
-      sessionId: params.id,
-      actorType: "assistant",
-      visibilityScope: "child_and_parent",
-      content: result.assistant_text,
-      policyFlags: result.policy_applied
+      allowDirectAnswer: tutorContext.allowDirectAnswer,
+      inputActorType: "parent",
+      inputVisibilityScope: "parent_only"
     });
 
     return NextResponse.json({

@@ -55,6 +55,7 @@ export async function generateTutorTurn({
   const guarded = applyTutorGuardrails({
     assistantText: modelResponse.text,
     studentPrompt: studentInput,
+    parentGuidance,
     allowDirectAnswer
   });
 

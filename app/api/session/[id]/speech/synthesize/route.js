@@ -2,9 +2,17 @@ import { requireChildSessionContext } from "../../../../../../src/server/auth.js
 import { ApiError } from "../../../../../../src/server/api-error.js";
 import { handleRouteError } from "../../../../../../src/server/route-errors.js";
 import { synthesizeSpeech } from "../../../../../../src/server/speech-provider.js";
+import { enforceRateLimit } from "../../../../../../src/server/rate-limit.js";
 
 export async function POST(request, { params }) {
   try {
+    enforceRateLimit(request, {
+      scope: "speech_synthesize",
+      maxRequests: 35,
+      windowMs: 60_000,
+      keySuffix: params.id
+    });
+
     await requireChildSessionContext(request, params.id);
 
     const payload = await request.json();

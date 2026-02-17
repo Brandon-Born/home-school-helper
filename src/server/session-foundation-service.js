@@ -25,3 +25,8 @@ export {
 } from "./session-foundation/message-service.js";
 
 export { setSessionDirectAnswerOverride } from "./session-foundation/override-service.js";
+
+export {
+  persistPolicyEvent,
+  persistTutorAuditEvents
+} from "./session-foundation/policy-event-service.js";

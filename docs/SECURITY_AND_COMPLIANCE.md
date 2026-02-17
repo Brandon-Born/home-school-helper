@@ -54,3 +54,4 @@ Mitigation: server-only LLM module and env validation.
 - Formal parental consent records and policy text.
 - Data export and deletion endpoint UX.
 - Legal review before production launch.
+- Distributed/global rate limiting (current implementation is in-process baseline per runtime instance).

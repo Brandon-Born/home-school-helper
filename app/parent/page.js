@@ -15,6 +15,7 @@ export default function ParentPage() {
 
       <AuthPanel
         session={state.session}
+        needsReauth={state.needsReauth}
         parentProfile={state.parentProfile}
         loading={state.loading}
         onRefresh={actions.refreshParentData}

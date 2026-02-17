@@ -1,14 +1,21 @@
 import { NextResponse } from "next/server";
 import { requireChildSessionContext } from "../../../../../src/server/auth.js";
 import {
-  getSessionTutorContext,
-  persistSessionMessage
+  getSessionTutorContext
 } from "../../../../../src/server/session-foundation-service.js";
 import { handleRouteError } from "../../../../../src/server/route-errors.js";
-import { generateTutorTurn } from "../../../../../src/server/tutor-service.js";
+import { enforceRateLimit } from "../../../../../src/server/rate-limit.js";
+import { runSessionTutorTurn } from "../../../../../src/server/session-turn-orchestrator.js";
 
 export async function POST(request, { params }) {
   try {
+    enforceRateLimit(request, {
+      scope: "child_turn",
+      maxRequests: 45,
+      windowMs: 60_000,
+      keySuffix: params.id
+    });
+
     const payload = await request.json();
     const childContext = await requireChildSessionContext(request, params.id);
     const tutorContext = await getSessionTutorContext({
@@ -16,29 +23,16 @@ export async function POST(request, { params }) {
       childId: childContext.tokenRow.child_id
     });
 
-    const result = await generateTutorTurn({
+    const result = await runSessionTutorTurn({
       sessionId: params.id,
       source: "child-turn",
       studentInput: payload.student_input,
       parentGuidance: tutorContext.latestParentGuidance,
       profile: tutorContext.profile,
       dailyContext: tutorContext.dailyContext,
-      allowDirectAnswer: tutorContext.allowDirectAnswer
-    });
-
-    await persistSessionMessage({
-      sessionId: params.id,
-      actorType: "child",
-      visibilityScope: "child_and_parent",
-      content: payload.student_input
-    });
-
-    await persistSessionMessage({
-      sessionId: params.id,
-      actorType: "assistant",
-      visibilityScope: "child_and_parent",
-      content: result.assistant_text,
-      policyFlags: result.policy_applied
+      allowDirectAnswer: tutorContext.allowDirectAnswer,
+      inputActorType: "child",
+      inputVisibilityScope: "child_and_parent"
     });
 
     return NextResponse.json(result);

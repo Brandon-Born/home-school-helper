@@ -9,6 +9,14 @@
   "message": "human readable message"
 }
 ```
+- Rate-limit behavior:
+  - High-risk write routes may return `429` with:
+  ```json
+  {
+    "error": "rate_limited",
+    "message": "Too many requests. Please try again shortly."
+  }
+  ```
 
 ## Authentication Headers
 - Parent routes require Supabase access token:
@@ -92,6 +100,9 @@ Creates a child profile for authenticated parent.
 ## POST `/api/session/start`
 Starts a session for a parent-owned child and issues one-time 10-minute join code.
 
+Rate limit:
+- Scoped per client address. Bursts above configured threshold return `429 rate_limited`.
+
 ### Request
 ```json
 {
@@ -125,6 +136,9 @@ Starts a session for a parent-owned child and issues one-time 10-minute join cod
 ## POST `/api/session/join`
 Redeems one-time join code and returns child session token.
 
+Rate limit:
+- Scoped per client address. Bursts above configured threshold return `429 rate_limited`.
+
 ### Request
 ```json
 {
@@ -147,6 +161,9 @@ Redeems one-time join code and returns child session token.
 
 ## POST `/api/session/:id/child-turn`
 Child submits a tutoring turn.
+
+Rate limit:
+- Scoped per client address + session id. Bursts above configured threshold return `429 rate_limited`.
 
 ### Request
 ```json
@@ -174,6 +191,9 @@ Child submits a tutoring turn.
 
 ## POST `/api/session/:id/parent-nudge`
 Parent sends hidden nudge to steer tutor response.
+
+Rate limit:
+- Scoped per client address + session id. Bursts above configured threshold return `429 rate_limited`.
 
 ### Request
 ```json
@@ -237,6 +257,9 @@ Auth behavior:
 ## POST `/api/session/:id/speech/transcribe`
 Transcribes child audio using Google Speech-to-Text V2.
 
+Rate limit:
+- Scoped per client address + session id. Bursts above configured threshold return `429 rate_limited`.
+
 Auth behavior:
 - Requires valid child session bearer token for this session.
 
@@ -254,6 +277,9 @@ Auth behavior:
 
 ## POST `/api/session/:id/speech/synthesize`
 Synthesizes child-facing tutor speech audio using Google Chirp 3 TTS.
+
+Rate limit:
+- Scoped per client address + session id. Bursts above configured threshold return `429 rate_limited`.
 
 Auth behavior:
 - Requires valid child session bearer token for this session.

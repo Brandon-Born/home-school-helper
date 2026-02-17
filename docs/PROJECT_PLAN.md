@@ -139,5 +139,5 @@ Required internal config module behavior:
 ## 9. Immediate Next Steps
 1. Validate Google Speech STT/TTS configuration in local/Vercel and run end-to-end child voice tests.
 2. Add deeper SSE sequencing tests for stream framing and append ordering.
-3. Add explicit parent re-auth CTA path when token refresh fails.
+3. Add route-level tests for speech and session endpoints covering rate-limit and provider-failure behavior.
 4. Evaluate migrating SSE transcript stream to direct Supabase Realtime channels.
