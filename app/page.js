@@ -6,56 +6,54 @@ export default function HomePage() {
   return (
     <AppShell
       role="home"
-      title="Homeschool tutoring where parents guide and kids stay focused."
-      subtitle="Parents set the plan and send private guidance. Kids join with a code and get clear, step-by-step help."
+      title="Tutoring that feels like teamwork."
+      subtitle="Parents set the direction. Kids get clear, patient, step-by-step help. No sign-ups for children — just a code and they're in."
     >
-      <section className={`${styles.hero} card card--accent reveal`}>
-        <div className={styles.heroCopy}>
-          <h2 className="section-title">Two simple screens for one shared lesson.</h2>
+      <section className={`${styles.hero} reveal`}>
+        <div className={`${styles.heroCard} card card--elevated`}>
+          <span className={styles.heroEmoji}>🎓</span>
+          <h2 className="section-title">I'm a parent</h2>
           <p className="section-muted">
-            Parents start the lesson and share a one-time code. Children join on their screen while parents quietly guide the
-            tutor in the background.
+            Sign in, tell the tutor what to focus on, and guide the lesson in real time — your child never sees your notes.
           </p>
-          <div className="btn-row">
-            <Link href="/parent" className="btn btn--primary">
-              Open Parent Screen
-            </Link>
-            <Link href="/child" className="btn btn--secondary">
-              Open Child Screen
-            </Link>
-          </div>
+          <Link href="/parent" className="btn btn--primary">
+            Get started
+          </Link>
         </div>
-        <div className={styles.trustPanel}>
-          <h3 className={styles.trustTitle}>What this app is built to do</h3>
-          <ul className={styles.trustList}>
-            <li>Teach step by step so children learn the process, not just the final answer.</li>
-            <li>Keep parent guidance private so the child sees a calm, focused tutoring chat.</li>
-            <li>Auto-delete transcripts after 30 days by default.</li>
-          </ul>
+        <div className={`${styles.heroCard} card card--elevated`}>
+          <span className={styles.heroEmoji}>📚</span>
+          <h2 className="section-title">I'm a student</h2>
+          <p className="section-muted">
+            Got a code from your parent? Type it in and start asking questions — by voice or keyboard.
+          </p>
+          <Link href="/child" className="btn btn--secondary">
+            Join a lesson
+          </Link>
         </div>
       </section>
 
-      <section className={`${styles.routeGrid} stagger`}>
-        <article className="card card--elevated">
-          <span className="pill">For Parents</span>
-          <h2 className="section-title">Plan, launch, and guide each lesson</h2>
-          <p className="section-muted">
-            Sign in, create child profiles, start a session, and send private notes that guide the tutor in real time.
-          </p>
-          <Link href="/parent" className="btn btn--primary">
-            Open Parent Screen
-          </Link>
-        </article>
-        <article className="card card--elevated">
-          <span className="pill">For Students</span>
-          <h2 className="section-title">Join quickly and ask naturally</h2>
-          <p className="section-muted">
-            Enter a one-time code, then ask by voice or text and get age-appropriate, step-by-step support.
-          </p>
-          <Link href="/child" className="btn btn--secondary">
-            Open Child Screen
-          </Link>
-        </article>
+      <section className={`${styles.features} stagger`}>
+        <div className={styles.featureItem}>
+          <span className={styles.featureIcon}>💡</span>
+          <div>
+            <strong>Hints first, not answers</strong>
+            <p className="section-muted">The tutor walks kids through problems step by step so they actually learn.</p>
+          </div>
+        </div>
+        <div className={styles.featureItem}>
+          <span className={styles.featureIcon}>🔒</span>
+          <div>
+            <strong>Private parent guidance</strong>
+            <p className="section-muted">Send notes to the tutor that your child never sees. Stay in control without hovering.</p>
+          </div>
+        </div>
+        <div className={styles.featureItem}>
+          <span className={styles.featureIcon}>🗑️</span>
+          <div>
+            <strong>Auto-cleanup</strong>
+            <p className="section-muted">Transcripts are deleted after 30 days. No data hoarding.</p>
+          </div>
+        </div>
       </section>
     </AppShell>
   );

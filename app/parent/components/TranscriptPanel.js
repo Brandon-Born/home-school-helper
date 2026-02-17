@@ -8,23 +8,23 @@ export function TranscriptPanel({ activeSession, nudgeText, setNudgeText, onSend
 
   return (
     <section className="card">
-      <h2 className="section-title">Private Notes + Live Transcript</h2>
-      <p className="section-muted">Private notes guide the tutor and are not shown to your child.</p>
+      <h2 className="section-title">Guide the tutor</h2>
+      <p className="section-muted">Send private notes — your child won't see them.</p>
 
       <form onSubmit={onSendNudge} className="voice-row">
         <input
           className="input"
-          placeholder="Example: Slow down and use one short example."
+          placeholder="Slow down, use shorter examples"
           value={nudgeText}
           onChange={(event) => setNudgeText(event.target.value)}
         />
         <button type="submit" disabled={loading || !nudgeText.trim()} className="btn btn--primary">
-          Send Private Note
+          Send
         </button>
       </form>
 
       {nudgeResponse ? (
-        <div className="alert alert--success">Tutor update: {nudgeResponse}</div>
+        <div className="alert alert--success" style={{ marginTop: 10 }}>✅ {nudgeResponse}</div>
       ) : null}
 
       <TranscriptFeed messages={messages} showVisibilityScope />

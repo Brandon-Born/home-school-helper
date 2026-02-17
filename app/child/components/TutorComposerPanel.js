@@ -21,13 +21,13 @@ export function TutorComposerPanel({
 
   return (
     <section className="card">
-      <h2 className="section-title">Ask a Question</h2>
-      <p className="section-muted">Type your question, or hold the mic button while you talk.</p>
+      <h2 className="section-title">What do you want to learn? 🤔</h2>
+      <p className="section-muted">Type your question or hold the mic button to talk.</p>
       <form onSubmit={onSend} className="form-grid">
         <div className="voice-row">
           <input
             className="input"
-            placeholder="Type your question here"
+            placeholder="Ask me anything..."
             value={studentInput}
             onChange={(event) => setStudentInput(event.target.value)}
           />
@@ -36,7 +36,7 @@ export function TutorComposerPanel({
             className="btn btn--primary"
             disabled={loading || voiceBusy || pendingTutorReply || !studentInput.trim()}
           >
-            Ask Tutor
+            Ask! ✨
           </button>
         </div>
 
@@ -68,7 +68,7 @@ export function TutorComposerPanel({
           </button>
 
           {turnStatus ? <span className="pill">{turnStatus}</span> : null}
-          {isTranscribing || pendingTutorReply || isPlayingSpeech ? <span className="pill">One moment...</span> : null}
+          {isTranscribing || pendingTutorReply || isPlayingSpeech ? <span className="pill pulse">Thinking...</span> : null}
         </div>
       </form>
     </section>

@@ -31,8 +31,8 @@ function resolveVisibilityScopeLabel(visibilityScope) {
 export function TranscriptFeed({
   messages,
   pending = false,
-  pendingText = "Tutor is working on your answer...",
-  emptyText = "No messages yet. Ask your first question to begin.",
+  pendingText = "Working on it...",
+  emptyText = "No messages yet — ask a question to begin!",
   showVisibilityScope = false,
   actorLabels = null
 }) {

@@ -13,8 +13,8 @@ export default function ChildPage() {
   return (
     <AppShell
       role="child"
-      title="Child Screen"
-      subtitle="Enter your session code, ask questions by voice or text, and get step-by-step help."
+      title="Hey there! 👋"
+      subtitle="Type the code your parent gave you and let's get started."
     >
       {state.error ? <div className="alert alert--error">{state.error}</div> : null}
 

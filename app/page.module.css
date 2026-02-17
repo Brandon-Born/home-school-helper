@@ -1,46 +1,61 @@
 .hero {
   display: grid;
   gap: 16px;
+  grid-template-columns: 1fr 1fr;
 }
 
-.heroCopy {
+.heroCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: center;
+  align-items: center;
+  padding: 28px 24px;
+}
+
+.heroEmoji {
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.heroCard .section-muted {
+  max-width: 36ch;
+}
+
+.features {
   display: grid;
   gap: 12px;
+  margin-top: 8px;
 }
 
-.trustPanel {
-  border-radius: 14px;
-  border: 1px solid color-mix(in oklab, var(--role-accent) 35%, var(--border) 65%);
-  background: color-mix(in oklab, var(--surface) 82%, var(--role-accent) 18%);
-  padding: 12px;
-}
-
-.trustTitle {
-  margin: 0 0 8px;
-  font-family: var(--font-display), "Fraunces", serif;
-  font-size: 1.05rem;
-}
-
-.trustList {
-  margin: 0;
-  padding-left: 1.1rem;
-  display: grid;
-  gap: 8px;
-  color: var(--text-muted);
-}
-
-.routeGrid {
-  display: grid;
+.featureItem {
+  display: flex;
+  align-items: flex-start;
   gap: 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklab, var(--surface) 70%, var(--bg-soft) 30%);
+  border: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
 }
 
-@media (min-width: 760px) {
-  .hero {
-    grid-template-columns: 1.35fr 1fr;
-    align-items: stretch;
-  }
+.featureIcon {
+  font-size: 1.5rem;
+  line-height: 1.3;
+  flex-shrink: 0;
+}
 
-  .routeGrid {
-    grid-template-columns: 1fr 1fr;
+.featureItem strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 0.95rem;
+}
+
+.featureItem .section-muted {
+  font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+  .hero {
+    grid-template-columns: 1fr;
   }
 }

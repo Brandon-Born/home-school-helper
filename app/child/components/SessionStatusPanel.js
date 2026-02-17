@@ -10,14 +10,10 @@ export function SessionStatusPanel({
   onLeave
 }) {
   return (
-    <section className="card card--elevated">
-      <h2 className="section-title">Lesson Status</h2>
+    <section className="card card--accent">
+      <h2 className="section-title">You're in! ✅</h2>
       <p className="section-muted">
-        You are connected to your lesson.
-      </p>
-      <p className="section-muted">Access expires at: {sessionAccess.expires_at}</p>
-      <p className="section-muted">
-        Session ID (for support): <code>{sessionAccess.session_id}</code>
+        Your lesson is ready. Ask questions below!
       </p>
 
       <div className="status-panel">
@@ -28,9 +24,6 @@ export function SessionStatusPanel({
       </div>
 
       <div className="btn-row">
-        <button type="button" onClick={onLeave} className="btn btn--ghost">
-          Leave Lesson
-        </button>
         <label className="toggle">
           <input
             type="checkbox"
@@ -38,8 +31,11 @@ export function SessionStatusPanel({
             onChange={(event) => setAutoSpeak(event.target.checked)}
             disabled={!speechSupport.cloudTts && !speechSupport.browserTts}
           />
-          Read tutor replies out loud
+          Read answers out loud
         </label>
+        <button type="button" onClick={onLeave} className="btn btn--ghost">
+          Leave lesson
+        </button>
       </div>
     </section>
   );

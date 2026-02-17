@@ -3,13 +3,13 @@
 export function JoinSessionPanel({ joinCode, setJoinCode, deviceFingerprint, setDeviceFingerprint, onSubmit, loading }) {
   return (
     <section className="card card--elevated">
-      <h2 className="section-title">Join Your Lesson</h2>
-      <p className="section-muted">Enter the code your parent gives you.</p>
+      <h2 className="section-title">Ready to learn? 📚</h2>
+      <p className="section-muted">Type the code your parent gave you.</p>
 
       <form onSubmit={onSubmit} className="form-grid">
         <div className="field">
           <label className="label" htmlFor="join-code">
-            Session code
+            Your code
           </label>
           <input
             id="join-code"
@@ -17,6 +17,8 @@ export function JoinSessionPanel({ joinCode, setJoinCode, deviceFingerprint, set
             placeholder="AB12CD34"
             value={joinCode}
             onChange={(event) => setJoinCode(event.target.value)}
+            autoComplete="off"
+            autoFocus
           />
         </div>
         <div className="field">
@@ -33,7 +35,7 @@ export function JoinSessionPanel({ joinCode, setJoinCode, deviceFingerprint, set
         </div>
         <div className="btn-row">
           <button type="submit" disabled={loading || !joinCode.trim()} className="btn btn--primary">
-            Start Lesson
+            Let's go! 🚀
           </button>
         </div>
       </form>

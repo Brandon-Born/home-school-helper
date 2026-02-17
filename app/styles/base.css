@@ -13,13 +13,16 @@ body {
 body {
   min-height: 100vh;
   background:
-    radial-gradient(1200px 600px at 20% -10%, color-mix(in oklab, var(--role-accent) 18%, transparent), transparent 60%),
-    radial-gradient(900px 500px at 100% 0%, color-mix(in oklab, var(--brand) 16%, transparent), transparent 58%),
+    radial-gradient(ellipse 900px 500px at 10% -5%, color-mix(in oklab, var(--role-accent) 12%, transparent), transparent 60%),
+    radial-gradient(ellipse 700px 400px at 90% 0%, color-mix(in oklab, var(--brand) 10%, transparent), transparent 50%),
     var(--bg);
   color: var(--text);
-  font-family: var(--font-body), "Plus Jakarta Sans", "Segoe UI", sans-serif;
-  transition: background-color 220ms ease, color 220ms ease;
-  line-height: 1.45;
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  transition: background-color 250ms ease, color 250ms ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a {
@@ -27,8 +30,13 @@ a {
 }
 
 code {
-  background: color-mix(in oklab, var(--surface-muted) 85%, var(--role-accent) 15%);
+  background: var(--brand-soft);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-sm);
+  padding: 0.15rem 0.4rem;
+  font-size: 0.88em;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--brand) 30%, transparent);
 }

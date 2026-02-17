@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 import { ThemeToggle } from "../theme/ThemeToggle.js";
 
 const NAV_LINKS = [
-  { href: "/parent", label: "Parent Screen" },
-  { href: "/child", label: "Child Screen" }
+  { href: "/parent", label: "Parents" },
+  { href: "/child", label: "Kids" }
 ];
 
 export function AppShell({ title, subtitle, role = "home", actions = null, children }) {
@@ -14,12 +14,12 @@ export function AppShell({ title, subtitle, role = "home", actions = null, child
 
   return (
     <div className={`app-shell app-shell--${role}`}>
-      <header className="app-shell__header card card--glass">
+      <header className="app-shell__header">
         <div>
           <Link href="/" className="app-shell__brand">
             Home School Helper
           </Link>
-          <p className="app-shell__tagline">Private parent guidance with clear, kid-friendly tutoring.</p>
+          <p className="app-shell__tagline">Learn together, step by step.</p>
         </div>
 
         <div className="app-shell__controls">
