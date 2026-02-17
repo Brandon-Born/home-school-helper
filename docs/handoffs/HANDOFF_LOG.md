@@ -1,5 +1,56 @@
 # Handoff Log
 
+## 2026-02-17T19:13:59Z - Codex
+
+### Scope Worked
+- Completed transcript retention automation (30-day auto-delete) requested as the next launch-hardening item.
+- Added both DB-scheduled purge and test-covered server retention utilities.
+
+### Last Agent Accomplished
+- Added Supabase migration `/Users/bborn/home-school-helper/supabase/migrations/20260217193000_transcript_retention.sql`:
+  - enables `pg_cron`,
+  - adds `public.purge_expired_messages(retention_days integer default 30)`,
+  - schedules daily cron job `purge-expired-messages` to run `select public.purge_expired_messages(30);`.
+- Added retention service `/Users/bborn/home-school-helper/src/server/session-foundation/transcript-retention-service.js` with:
+  - deterministic cutoff computation,
+  - purge helper for service-role deletion of expired `messages`.
+- Exported retention utilities from `/Users/bborn/home-school-helper/src/server/session-foundation-service.js`.
+- Added tests `/Users/bborn/home-school-helper/tests/transcript-retention-service.test.js`.
+- Updated docs to record retention automation:
+  - `/Users/bborn/home-school-helper/docs/DB_SCHEMA_AND_RLS.md`
+  - `/Users/bborn/home-school-helper/docs/SECURITY_AND_COMPLIANCE.md`
+  - `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
+  - `/Users/bborn/home-school-helper/docs/START_HERE.md`
+
+### Files Touched
+- `/Users/bborn/home-school-helper/supabase/migrations/20260217193000_transcript_retention.sql`
+- `/Users/bborn/home-school-helper/src/server/session-foundation/transcript-retention-service.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation-service.js`
+- `/Users/bborn/home-school-helper/tests/transcript-retention-service.test.js`
+- `/Users/bborn/home-school-helper/docs/DB_SCHEMA_AND_RLS.md`
+- `/Users/bborn/home-school-helper/docs/SECURITY_AND_COMPLIANCE.md`
+- `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
+- `/Users/bborn/home-school-helper/docs/START_HERE.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (52 tests, 0 failures).
+
+### Open Risks / Issues
+- `pg_cron` scheduling requires migration execution in target Supabase environment; verify job existence after deploy.
+- Rate limiting remains in-process per runtime instance (distributed backing still pending).
+
+### Next Steps (Ordered)
+1. Add route-level tests for speech endpoints and join/session flows under provider failure and rate-limit responses.
+2. Expand SSE sequencing tests for deterministic `snapshot` + ordered `message_append` behavior.
+3. Evaluate migrating polling SSE fan-out to Supabase Realtime channels.
+4. Implement remaining launch compliance surfaces (consent record UX, export/delete flows).
+5. Add E2E critical-path tests.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-17T19:02:31Z - Codex
 
 ### Scope Worked

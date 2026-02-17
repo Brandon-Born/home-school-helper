@@ -23,6 +23,7 @@ Stabilize cloud voice UX (Google STT V2 + Chirp 3), auth robustness, and launch-
 - Child-turn now requires child session token; parent-nudge now requires authenticated parent ownership.
 - Messages are persisted in `messages` table via server routes.
 - Supabase migration exists at `supabase/migrations/20260217040000_session_foundation.sql`.
+- Transcript retention migration exists at `supabase/migrations/20260217193000_transcript_retention.sql` (daily 30-day purge via `pg_cron`).
 - Minimal UI flows now exist:
   - `/parent` for auth, child profile creation, session start, nudges, transcript subscription.
   - `/child` for join-code redemption, cloud voice capture/transcription, and cloud tutor speech playback.

@@ -40,6 +40,7 @@ Implemented:
   - `GET /api/session/:id/stream`
 - Supabase migration and RLS policy SQL scaffold (`supabase/migrations/20260217040000_session_foundation.sql`).
 - Supabase migration applied and verified against remote project (`20260217040000`).
+- Transcript retention automation migration (`supabase/migrations/20260217193000_transcript_retention.sql`) with daily 30-day purge schedule.
 - Child session token auth on child-turn route.
 - Parent session ownership auth on parent-nudge route.
 - Initial web UI routes for parent and child operational flows (`/parent`, `/child`, `/auth/callback`).

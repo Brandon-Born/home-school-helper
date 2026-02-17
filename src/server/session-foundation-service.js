@@ -30,3 +30,8 @@ export {
   persistPolicyEvent,
   persistTutorAuditEvents
 } from "./session-foundation/policy-event-service.js";
+
+export {
+  computeTranscriptRetentionCutoffIso,
+  purgeExpiredTranscripts
+} from "./session-foundation/transcript-retention-service.js";

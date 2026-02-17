@@ -16,6 +16,7 @@ This project is designed with COPPA-first defaults for U.S. minors.
 2. Data minimization
 - No raw audio storage in v1.
 - Retain transcript text for 30 days by default, then auto-delete.
+  - Implemented with DB function `public.purge_expired_messages(30)` and daily `pg_cron` schedule (`purge-expired-messages`).
 
 3. Secret handling
 - Anthropic key only in server runtime env vars.

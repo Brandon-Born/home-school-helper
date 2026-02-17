@@ -110,4 +110,7 @@ using (auth.uid() = auth_user_id);
 
 ## Migration Notes
 - SQL migrations are under `/Users/bborn/home-school-helper/supabase/migrations/`.
+- Current core migrations:
+  - `20260217040000_session_foundation.sql`
+  - `20260217193000_transcript_retention.sql` (adds 30-day transcript purge function + daily `pg_cron` schedule)
 - Every schema or policy change requires docs and handoff updates.
