@@ -56,3 +56,75 @@
 
 ### Blocking Questions
 - None.
+
+## 2026-02-17T02:19:30Z - Codex
+
+### Scope Worked
+- Added a single, durable project plan document to guide future agents on overall product direction and execution order.
+- Linked the project plan from top-level docs so it is immediately discoverable.
+
+### Last Agent Accomplished
+- Created `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md` with objectives, roadmap phases, acceptance criteria, API targets, testing strategy, and immediate next steps.
+- Updated `/Users/bborn/home-school-helper/README.md` with a Core Documentation section.
+- Updated `/Users/bborn/home-school-helper/AGENT.md` to require reading the project plan before execution.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
+- `/Users/bborn/home-school-helper/README.md`
+- `/Users/bborn/home-school-helper/AGENT.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: none (documentation-only change).
+- Result: not applicable.
+
+### Open Risks / Issues
+- Plan currently reflects v1 assumptions; it must be updated if scope changes before Supabase/realtime implementation.
+
+### Next Steps (Ordered)
+1. Implement Supabase schema and row-level security for parent/child/session resources.
+2. Build parent onboarding + session initialization API/UI flow.
+3. Implement child join code redemption with single-use + expiration enforcement.
+
+### Blocking Questions
+- None.
+
+## 2026-02-17T02:22:38Z - Codex
+
+### Scope Worked
+- Added missing operational docs and converted documentation into a clear onboarding path for the next agent.
+
+### Last Agent Accomplished
+- Added `/Users/bborn/home-school-helper/docs/API_CONTRACT.md` with request/response/error examples.
+- Added `/Users/bborn/home-school-helper/docs/DB_SCHEMA_AND_RLS.md` with table design and RLS model.
+- Added `/Users/bborn/home-school-helper/docs/SECURITY_AND_COMPLIANCE.md` with COPPA-first controls.
+- Added `/Users/bborn/home-school-helper/docs/DEPLOYMENT.md` for Vercel setup and rollback.
+- Added `/Users/bborn/home-school-helper/docs/START_HERE.md` for rapid next-agent onboarding.
+- Added `/Users/bborn/home-school-helper/docs/README.md` documentation index.
+- Updated `/Users/bborn/home-school-helper/README.md` and `/Users/bborn/home-school-helper/AGENT.md` to prioritize the new onboarding docs.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+- `/Users/bborn/home-school-helper/docs/DB_SCHEMA_AND_RLS.md`
+- `/Users/bborn/home-school-helper/docs/SECURITY_AND_COMPLIANCE.md`
+- `/Users/bborn/home-school-helper/docs/DEPLOYMENT.md`
+- `/Users/bborn/home-school-helper/docs/START_HERE.md`
+- `/Users/bborn/home-school-helper/docs/README.md`
+- `/Users/bborn/home-school-helper/README.md`
+- `/Users/bborn/home-school-helper/AGENT.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: none (documentation-only updates).
+- Result: not applicable.
+
+### Open Risks / Issues
+- Specs are documented, but Supabase migrations and RLS policies are not implemented in code yet.
+
+### Next Steps (Ordered)
+1. Implement Supabase migrations for core tables and policies from `DB_SCHEMA_AND_RLS.md`.
+2. Replace in-memory session event queue with Supabase realtime + message persistence.
+3. Add integration tests validating hidden-parent-channel visibility constraints.
+
+### Blocking Questions
+- None.
