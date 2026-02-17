@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { openEventStream } from "../../src/lib/event-stream.js";
 import { apiRequest } from "../../src/lib/http.js";
 
 const STORAGE_KEY = "child_session_access";
@@ -30,6 +31,17 @@ export default function ChildPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  function mergeMessages(previous, incoming) {
+    const map = new Map(previous.map((message) => [message.id, message]));
+    for (const message of incoming) {
+      map.set(message.id, message);
+    }
+
+    return Array.from(map.values()).sort(
+      (left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime()
+    );
+  }
+
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -46,30 +58,64 @@ export default function ChildPage() {
     }
   }, []);
 
-  async function fetchMessages() {
-    if (!sessionAccess?.session_id || !sessionAccess?.child_session_token) {
-      return;
-    }
-
-    try {
-      const payload = await apiRequest(`/api/session/${sessionAccess.session_id}/messages?limit=150`, {
-        bearerToken: sessionAccess.child_session_token
-      });
-      setMessages(payload.messages ?? []);
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Unable to fetch messages.");
-    }
-  }
-
   useEffect(() => {
     if (!sessionAccess?.session_id || !sessionAccess?.child_session_token) {
       return;
     }
 
-    fetchMessages();
-    const timer = setInterval(fetchMessages, 3500);
-    return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let disposed = false;
+    let reconnectTimer;
+    let streamAbortController;
+
+    const connect = async () => {
+      streamAbortController = new AbortController();
+
+      try {
+        await openEventStream({
+          path: `/api/session/${sessionAccess.session_id}/stream?limit=200`,
+          bearerToken: sessionAccess.child_session_token,
+          signal: streamAbortController.signal,
+          onEvent: ({ event, data }) => {
+            if (disposed) {
+              return;
+            }
+
+            if (event === "snapshot") {
+              setMessages(data.messages ?? []);
+              return;
+            }
+
+            if (event === "message_append") {
+              setMessages((previous) => mergeMessages(previous, data.messages ?? []));
+              return;
+            }
+
+            if (event === "error") {
+              setError(data?.message || "Stream error.");
+            }
+          }
+        });
+      } catch (streamError) {
+        if (disposed) {
+          return;
+        }
+
+        setError(streamError instanceof Error ? streamError.message : "Stream disconnected.");
+        reconnectTimer = window.setTimeout(connect, 1800);
+      }
+    };
+
+    connect();
+
+    return () => {
+      disposed = true;
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+      if (streamAbortController) {
+        streamAbortController.abort();
+      }
+    };
   }, [sessionAccess?.session_id, sessionAccess?.child_session_token]);
 
   async function joinSession(event) {
@@ -107,7 +153,7 @@ export default function ChildPage() {
     setError("");
 
     try {
-      const payload = await apiRequest(`/api/session/${sessionAccess.session_id}/child-turn`, {
+      await apiRequest(`/api/session/${sessionAccess.session_id}/child-turn`, {
         method: "POST",
         bearerToken: sessionAccess.child_session_token,
         body: {
@@ -115,24 +161,7 @@ export default function ChildPage() {
         }
       });
 
-      setMessages((previous) => [
-        ...previous,
-        {
-          id: `local-child-${Date.now()}`,
-          actor_type: "child",
-          visibility_scope: "child_and_parent",
-          content: studentInput.trim()
-        },
-        {
-          id: `local-assistant-${Date.now() + 1}`,
-          actor_type: "assistant",
-          visibility_scope: "child_and_parent",
-          content: payload.assistant_text
-        }
-      ]);
-
       setStudentInput("");
-      await fetchMessages();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to send turn.");
     } finally {

@@ -32,6 +32,7 @@ Web-first homeschool tutoring assistant with parent steering and scaffold-first 
 - `POST /api/session/:id/child-turn`
 - `POST /api/session/:id/parent-nudge`
 - `GET /api/session/:id/messages`
+- `GET /api/session/:id/stream` (SSE subscription)
 - `POST /api/session/:id/override`
 
 ## UI Routes

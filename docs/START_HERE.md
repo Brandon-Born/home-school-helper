@@ -22,14 +22,15 @@ Implement Supabase-backed persistent session + auth + realtime so parent/child s
 - Messages are persisted in `messages` table via server routes.
 - Supabase migration exists at `supabase/migrations/20260217040000_session_foundation.sql`.
 - Minimal UI flows now exist:
-  - `/parent` for auth, child profile creation, session start, nudges, transcript polling.
+  - `/parent` for auth, child profile creation, session start, nudges, transcript subscription.
   - `/child` for join-code redemption and chat turn submission.
+- Realtime transcript updates now stream through `GET /api/session/:id/stream` (SSE).
 
 ## First Tasks To Execute
-1. Replace polling with Supabase realtime subscriptions for live transcript updates.
-2. Add voice input/output integration (push-to-talk + TTS fallback) in `/parent` and `/child` experience as appropriate.
-3. Add integration tests for token redemption, session ownership, and visibility constraints.
-4. Harden OAuth UX and session refresh handling for multi-device reliability.
+1. Add voice input/output integration (push-to-talk + TTS fallback) in `/parent` and `/child` experience as appropriate.
+2. Add integration tests for token redemption, session ownership, and visibility constraints.
+3. Harden OAuth UX and session refresh handling for multi-device reliability.
+4. Consider migrating SSE transcript stream to direct Supabase Realtime channels if lower-latency fan-out is needed.
 
 ## Hard Rules
 - Never expose `ANTHROPIC_API_KEY` in client code.

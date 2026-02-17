@@ -33,9 +33,14 @@ This spec covers the first production-capable version of the homeschool tutor we
 - Tutor pipeline calls Anthropic and enforces guardrails before response.
 
 ## Implemented UI Surfaces (Current)
-- `/parent`: auth + child profile + session start + hidden nudge + transcript polling.
-- `/child`: join by code + turn submission + transcript polling.
+- `/parent`: auth + child profile + session start + hidden nudge + transcript subscription.
+- `/child`: join by code + turn submission + transcript subscription.
 - `/auth/callback`: OAuth code exchange completion.
+
+## Live Updates (Current)
+- Realtime transcript updates use SSE subscription endpoint:
+  - `GET /api/session/:id/stream`
+- Parent and child surfaces subscribe with bearer token and merge incremental `message_append` events.
 
 ## Server Modules
 - `src/server/config.js`: typed env parsing/validation.

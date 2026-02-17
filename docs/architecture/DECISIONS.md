@@ -60,3 +60,16 @@
 - Consequences:
   - Tutor routes require additional DB reads per request.
   - Cache/optimization can be added later, but correctness takes priority in v1.
+
+## ADR-006: Transcript Transport via Authenticated SSE
+- Status: Accepted
+- Date: 2026-02-17
+- Decision:
+  - Use authenticated SSE endpoint (`GET /api/session/:id/stream`) for live transcript delivery to parent and child clients.
+  - Parent streams can see all session messages; child streams are filtered to `child_and_parent` messages.
+- Rationale:
+  - Replaces inefficient polling while preserving existing server-side authorization boundaries.
+  - Avoids exposing parent access token in URL query by using header-authenticated `fetch` streams.
+- Consequences:
+  - Current implementation polls DB server-side and emits incremental events over SSE.
+  - Direct Supabase Realtime channel fan-out can be adopted later if needed for higher scale.

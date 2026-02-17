@@ -35,11 +35,15 @@ Implemented:
   - `POST /api/session/join`
   - `POST /api/session/:id/child-turn`
   - `POST /api/session/:id/parent-nudge`
+  - `GET /api/session/:id/messages`
+  - `POST /api/session/:id/override`
+  - `GET /api/session/:id/stream`
 - Supabase migration and RLS policy SQL scaffold (`supabase/migrations/20260217040000_session_foundation.sql`).
 - Supabase migration applied and verified against remote project (`20260217040000`).
 - Child session token auth on child-turn route.
 - Parent session ownership auth on parent-nudge route.
 - Initial web UI routes for parent and child operational flows (`/parent`, `/child`, `/auth/callback`).
+- Session transcript SSE subscription flow implemented for parent/child clients.
 - Agent operations docs (`AGENT.md`) and handoff system.
 - CI guard for handoff log updates on runtime code changes.
 
@@ -133,8 +137,7 @@ Required internal config module behavior:
 - Update this plan when priorities, constraints, or sequencing materially change.
 
 ## 9. Immediate Next Steps
-1. Integrate Supabase and implement persistent session data model with RLS.
-2. Build parent onboarding and session creation flows.
-3. Implement child join by one-time code and enforce single active session constraints.
-4. Replace in-memory nudge queue with persistent realtime transport.
-5. Add integration tests for authorization and visibility guarantees.
+1. Add voice input/output integration (push-to-talk + TTS fallback) to child flow.
+2. Add integration tests for authorization and visibility guarantees.
+3. Harden OAuth UX for multi-device and expired-session recovery.
+4. Evaluate migrating SSE transcript stream to direct Supabase Realtime channels.

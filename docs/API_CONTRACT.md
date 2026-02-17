@@ -222,6 +222,18 @@ Auth behavior:
 }
 ```
 
+## GET `/api/session/:id/stream`
+Realtime transcript subscription stream (SSE).
+
+Auth behavior:
+- Parent bearer token: receives all visibility scopes.
+- Child session token: receives only `child_and_parent` rows.
+
+### Stream events
+- `snapshot`: initial transcript payload.
+- `message_append`: newly appended transcript rows.
+- `error`: recoverable stream-side polling error.
+
 ## POST `/api/session/:id/override`
 Parent toggles direct-answer mode for a bounded duration.
 

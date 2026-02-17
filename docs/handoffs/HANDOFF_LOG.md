@@ -407,3 +407,58 @@
 
 ### Blocking Questions
 - None.
+
+## 2026-02-17T04:18:46Z - Codex
+
+### Scope Worked
+- Implemented #3: replaced client transcript polling with authenticated realtime subscription streaming.
+- Implemented #1: refactored parent page into hook + reusable components.
+
+### Last Agent Accomplished
+- Added SSE stream route: `GET /api/session/:id/stream` with parent/child auth-aware visibility.
+- Added client stream parser utility (`src/lib/event-stream.js`).
+- Updated `/parent` and `/child` to consume stream events (`snapshot`, `message_append`) with reconnect behavior.
+- Refactored parent console into:
+  - hook: `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js`
+  - components: `/Users/bborn/home-school-helper/app/parent/components/*.js`
+  - slim page wrapper: `/Users/bborn/home-school-helper/app/parent/page.js`
+- Added ADR-006 documenting authenticated SSE transport.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/api/session/[id]/stream/route.js`
+- `/Users/bborn/home-school-helper/src/lib/event-stream.js`
+- `/Users/bborn/home-school-helper/app/child/page.js`
+- `/Users/bborn/home-school-helper/app/parent/page.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js`
+- `/Users/bborn/home-school-helper/app/parent/components/AuthPanel.js`
+- `/Users/bborn/home-school-helper/app/parent/components/ChildProfilePanel.js`
+- `/Users/bborn/home-school-helper/app/parent/components/SessionControlPanel.js`
+- `/Users/bborn/home-school-helper/app/parent/components/TranscriptPanel.js`
+- `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+- `/Users/bborn/home-school-helper/docs/IMPLEMENTATION_SPEC.md`
+- `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
+- `/Users/bborn/home-school-helper/docs/START_HERE.md`
+- `/Users/bborn/home-school-helper/docs/architecture/DECISIONS.md`
+- `/Users/bborn/home-school-helper/README.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (15 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+- Command: `npm run check:env`
+- Result: pass.
+- Command: `npm run check:handoff`
+- Result: pass.
+
+### Open Risks / Issues
+- SSE endpoint currently polls DB server-side; high-concurrency load may require migration to direct Supabase Realtime fan-out.
+
+### Next Steps (Ordered)
+1. Add push-to-talk STT and TTS playback on child flow.
+2. Add integration tests for stream visibility (parent sees hidden, child does not).
+3. Add robust token expiry handling UX for stream reconnect paths.
+
+### Blocking Questions
+- None.
