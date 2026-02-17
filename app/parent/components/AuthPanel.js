@@ -4,14 +4,14 @@ export function AuthPanel({ session, needsReauth, parentProfile, loading, onRefr
   if (!session) {
     return (
       <section className="card card--elevated">
-        <h2 className="section-title">Parent Access</h2>
+        <h2 className="section-title">Parent Sign-In</h2>
         <p className="section-muted">
           {needsReauth
-            ? "Your session expired. Sign in again to continue managing sessions."
-            : "Sign in with Google to manage child profiles and sessions."}
+            ? "Your sign-in expired. Please sign in again to continue."
+            : "Sign in with Google to manage child profiles and tutoring sessions."}
         </p>
         <button onClick={onSignIn} type="button" className="btn btn--primary">
-          {needsReauth ? "Sign in again" : "Continue with Google"}
+          {needsReauth ? "Sign In Again" : "Sign In with Google"}
         </button>
       </section>
     );
@@ -19,21 +19,21 @@ export function AuthPanel({ session, needsReauth, parentProfile, loading, onRefr
 
   return (
     <section className="card card--elevated">
-      <h2 className="section-title">Signed In</h2>
+      <h2 className="section-title">Parent Account</h2>
       <p className="section-muted">
         Signed in as <strong>{session.user?.email}</strong>
       </p>
       <div className="btn-row">
         <button onClick={onRefresh} type="button" disabled={loading} className="btn btn--secondary">
-          Refresh
+          Refresh Data
         </button>
         <button onClick={onSignOut} type="button" disabled={loading} className="btn btn--ghost">
-          Sign out
+          Sign Out
         </button>
       </div>
       {parentProfile ? (
         <p className="section-muted">
-          Parent profile id: <code>{parentProfile.id}</code>
+          Account ID (for support): <code>{parentProfile.id}</code>
         </p>
       ) : null}
     </section>

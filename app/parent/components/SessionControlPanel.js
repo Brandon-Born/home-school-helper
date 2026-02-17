@@ -14,7 +14,7 @@ export function SessionControlPanel({
   onDisableOverride
 }) {
   const childOptions = [
-    { value: "", label: "Select child" },
+    { value: "", label: "Choose a child" },
     ...children.map((child) => ({
       value: child.id,
       label: `${child.first_name} (Grade ${child.grade})`
@@ -23,8 +23,8 @@ export function SessionControlPanel({
 
   return (
     <section className="card">
-      <h2 className="section-title">Start Session</h2>
-      <p className="section-muted">Create a one-time code and pass context privately to the tutor.</p>
+      <h2 className="section-title">Start a New Session</h2>
+      <p className="section-muted">Choose a child, set today&apos;s focus, and create a one-time code to share.</p>
       <form onSubmit={onStartSession} className="form-grid">
         <SelectField
           id="selected-child"
@@ -42,29 +42,29 @@ export function SessionControlPanel({
         />
         <TextAreaField
           id="parent-context"
-          label="Parent context"
-          placeholder="Focus on confidence and step-by-step reasoning."
+          label="Private notes for the tutor"
+          placeholder="Keep directions short and encouraging. Ask guiding questions before hints."
           value={sessionForm.parent_context}
           onChange={(event) => setSessionForm((prev) => ({ ...prev, parent_context: event.target.value }))}
         />
         <TextAreaField
           id="goal-notes"
-          label="Goal notes"
-          placeholder="Finish one-step equations."
+          label="Today's goal"
+          placeholder="Finish one-step equations and explain each step aloud."
           value={sessionForm.goal_notes}
           onChange={(event) => setSessionForm((prev) => ({ ...prev, goal_notes: event.target.value }))}
         />
         <TextAreaField
           id="additional-context"
-          label="Additional context"
-          placeholder="Student had a long morning."
+          label="Anything else for today (optional)"
+          placeholder="Student is tired after co-op class. Keep the pace calm."
           value={sessionForm.additional_context}
           onChange={(event) => setSessionForm((prev) => ({ ...prev, additional_context: event.target.value }))}
         />
 
         <div className="btn-row">
           <button type="submit" disabled={loading || !selectedChildId} className="btn btn--primary">
-            Start Session
+            Create Session Code
           </button>
         </div>
       </form>
@@ -72,17 +72,18 @@ export function SessionControlPanel({
       {activeSession ? (
         <div className="card card--accent">
           <p className="section-muted">
-            Session id: <code>{activeSession.session_id}</code>
+            Session ID (for support): <code>{activeSession.session_id}</code>
           </p>
           <p className="section-muted">Child join code</p>
           <div className="join-code">{activeSession.join_code}</div>
-          <p className="section-muted">Expires at: {activeSession.expires_at}</p>
+          <p className="section-muted">Code expires at: {activeSession.expires_at}</p>
+          <p className="section-muted">Default mode gives hints first. Use direct answers only when needed.</p>
           <div className="btn-row">
             <button type="button" onClick={onEnableOverride} disabled={loading} className="btn btn--secondary">
-              Enable Direct Answers (15m)
+              Allow Direct Answers (15 min)
             </button>
             <button type="button" onClick={onDisableOverride} disabled={loading} className="btn btn--danger">
-              Disable Direct Answers
+              Return to Guided Mode
             </button>
           </div>
         </div>

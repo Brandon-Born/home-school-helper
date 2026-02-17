@@ -141,7 +141,7 @@ export function useChildVoiceRuntime({
     };
     utterance.onerror = () => {
       setIsPlayingSpeech(false);
-      setNotice("Audio fallback failed. Read the tutor reply below.");
+      setNotice("Audio could not play. You can read the tutor reply below.");
     };
     window.speechSynthesis?.speak(utterance);
     return true;
@@ -184,14 +184,14 @@ export function useChildVoiceRuntime({
     };
     audio.onerror = () => {
       revokePlaybackResources();
-      setNotice("Audio playback failed. Read the tutor reply below.");
+      setNotice("Audio could not play. You can read the tutor reply below.");
     };
 
     try {
       await audio.play();
     } catch {
       revokePlaybackResources();
-      throw new Error("Audio playback is blocked right now. Read the tutor reply below.");
+      throw new Error("Audio playback is blocked right now. You can read the tutor reply below.");
     }
   }
 
@@ -221,16 +221,16 @@ export function useChildVoiceRuntime({
         }
       } catch (speechError) {
         if (isChildAuthFailure(speechError)) {
-          onSessionInvalid("Session token expired or invalid. Rejoin with a fresh code.");
+          onSessionInvalid("Your lesson code expired. Please ask your parent for a new code.");
           return;
         }
 
-        setNotice("Cloud audio had an issue. Falling back to browser voice.");
+        setNotice("Audio had an issue. Switching to backup voice.");
       }
 
       const usedBrowserFallback = speakTextFallback(latest.content);
       if (!usedBrowserFallback) {
-        setNotice("Audio unavailable right now. Read the tutor reply below.");
+        setNotice("Audio is unavailable right now. You can read the tutor reply below.");
       }
     })();
   }
@@ -251,7 +251,7 @@ export function useChildVoiceRuntime({
 
     const transcript = String(payload?.transcript || "").trim();
     if (!transcript) {
-      throw new Error("No speech transcript detected. Try speaking closer to the microphone.");
+      throw new Error("We could not hear that clearly. Try again closer to the microphone.");
     }
 
     const baseInput = studentInputRef.current.trim();
@@ -284,7 +284,7 @@ export function useChildVoiceRuntime({
       };
 
       recorder.onerror = () => {
-        setError("Voice recording failed. Hold to talk and try again.");
+        setError("Recording failed. Hold to talk and try again.");
         setNotice("");
         setIsCloudRecording(false);
       };
@@ -306,18 +306,18 @@ export function useChildVoiceRuntime({
         }
 
         setIsTranscribing(true);
-        setNotice("Transcribing your voice...");
+        setNotice("Turning your voice into text...");
         try {
           await transcribeCloudRecording(new Blob(chunks, { type: recorder.mimeType || "audio/webm" }));
           setError("");
-          setNotice("Voice captured. You can send it now.");
+          setNotice("Voice captured. Tap Ask Tutor when ready.");
         } catch (speechError) {
           if (isChildAuthFailure(speechError)) {
-            onSessionInvalid("Session token expired or invalid. Rejoin with a fresh code.");
+            onSessionInvalid("Your lesson code expired. Please ask your parent for a new code.");
             return;
           }
 
-          setError(classifySpeechFailure(speechError, "Voice transcription failed. Hold to talk and retry."));
+          setError(classifySpeechFailure(speechError, "We could not turn that into text. Hold to talk and try again."));
           setNotice("");
         } finally {
           setIsTranscribing(false);
@@ -329,7 +329,7 @@ export function useChildVoiceRuntime({
       setNotice("Listening. Release to transcribe.");
       setIsCloudRecording(true);
     } catch {
-      setError("Microphone access is required for voice input.");
+      setError("Please allow microphone access to use voice input.");
       setNotice("");
     }
   }
@@ -341,7 +341,7 @@ export function useChildVoiceRuntime({
 
     const RecognitionCtor = getSpeechRecognitionCtor();
     if (!RecognitionCtor) {
-      setError("Speech recognition is unavailable in this browser.");
+      setError("Voice input is not available in this browser.");
       return;
     }
 
@@ -373,9 +373,9 @@ export function useChildVoiceRuntime({
 
     recognition.onerror = (event) => {
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        setError("Microphone permission was denied. Enable mic access to use voice input.");
+        setError("Microphone permission is off. Turn it on to use voice input.");
       } else {
-        setError(`Voice input failed: ${event.error}`);
+        setError(`Voice input stopped: ${event.error}`);
       }
       setNotice("");
     };
@@ -395,7 +395,7 @@ export function useChildVoiceRuntime({
     } catch {
       recognitionRef.current = null;
       setIsListening(false);
-      setError("Unable to start voice capture.");
+      setError("Could not start voice input.");
       setNotice("");
     }
   }

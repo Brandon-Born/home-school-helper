@@ -92,7 +92,7 @@ export function useParentConsole() {
         setSelectedChildId(childrenPayload.children[0].id);
       }
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Failed to load parent data.");
+      setError(requestError instanceof Error ? requestError.message : "We couldn't load your parent data. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -139,7 +139,7 @@ export function useParentConsole() {
         setChildForm(initialChildForm);
         await fetchParentData();
       } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : "Unable to create child profile.");
+        setError(requestError instanceof Error ? requestError.message : "We couldn't save that child profile. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -169,7 +169,7 @@ export function useParentConsole() {
         setMessages([]);
         setNudgeResponse("");
       } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : "Unable to start session.");
+        setError(requestError instanceof Error ? requestError.message : "We couldn't start the session. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -199,7 +199,7 @@ export function useParentConsole() {
         setNudgeResponse(payload.assistant_text || "Nudge sent.");
         setNudgeText("");
       } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : "Unable to send nudge.");
+        setError(requestError instanceof Error ? requestError.message : "We couldn't send that private note. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -225,7 +225,7 @@ export function useParentConsole() {
           }
         });
       } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : "Unable to update override.");
+        setError(requestError instanceof Error ? requestError.message : "We couldn't update direct-answer mode. Please try again.");
       } finally {
         setLoading(false);
       }

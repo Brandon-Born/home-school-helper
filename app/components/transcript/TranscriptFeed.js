@@ -16,11 +16,23 @@ function defaultActorLabel(actorType) {
   return "System";
 }
 
+function resolveVisibilityScopeLabel(visibilityScope) {
+  if (visibilityScope === "parent_only") {
+    return "Parent only";
+  }
+
+  if (visibilityScope === "child_and_parent") {
+    return "Shared with child";
+  }
+
+  return "System";
+}
+
 export function TranscriptFeed({
   messages,
   pending = false,
-  pendingText = "Tutor is thinking...",
-  emptyText = "No messages yet.",
+  pendingText = "Tutor is working on your answer...",
+  emptyText = "No messages yet. Ask your first question to begin.",
   showVisibilityScope = false,
   actorLabels = null
 }) {
@@ -42,7 +54,9 @@ export function TranscriptFeed({
           <article key={message.id} className={`message-row message-row--${message.actor_type}`}>
             <div className="message-row__meta">
               <span className="pill">{resolveLabel(message.actor_type)}</span>
-              {showVisibilityScope ? <span className="pill pill--muted">{message.visibility_scope}</span> : null}
+              {showVisibilityScope ? (
+                <span className="pill pill--muted">{resolveVisibilityScopeLabel(message.visibility_scope)}</span>
+              ) : null}
             </div>
             <p className="message-row__body">{message.content}</p>
           </article>

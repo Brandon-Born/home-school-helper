@@ -1,25 +1,25 @@
 export function getVoiceStatusText(speechSupport) {
   if (speechSupport.cloudStt && speechSupport.cloudTts) {
-    return "Cloud speech active: Google STT V2 + Chirp 3 TTS.";
+    return "Voice is ready.";
   }
 
   if (speechSupport.cloudStt) {
-    return "Cloud STT active. Tutor audio uses browser fallback.";
+    return "Voice input is ready. Tutor audio uses device playback.";
   }
 
   if (speechSupport.browserStt && speechSupport.browserTts) {
-    return "Browser voice fallback active.";
+    return "Basic voice mode is ready on this device.";
   }
 
   if (speechSupport.browserStt) {
-    return "Browser voice input fallback active.";
+    return "Voice input is ready on this device.";
   }
 
   if (speechSupport.browserTts) {
-    return "Browser audio playback fallback active.";
+    return "Audio playback is ready on this device.";
   }
 
-  return "Voice unavailable in this browser. Text mode only.";
+  return "Voice is not available here. You can still type.";
 }
 
 export function getTurnStatusText({ isCloudRecording, isListening, isTranscribing, pendingTutorReply, isPlayingSpeech, notice }) {
@@ -32,11 +32,11 @@ export function getTurnStatusText({ isCloudRecording, isListening, isTranscribin
   }
 
   if (isTranscribing) {
-    return "Transcribing your voice...";
+    return "Turning your voice into text...";
   }
 
   if (pendingTutorReply) {
-    return "Tutor is thinking...";
+    return "Tutor is working on your answer...";
   }
 
   if (isPlayingSpeech) {
@@ -48,7 +48,7 @@ export function getTurnStatusText({ isCloudRecording, isListening, isTranscribin
 
 export function getListeningLabelText({ isCloudRecording, isListening, isTranscribing, isPlayingSpeech }) {
   if (isCloudRecording) {
-    return "Recording... release to transcribe";
+    return "Recording... release to fill the text box";
   }
 
   if (isListening) {

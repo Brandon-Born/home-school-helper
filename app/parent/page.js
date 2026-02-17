@@ -13,8 +13,8 @@ export default function ParentPage() {
   return (
     <AppShell
       role="parent"
-      title="Parent Session Console"
-      subtitle="Set context, start guided sessions, and steer the tutor through private nudges."
+      title="Parent Screen"
+      subtitle="Set up each lesson, start a session code, and privately guide how the tutor responds."
     >
       {state.error ? <div className="alert alert--error">{state.error}</div> : null}
 

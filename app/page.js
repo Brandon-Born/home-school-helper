@@ -6,31 +6,31 @@ export default function HomePage() {
   return (
     <AppShell
       role="home"
-      title="A calmer, smarter tutoring flow for homeschool families."
-      subtitle="Parents keep control in a private channel while kids get voice-friendly, scaffold-first tutoring on their own screen."
+      title="Homeschool tutoring where parents guide and kids stay focused."
+      subtitle="Parents set the plan and send private guidance. Kids join with a code and get clear, step-by-step help."
     >
       <section className={`${styles.hero} card card--accent reveal`}>
         <div className={styles.heroCopy}>
-          <h2 className="section-title">Built for real sessions at the kitchen table.</h2>
+          <h2 className="section-title">Two simple screens for one shared lesson.</h2>
           <p className="section-muted">
-            Start a session from the parent console, share a one-time join code, and guide the tutor silently while your child
-            stays focused.
+            Parents start the lesson and share a one-time code. Children join on their screen while parents quietly guide the
+            tutor in the background.
           </p>
           <div className="btn-row">
             <Link href="/parent" className="btn btn--primary">
-              Open Parent Console
+              Open Parent Screen
             </Link>
             <Link href="/child" className="btn btn--secondary">
-              Open Child Surface
+              Open Child Screen
             </Link>
           </div>
         </div>
         <div className={styles.trustPanel}>
-          <h3 className={styles.trustTitle}>Core commitments</h3>
+          <h3 className={styles.trustTitle}>What this app is built to do</h3>
           <ul className={styles.trustList}>
-            <li>Scaffold-first tutoring to support learning process, not shortcuts.</li>
-            <li>Hidden parent nudges stay private and never show up verbatim to the child.</li>
-            <li>Transcript retention defaults to 30 days with scheduled auto-purge.</li>
+            <li>Teach step by step so children learn the process, not just the final answer.</li>
+            <li>Keep parent guidance private so the child sees a calm, focused tutoring chat.</li>
+            <li>Auto-delete transcripts after 30 days by default.</li>
           </ul>
         </div>
       </section>
@@ -38,22 +38,22 @@ export default function HomePage() {
       <section className={`${styles.routeGrid} stagger`}>
         <article className="card card--elevated">
           <span className="pill">For Parents</span>
-          <h2 className="section-title">Run the lesson with confidence</h2>
+          <h2 className="section-title">Plan, launch, and guide each lesson</h2>
           <p className="section-muted">
-            Sign in with Google, create child profiles, launch guided sessions, and steer the tutor in real time.
+            Sign in, create child profiles, start a session, and send private notes that guide the tutor in real time.
           </p>
           <Link href="/parent" className="btn btn--primary">
-            Go to Parent
+            Open Parent Screen
           </Link>
         </article>
         <article className="card card--elevated">
           <span className="pill">For Students</span>
-          <h2 className="section-title">Join and ask naturally</h2>
+          <h2 className="section-title">Join quickly and ask naturally</h2>
           <p className="section-muted">
-            Use a short-lived code, then ask by voice or text while the tutor responds with clear, age-appropriate guidance.
+            Enter a one-time code, then ask by voice or text and get age-appropriate, step-by-step support.
           </p>
           <Link href="/child" className="btn btn--secondary">
-            Go to Child
+            Open Child Screen
           </Link>
         </article>
       </section>

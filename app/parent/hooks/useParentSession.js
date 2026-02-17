@@ -11,7 +11,7 @@ export function useParentSession({ onSessionCleared, setError }) {
   const [needsReauth, setNeedsReauth] = useState(false);
 
   const invalidateParentSession = useCallback(
-    async (message = "Parent session expired. Please sign in again.") => {
+    async (message = "Your parent sign-in expired. Please sign in again.") => {
       await supabase.auth.signOut();
       setSession(null);
       onSessionCleared();
@@ -44,7 +44,7 @@ export function useParentSession({ onSessionCleared, setError }) {
         });
 
       if (!session?.access_token) {
-        throw new Error("Parent session is not available.");
+        throw new Error("You are not signed in as a parent right now.");
       }
 
       try {
@@ -60,7 +60,7 @@ export function useParentSession({ onSessionCleared, setError }) {
         }
 
         await invalidateParentSession();
-        throw new Error("Parent session expired. Please sign in again.");
+        throw new Error("Your parent sign-in expired. Please sign in again.");
       }
     },
     [invalidateParentSession, refreshParentSession, session?.access_token]

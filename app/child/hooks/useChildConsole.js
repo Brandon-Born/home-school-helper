@@ -116,7 +116,7 @@ export function useChildConsole() {
             }
 
             if (event === "error") {
-              setError(data?.message || "Stream error.");
+              setError(data?.message || "We lost connection for a moment.");
             }
           }
         });
@@ -126,11 +126,11 @@ export function useChildConsole() {
         }
 
         if (isChildAuthFailure(streamError)) {
-          clearSessionRef.current("Session token expired or invalid. Rejoin with a fresh code.");
+          clearSessionRef.current("Your lesson code expired. Please ask your parent for a new code.");
           return;
         }
 
-        setError(streamError instanceof Error ? streamError.message : "Stream disconnected.");
+        setError(streamError instanceof Error ? streamError.message : "Connection lost. Reconnecting...");
         reconnectTimer = window.setTimeout(connect, 1800);
       }
     };
@@ -172,7 +172,7 @@ export function useChildConsole() {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(access));
       setJoinCode("");
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Unable to join session.");
+      setError(requestError instanceof Error ? requestError.message : "We couldn't join that lesson. Check the code and try again.");
     } finally {
       setLoading(false);
     }
@@ -200,11 +200,11 @@ export function useChildConsole() {
       setStudentInput("");
     } catch (requestError) {
       if (isChildAuthFailure(requestError)) {
-        clearChildSession("Session token expired or invalid. Rejoin with a fresh code.");
+        clearChildSession("Your lesson code expired. Please ask your parent for a new code.");
         return;
       }
 
-      setError(requestError instanceof Error ? requestError.message : "Unable to send turn.");
+      setError(requestError instanceof Error ? requestError.message : "We couldn't send your question. Please try again.");
       voice.actions.setPendingTutorReply(false);
     } finally {
       setLoading(false);
