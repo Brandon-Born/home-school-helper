@@ -2,12 +2,146 @@
 
 ## Conventions
 - Content type: `application/json`.
-- Auth: parent routes require authenticated parent session; child routes require valid session join token.
 - Error shape:
 ```json
 {
   "error": "machine_readable_code",
   "message": "human readable message"
+}
+```
+
+## Authentication Headers
+- Parent routes require Supabase access token:
+  - `Authorization: Bearer <parent_access_token>`
+- Child tutoring routes require redeemed child session token:
+  - `Authorization: Bearer <child_session_token>`
+
+## GET `/api/parent/me`
+Returns parent profile (and creates/syncs parent row from authenticated Supabase user if missing).
+
+### Response (200)
+```json
+{
+  "parent": {
+    "id": "uuid",
+    "auth_user_id": "uuid",
+    "email": "parent@example.com",
+    "full_name": "Parent Name",
+    "onboarding_completed": false,
+    "created_at": "timestamp"
+  },
+  "user": {
+    "id": "uuid",
+    "email": "parent@example.com"
+  }
+}
+```
+
+## GET `/api/children`
+Lists children for authenticated parent.
+
+### Response (200)
+```json
+{
+  "children": [
+    {
+      "id": "uuid",
+      "first_name": "Ava",
+      "age": 10,
+      "grade": "5",
+      "subjects": ["Math", "Science"],
+      "profile_notes": "Curious and energetic",
+      "special_needs": "Needs short instructions",
+      "created_at": "timestamp"
+    }
+  ]
+}
+```
+
+## POST `/api/children`
+Creates a child profile for authenticated parent.
+
+### Request
+```json
+{
+  "child_name": "Ava",
+  "age": 10,
+  "grade": "5",
+  "subjects": ["Math", "Science"],
+  "personality_description": "Curious and energetic",
+  "special_needs": "Needs short instructions"
+}
+```
+
+### Response (201)
+```json
+{
+  "child": {
+    "id": "uuid",
+    "first_name": "Ava",
+    "age": 10,
+    "grade": "5",
+    "subjects": ["Math", "Science"],
+    "profile_notes": "Curious and energetic",
+    "special_needs": "Needs short instructions",
+    "created_at": "timestamp"
+  }
+}
+```
+
+## POST `/api/session/start`
+Starts a session for a parent-owned child and issues one-time 10-minute join code.
+
+### Request
+```json
+{
+  "child_id": "uuid",
+  "daily_subjects": ["Math", "Reading"],
+  "parent_context": "Focus on confidence today.",
+  "goal_notes": "Finish one-step equations",
+  "additional_context": "Child was tired this morning"
+}
+```
+
+### Response (201)
+```json
+{
+  "session": {
+    "session_id": "uuid",
+    "child_id": "uuid",
+    "status": "active",
+    "join_code": "AB12CD34",
+    "expires_at": "timestamp",
+    "daily_context": {
+      "daily_subjects": ["Math", "Reading"],
+      "parent_context": "Focus on confidence today.",
+      "goal_notes": "Finish one-step equations",
+      "additional_context": "Child was tired this morning"
+    }
+  }
+}
+```
+
+## POST `/api/session/join`
+Redeems one-time join code and returns child session token.
+
+### Request
+```json
+{
+  "code": "AB12CD34",
+  "device_fingerprint": "optional-device-id"
+}
+```
+
+### Response (200)
+```json
+{
+  "session_access": {
+    "session_id": "uuid",
+    "child_id": "uuid",
+    "child_session_token": "opaque-token",
+    "expires_at": "timestamp"
+  }
 }
 ```
 
@@ -18,16 +152,9 @@ Child submits a tutoring turn.
 ```json
 {
   "student_input": "Can you help me solve 3x + 4 = 19?",
-  "parent_guidance": "Keep it scaffolded and ask one question at a time.",
-  "profile": {
-    "age": 10,
-    "grade": "5",
-    "subjects": ["math"]
-  },
-  "daily_context": {
-    "focus": "one-step equations"
-  },
-  "allow_direct_answer": false
+  "client_metadata": {
+    "input_mode": "voice"
+  }
 }
 ```
 
@@ -41,12 +168,9 @@ Child submits a tutoring turn.
     "mode": "hybrid_tts"
   },
   "policy_applied": ["none"],
-  "model_used": "claude-3-5-sonnet-latest"
+  "model_used": "claude-sonnet-4-5-20250929"
 }
 ```
-
-### Errors
-- `400 child_turn_failed`
 
 ## POST `/api/session/:id/parent-nudge`
 Parent sends hidden nudge to steer tutor response.
@@ -55,15 +179,7 @@ Parent sends hidden nudge to steer tutor response.
 ```json
 {
   "nudge_text": "Student is getting frustrated; slow down and praise effort.",
-  "parent_guidance": "Do not reveal this guidance.",
-  "profile": {
-    "age": 10,
-    "grade": "5"
-  },
-  "daily_context": {
-    "focus": "fractions"
-  },
-  "allow_direct_answer": false
+  "parent_guidance": "Do not reveal this guidance."
 }
 ```
 
@@ -77,19 +193,16 @@ Parent sends hidden nudge to steer tutor response.
     "mode": "hybrid_tts"
   },
   "policy_applied": ["none"],
-  "model_used": "claude-3-5-sonnet-latest",
+  "model_used": "claude-sonnet-4-5-20250929",
   "queued": true
 }
 ```
 
-### Errors
-- `400 parent_nudge_failed`
-
 ## Visibility Rules
-- Parent may read hidden guidance and parent-only events.
-- Child must only receive child-safe tutor output and shared transcript lines.
+- Parent can read parent-only and shared messages for owned sessions.
+- Child routes only accept valid child session token issued by `/api/session/join`.
 - Parent guidance must never be echoed verbatim in child-visible content.
+- Tutor context (`profile`, `daily_context`, and direct-answer override) is resolved from trusted server-side session data, not client payload fields.
 
 ## Stability Notes
-- These two endpoints are the initial stable contract for v1.
-- Any response-shape change requires updates to tests, README, and handoff log.
+- Any response-shape change requires updates to tests, docs, and handoff log.

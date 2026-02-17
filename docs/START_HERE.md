@@ -13,14 +13,20 @@ Implement Supabase-backed persistent session + auth + realtime so parent/child s
 ## Current Status Snapshot
 - Tutor pipeline exists and is Anthropic-only.
 - Guardrails exist (scaffold-first + explicit override).
-- Two API routes exist (`child-turn`, `parent-nudge`).
-- Parent nudge queue is currently in-memory and must be replaced.
+- Session foundation APIs now exist:
+  - `GET /api/parent/me`
+  - `GET|POST /api/children`
+  - `POST /api/session/start`
+  - `POST /api/session/join`
+- Child-turn now requires child session token; parent-nudge now requires authenticated parent ownership.
+- Messages are persisted in `messages` table via server routes.
+- Supabase migration exists at `supabase/migrations/20260217040000_session_foundation.sql`.
 
 ## First Tasks To Execute
-1. Add Supabase schema and RLS from `DB_SCHEMA_AND_RLS.md`.
-2. Replace in-memory queue with persistent messages + realtime events.
-3. Implement onboarding/session-code flows in API and UI.
-4. Add integration tests for visibility and authorization boundaries.
+1. Apply the migration in Supabase and verify RLS/policies in a real project.
+2. Build parent and child onboarding UI flows on top of the new APIs.
+3. Replace API-only message persistence with Supabase realtime fan-out.
+4. Add integration tests for token redemption, session ownership, and visibility constraints.
 
 ## Hard Rules
 - Never expose `ANTHROPIC_API_KEY` in client code.

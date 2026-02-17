@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getTutorConfig, resetTutorConfigCache } from "../src/server/config.js";
+import { getSupabaseConfig, resetSupabaseConfigCache } from "../src/server/supabase-config.js";
 
 function normalizeValue(rawValue) {
   const trimmed = rawValue.trim();
@@ -56,9 +57,12 @@ function loadDotEnvFiles() {
 try {
   loadDotEnvFiles();
   resetTutorConfigCache();
+  resetSupabaseConfigCache();
   const config = getTutorConfig(process.env);
+  const supabase = getSupabaseConfig(process.env);
+  const supabaseHost = new URL(supabase.url).host;
   console.log(
-    `Tutor environment valid. Model=${config.model}, PromptVersion=${config.promptVersion}`
+    `Tutor environment valid. Model=${config.model}, PromptVersion=${config.promptVersion}, SupabaseHost=${supabaseHost}`
   );
 } catch (error) {
   console.error(error instanceof Error ? error.message : "Environment validation failed");

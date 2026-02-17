@@ -37,6 +37,10 @@ This spec covers the first production-capable version of the homeschool tutor we
 - `src/server/anthropic.js`: Anthropic messages API wrapper.
 - `src/server/guardrails.js`: scaffold-first and unsafe-content policy.
 - `src/server/tutor-service.js`: shared orchestration for child turn and parent nudge.
+- `src/server/supabase-config.js`: Supabase env parsing/validation.
+- `src/server/supabase-clients.js`: anon and service-role Supabase clients.
+- `src/server/auth.js`: parent bearer auth + child session token auth.
+- `src/server/session-foundation-service.js`: child CRUD, session start, join-code redemption, message persistence.
 
 ## Guardrail Rules
 - Default: no direct answers.
@@ -53,7 +57,7 @@ This spec covers the first production-capable version of the homeschool tutor we
 
 ## Acceptance Criteria
 - Child-turn endpoint returns: `assistant_text`, `speak_payload`, `policy_applied`, `model_used`.
-- Parent nudge endpoint uses same tutor pipeline and queues tutor utterance.
+- Parent nudge endpoint uses same tutor pipeline and persists parent/assistant messages.
 - Required env vars fail startup when missing.
 - CI enforces handoff log update when runtime code changes.
 

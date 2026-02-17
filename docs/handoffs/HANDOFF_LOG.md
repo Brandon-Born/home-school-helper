@@ -226,3 +226,123 @@
 
 ### Blocking Questions
 - None.
+
+## 2026-02-17T03:49:18Z - Codex
+
+### Scope Worked
+- Implemented Phase 1 session foundation backend (Supabase schema/RLS + auth-gated APIs + one-time join-code flow).
+- Secured existing tutoring routes with scoped session access checks and message persistence.
+
+### Last Agent Accomplished
+- Added Supabase migration: `/Users/bborn/home-school-helper/supabase/migrations/20260217040000_session_foundation.sql`.
+- Added server modules for Supabase config/clients, API errors, auth context, join-code/token utilities, and session foundation services.
+- Added new API routes:
+  - `GET /api/parent/me`
+  - `GET|POST /api/children`
+  - `POST /api/session/start`
+  - `POST /api/session/join`
+- Updated existing routes:
+  - `/api/session/[id]/child-turn` now requires child session bearer token and persists child/assistant messages.
+  - `/api/session/[id]/parent-nudge` now requires parent bearer token + session ownership and persists parent/assistant messages.
+- Removed unused in-memory queue module (`src/server/session-events.js`).
+- Expanded env validation to include Supabase required env vars.
+- Added tests for session code utilities, payload normalization, and Supabase env validation.
+- Updated docs (`API_CONTRACT.md`, `DB_SCHEMA_AND_RLS.md`, `IMPLEMENTATION_SPEC.md`, `PROJECT_PLAN.md`, `START_HERE.md`, `DEPLOYMENT.md`, `DECISIONS.md`, `README.md`).
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/api/parent/me/route.js`
+- `/Users/bborn/home-school-helper/app/api/children/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/start/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/join/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/child-turn/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/parent-nudge/route.js`
+- `/Users/bborn/home-school-helper/src/server/api-error.js`
+- `/Users/bborn/home-school-helper/src/server/route-errors.js`
+- `/Users/bborn/home-school-helper/src/server/supabase-config.js`
+- `/Users/bborn/home-school-helper/src/server/supabase-clients.js`
+- `/Users/bborn/home-school-helper/src/server/session-codes.js`
+- `/Users/bborn/home-school-helper/src/server/auth.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation-service.js`
+- `/Users/bborn/home-school-helper/src/server/session-events.js` (deleted)
+- `/Users/bborn/home-school-helper/scripts/validate-env.mjs`
+- `/Users/bborn/home-school-helper/tests/startup-config.test.js`
+- `/Users/bborn/home-school-helper/tests/session-codes.test.js`
+- `/Users/bborn/home-school-helper/tests/session-foundation-service.test.js`
+- `/Users/bborn/home-school-helper/supabase/migrations/20260217040000_session_foundation.sql`
+- `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+- `/Users/bborn/home-school-helper/docs/DB_SCHEMA_AND_RLS.md`
+- `/Users/bborn/home-school-helper/docs/IMPLEMENTATION_SPEC.md`
+- `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
+- `/Users/bborn/home-school-helper/docs/START_HERE.md`
+- `/Users/bborn/home-school-helper/docs/DEPLOYMENT.md`
+- `/Users/bborn/home-school-helper/docs/architecture/DECISIONS.md`
+- `/Users/bborn/home-school-helper/README.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (15 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass (`Next.js 15.5.12`).
+- Command: `npm run check:env`
+- Result: pass (Anthropic + Supabase env validated).
+
+### Open Risks / Issues
+- Migration SQL is created but still needs to be applied in your Supabase project.
+- Parent Google OAuth frontend flow is not yet implemented; endpoints expect a valid Supabase bearer token.
+- Realtime fan-out is still pending; messages are persisted but not yet broadcast to clients.
+
+### Next Steps (Ordered)
+1. Apply `supabase/migrations/20260217040000_session_foundation.sql` in Supabase and verify policies.
+2. Implement parent Google OAuth UI/session flow to supply bearer tokens to parent routes.
+3. Build child onboarding/join UI using `/api/session/join` and store child session token securely in the client.
+4. Add Supabase realtime subscription layer for `messages` and session-state events.
+
+### Blocking Questions
+- None.
+
+## 2026-02-17T03:59:13Z - Codex
+
+### Scope Worked
+- Attempted remote Supabase migration application.
+- Implemented requested security refactors (1 and 2) before migration apply.
+
+### Last Agent Accomplished
+- Tried applying migration via Supabase CLI and direct project API endpoints.
+- Migration application is blocked by missing Supabase CLI auth prerequisites in this environment:
+  - `supabase link` failed with: access token not provided.
+  - `supabase db push` requires linked project and DB auth.
+- Implemented Refactor 1:
+  - Child-turn route now ignores child-provided `parent_guidance`, `profile`, `daily_context`, and `allow_direct_answer` values.
+  - Route resolves trusted tutor context from DB (`sessions`, `children`, latest parent-only guidance message, active override state).
+- Implemented Refactor 2:
+  - Parent-nudge route now resolves `allowDirectAnswer` from active `overrides` rows, not request payload.
+- Added `getSessionTutorContext` service helper and updated API contract documentation.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/api/session/[id]/child-turn/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/parent-nudge/route.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation-service.js`
+- `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (15 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+- Command: `npm run check:env`
+- Result: pass.
+
+### Open Risks / Issues
+- Migration still not applied remotely; requires one of:
+  - Supabase access token (`supabase login` or `SUPABASE_ACCESS_TOKEN`) and linked project.
+  - Direct DB connection string/password to run `supabase db push --db-url`.
+
+### Next Steps (Ordered)
+1. Authenticate Supabase CLI (`supabase login`) or provide `SUPABASE_ACCESS_TOKEN`.
+2. Link project ref `inzjudbbiecayoqieeig` and run migration push.
+3. Validate tables/policies exist in Supabase dashboard SQL editor.
+
+### Blocking Questions
+- Please provide either Supabase access token flow or DB connection credentials for migration execution.

@@ -9,6 +9,9 @@
 1. `parents`
 - `id uuid pk`
 - `auth_user_id uuid unique not null`
+- `email text`
+- `full_name text`
+- `onboarding_completed boolean default false`
 - `created_at timestamptz default now()`
 
 2. `children`
@@ -30,6 +33,7 @@
 - `daily_context jsonb not null default '{}'::jsonb`
 - `started_at timestamptz default now()`
 - `ended_at timestamptz`
+- partial unique index enforcing one active session per child
 
 4. `session_codes`
 - `id uuid pk`
@@ -38,8 +42,18 @@
 - `expires_at timestamptz not null`
 - `redeemed_at timestamptz`
 - `redeemed_device_fingerprint text`
+- `created_at timestamptz default now()`
 
-5. `messages`
+5. `child_session_tokens`
+- `id uuid pk`
+- `session_id uuid not null references sessions(id)`
+- `child_id uuid not null references children(id)`
+- `token_hash text not null unique`
+- `expires_at timestamptz not null`
+- `revoked_at timestamptz`
+- `created_at timestamptz default now()`
+
+6. `messages`
 - `id uuid pk`
 - `session_id uuid not null references sessions(id)`
 - `actor_type text not null check (actor_type in ('parent','child','assistant','system'))`
@@ -48,7 +62,7 @@
 - `policy_flags jsonb not null default '[]'::jsonb`
 - `created_at timestamptz default now()`
 
-6. `overrides`
+7. `overrides`
 - `id uuid pk`
 - `session_id uuid not null references sessions(id)`
 - `parent_id uuid not null references parents(id)`
@@ -56,7 +70,7 @@
 - `expires_at timestamptz not null`
 - `created_at timestamptz default now()`
 
-7. `policy_events`
+8. `policy_events`
 - `id uuid pk`
 - `session_id uuid not null references sessions(id)`
 - `event_type text not null`
@@ -69,6 +83,7 @@
 - `sessions(parent_id, child_id, status)`
 - `messages(session_id, created_at)`
 - `session_codes(session_id, expires_at)`
+- `child_session_tokens(session_id, expires_at)`
 - `policy_events(session_id, created_at)`
 
 ## RLS Model
@@ -83,20 +98,16 @@ Child session access rule:
 
 Message visibility rule:
 - Parent sees all messages in authorized sessions.
-- Child can only read messages with `visibility_scope='child_and_parent'`.
+- Child receives only `visibility_scope='child_and_parent'` data through server APIs.
 
 ## Example Parent Policy Pattern
 ```sql
-create policy "parents_select_children"
-on public.children
+create policy parents_select_self
+on public.parents
 for select
-using (
-  parent_id in (
-    select p.id from public.parents p where p.auth_user_id = auth.uid()
-  )
-);
+using (auth.uid() = auth_user_id);
 ```
 
 ## Migration Notes
-- Keep SQL migrations in ordered files under `supabase/migrations/`.
-- Every schema or policy change requires an ADR update and handoff log entry.
+- SQL migrations are under `/Users/bborn/home-school-helper/supabase/migrations/`.
+- Every schema or policy change requires docs and handoff updates.

@@ -33,3 +33,17 @@
   - Reduces context loss across agents and improves continuity.
 - Consequences:
   - Slightly more process overhead on every runtime code change.
+
+## ADR-004: Session Foundation Auth Model
+- Status: Accepted
+- Date: 2026-02-17
+- Decision:
+  - Parent APIs use Supabase access token via `Authorization: Bearer <token>`.
+  - Child access is granted only through one-time session code redemption.
+  - Redeeming a join code issues a scoped child session token used by child-turn APIs.
+- Rationale:
+  - Keeps child UX low-friction (no child account login) while maintaining server-enforced access boundaries.
+  - Supports hidden parent channel separation and scoped authorization per live session.
+- Consequences:
+  - Requires secure token hashing and expiry handling in backend storage.
+  - Requires migration and policy setup before production use.

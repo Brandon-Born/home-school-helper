@@ -29,16 +29,22 @@ Implemented:
 - Server-only Anthropic call module.
 - Guardrails and tutor response shaping pipeline.
 - API routes:
+  - `GET /api/parent/me`
+  - `GET|POST /api/children`
+  - `POST /api/session/start`
+  - `POST /api/session/join`
   - `POST /api/session/:id/child-turn`
   - `POST /api/session/:id/parent-nudge`
+- Supabase migration and RLS policy SQL scaffold (`supabase/migrations/20260217040000_session_foundation.sql`).
+- Child session token auth on child-turn route.
+- Parent session ownership auth on parent-nudge route.
 - Agent operations docs (`AGENT.md`) and handoff system.
 - CI guard for handoff log updates on runtime code changes.
 
 Not yet implemented:
-- Supabase schema, auth, and realtime integration.
+- Supabase migration execution and verification in a live Supabase project.
 - Parent/child onboarding UIs and flows.
-- Session join code issuance/redeem persistence.
-- Production-grade event delivery and authorization controls.
+- Production-grade realtime event fan-out and client subscription wiring.
 - End-to-end tests and deployment hardening.
 
 ## 5. Execution Roadmap

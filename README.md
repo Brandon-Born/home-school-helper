@@ -24,6 +24,11 @@ Web-first homeschool tutoring assistant with parent steering and scaffold-first 
 - `TUTOR_SYSTEM_PROMPT_VERSION` (default: `v1`)
 
 ## API Routes
+- `GET /api/parent/me` (parent bearer token required)
+- `GET /api/children` (parent bearer token required)
+- `POST /api/children` (parent bearer token required)
+- `POST /api/session/start` (parent bearer token required)
+- `POST /api/session/join` (one-time code redemption)
 - `POST /api/session/:id/child-turn`
 - `POST /api/session/:id/parent-nudge`
 
