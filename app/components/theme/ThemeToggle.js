@@ -24,9 +24,6 @@ export function ThemeToggle() {
           {mode.label}
         </button>
       ))}
-      <span className="theme-toggle__status" aria-live="polite">
-        {resolvedTheme === "dark" ? "Dark" : "Light"}
-      </span>
     </div>
   );
 }
