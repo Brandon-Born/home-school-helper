@@ -1,0 +1,20 @@
+{
+  "name": "home-school-helper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "prestart": "node scripts/validate-env.mjs",
+    "start": "next start",
+    "check:env": "node scripts/validate-env.mjs",
+    "check:handoff": "bash scripts/check-handoff.sh",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "next": "15.1.6",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  }
+}
