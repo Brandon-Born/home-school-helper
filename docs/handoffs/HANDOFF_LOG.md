@@ -1,5 +1,67 @@
 # Handoff Log
 
+## 2026-02-17T20:11:21Z - Codex
+
+### Scope Worked
+- Completed targeted testing tasks for launch hardening:
+  - route-level failure/rate-limit tests for session and speech endpoints,
+  - deeper deterministic SSE stream sequencing coverage.
+- Refactored selected routes to injectable handler factories for testability without brittle module mocking.
+
+### Last Agent Accomplished
+- Route testability refactor:
+  - Added handler factories for session start/join routes:
+    - `/Users/bborn/home-school-helper/app/api/session/start/route.js`
+    - `/Users/bborn/home-school-helper/app/api/session/join/route.js`
+  - Added handler factories for speech routes:
+    - `/Users/bborn/home-school-helper/app/api/session/[id]/speech/transcribe/route.js`
+    - `/Users/bborn/home-school-helper/app/api/session/[id]/speech/synthesize/route.js`
+- New route-level tests:
+  - `/Users/bborn/home-school-helper/tests/session-routes.test.js`
+    - validates `rate_limited` handling for join/start,
+    - validates successful session-start orchestration path.
+  - `/Users/bborn/home-school-helper/tests/speech-routes.test.js`
+    - validates provider failure propagation for transcribe/synthesize,
+    - validates `rate_limited` handling for transcribe/synthesize.
+- SSE sequencing test expansion:
+  - Updated `/Users/bborn/home-school-helper/tests/stream-route.test.js` with deterministic stream read assertions:
+    - verifies first event is `snapshot`,
+    - verifies subsequent `message_append` emits only fresh IDs in order (`m2`, `m3`).
+- Small route response cleanup:
+  - Switched session join/start responses to `Response.json` (removed unnecessary `next/server` runtime import for Node test compatibility).
+- Updated planning docs to reflect completed tasks:
+  - `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
+  - `/Users/bborn/home-school-helper/docs/START_HERE.md`
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/api/session/join/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/start/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/speech/transcribe/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/speech/synthesize/route.js`
+- `/Users/bborn/home-school-helper/tests/session-routes.test.js`
+- `/Users/bborn/home-school-helper/tests/speech-routes.test.js`
+- `/Users/bborn/home-school-helper/tests/stream-route.test.js`
+- `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
+- `/Users/bborn/home-school-helper/docs/START_HERE.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (60 tests, 0 failures).
+
+### Open Risks / Issues
+- Polling-based SSE transport remains functional but may become latency/cost bottleneck at higher concurrency.
+- Rate limiting is still in-memory per instance; distributed/global backing remains pending.
+
+### Next Steps (Ordered)
+1. Verify transcript retention migration (`20260217193000`) is applied in each deployed Supabase environment.
+2. Evaluate migrating polling SSE fan-out to Supabase Realtime channels.
+3. Implement remaining launch compliance surfaces (consent records, transcript export/delete UX).
+4. Add E2E critical-path tests.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-17T19:13:59Z - Codex
 
 ### Scope Worked

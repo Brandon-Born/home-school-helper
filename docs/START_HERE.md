@@ -30,10 +30,10 @@ Stabilize cloud voice UX (Google STT V2 + Chirp 3), auth robustness, and launch-
 - Realtime transcript updates now stream through `GET /api/session/:id/stream` (SSE).
 
 ## First Tasks To Execute
-1. Verify Google Speech env config in each environment (local/Vercel) and run child cloud voice flow end-to-end.
-2. Add deeper SSE sequencing tests for stream `snapshot` + `message_append` framing under deterministic harnesses.
-3. Add route-level tests for speech and session endpoints covering rate-limit and provider-failure behavior.
-4. Consider migrating SSE transcript stream to direct Supabase Realtime channels if lower-latency fan-out is needed.
+1. Verify transcript retention migration (`20260217193000_transcript_retention.sql`) is applied in each Supabase environment and cron job exists.
+2. Verify Google Speech env config in each environment (local/Vercel) and run child cloud voice flow end-to-end.
+3. Consider migrating SSE transcript stream to direct Supabase Realtime channels if lower-latency fan-out is needed.
+4. Add E2E critical-path tests for parent/child launch flow.
 
 ## Hard Rules
 - Never expose `ANTHROPIC_API_KEY` in client code.

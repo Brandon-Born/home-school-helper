@@ -1,23 +1,31 @@
-import { NextResponse } from "next/server";
 import { requireParentContext } from "../../../../src/server/auth.js";
 import { handleRouteError } from "../../../../src/server/route-errors.js";
 import { startSessionForParent } from "../../../../src/server/session-foundation-service.js";
 import { enforceRateLimit } from "../../../../src/server/rate-limit.js";
 
-export async function POST(request) {
-  try {
-    enforceRateLimit(request, {
-      scope: "session_start",
-      maxRequests: 20,
-      windowMs: 60_000
-    });
+export function createSessionStartPostHandler(dependencies = {}) {
+  const applyRateLimit = dependencies.enforceRateLimit ?? enforceRateLimit;
+  const requireParent = dependencies.requireParentContext ?? requireParentContext;
+  const startSession = dependencies.startSessionForParent ?? startSessionForParent;
+  const onError = dependencies.handleRouteError ?? handleRouteError;
 
-    const payload = await request.json();
-    const { parent } = await requireParentContext(request);
-    const session = await startSessionForParent(parent.id, payload);
+  return async function POST(request) {
+    try {
+      applyRateLimit(request, {
+        scope: "session_start",
+        maxRequests: 20,
+        windowMs: 60_000
+      });
 
-    return NextResponse.json({ session }, { status: 201 });
-  } catch (error) {
-    return handleRouteError(error, "session_start_failed");
-  }
+      const payload = await request.json();
+      const { parent } = await requireParent(request);
+      const session = await startSession(parent.id, payload);
+
+      return Response.json({ session }, { status: 201 });
+    } catch (error) {
+      return onError(error, "session_start_failed");
+    }
+  };
 }
+
+export const POST = createSessionStartPostHandler();

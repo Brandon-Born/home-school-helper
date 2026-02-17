@@ -4,6 +4,36 @@ import assert from "node:assert/strict";
 import { ApiError } from "../src/server/api-error.js";
 import { createStreamGetHandler, serializeSse } from "../app/api/session/[id]/stream/route.js";
 
+function parseSseEvents(chunkText) {
+  const blocks = chunkText.split("\n\n").filter(Boolean);
+  const events = [];
+
+  for (const block of blocks) {
+    const lines = block.split("\n");
+    let eventName = "message";
+    const dataLines = [];
+
+    for (const line of lines) {
+      if (line.startsWith("event:")) {
+        eventName = line.slice(6).trim();
+      } else if (line.startsWith("data:")) {
+        dataLines.push(line.slice(5).trim());
+      }
+    }
+
+    if (dataLines.length === 0) {
+      continue;
+    }
+
+    events.push({
+      event: eventName,
+      data: JSON.parse(dataLines.join("\n"))
+    });
+  }
+
+  return events;
+}
+
 test("serializeSse formats event payload blocks", () => {
   const encoded = serializeSse("snapshot", { visibility: "child" });
   const decoded = new TextDecoder().decode(encoded);
@@ -81,4 +111,96 @@ test("createStreamGetHandler returns JSON error response for viewer resolution f
     error: "session_forbidden",
     message: "Forbidden"
   });
+});
+
+test("createStreamGetHandler emits snapshot then ordered message_append events", async () => {
+  const pollCallbacks = [];
+  let listCallCount = 0;
+  const seededRows = [
+    [
+      {
+        id: "m1",
+        actor_type: "child",
+        visibility_scope: "child_and_parent",
+        content: "first",
+        created_at: "2026-02-17T00:00:00.000Z"
+      }
+    ],
+    [
+      {
+        id: "m1",
+        actor_type: "child",
+        visibility_scope: "child_and_parent",
+        content: "first",
+        created_at: "2026-02-17T00:00:00.000Z"
+      },
+      {
+        id: "m2",
+        actor_type: "assistant",
+        visibility_scope: "child_and_parent",
+        content: "second",
+        created_at: "2026-02-17T00:00:01.000Z"
+      },
+      {
+        id: "m3",
+        actor_type: "assistant",
+        visibility_scope: "child_and_parent",
+        content: "third",
+        created_at: "2026-02-17T00:00:02.000Z"
+      }
+    ]
+  ];
+
+  const handler = createStreamGetHandler({
+    resolveSessionViewerContext: async () => ({ role: "child", visibility: "child" }),
+    listSessionMessages: async () => {
+      const index = Math.min(listCallCount, seededRows.length - 1);
+      listCallCount += 1;
+      return seededRows[index];
+    },
+    setTimer: (callback, interval) => {
+      if (interval === 1800) {
+        pollCallbacks.push(callback);
+      }
+      return { interval };
+    },
+    clearTimer: () => {}
+  });
+
+  const abortController = new AbortController();
+  const request = new Request("https://example.test/api/session/s1/stream?limit=10", {
+    signal: abortController.signal
+  });
+  const response = await handler(request, {
+    params: { id: "s1" }
+  });
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
+  const firstChunk = await reader.read();
+  assert.equal(firstChunk.done, false);
+  const snapshotEvents = parseSseEvents(decoder.decode(firstChunk.value));
+  assert.equal(snapshotEvents.length, 1);
+  assert.equal(snapshotEvents[0].event, "snapshot");
+  assert.deepEqual(
+    snapshotEvents[0].data.messages.map((message) => message.id),
+    ["m1"]
+  );
+
+  assert.equal(typeof pollCallbacks[0], "function");
+  const pollPromise = pollCallbacks[0]();
+  const secondChunk = await reader.read();
+  await pollPromise;
+  assert.equal(secondChunk.done, false);
+  const appendEvents = parseSseEvents(decoder.decode(secondChunk.value));
+  assert.equal(appendEvents.length, 1);
+  assert.equal(appendEvents[0].event, "message_append");
+  assert.deepEqual(
+    appendEvents[0].data.messages.map((message) => message.id),
+    ["m2", "m3"]
+  );
+
+  abortController.abort();
+  await reader.cancel();
 });

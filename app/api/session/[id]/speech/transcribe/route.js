@@ -4,37 +4,46 @@ import { handleRouteError } from "../../../../../../src/server/route-errors.js";
 import { transcribeSpeech } from "../../../../../../src/server/speech-provider.js";
 import { enforceRateLimit } from "../../../../../../src/server/rate-limit.js";
 
-export async function POST(request, { params }) {
-  try {
-    enforceRateLimit(request, {
-      scope: "speech_transcribe",
-      maxRequests: 25,
-      windowMs: 60_000,
-      keySuffix: params.id
-    });
+export function createSpeechTranscribePostHandler(dependencies = {}) {
+  const applyRateLimit = dependencies.enforceRateLimit ?? enforceRateLimit;
+  const requireChild = dependencies.requireChildSessionContext ?? requireChildSessionContext;
+  const transcribe = dependencies.transcribeSpeech ?? transcribeSpeech;
+  const onError = dependencies.handleRouteError ?? handleRouteError;
 
-    await requireChildSessionContext(request, params.id);
+  return async function POST(request, { params }) {
+    try {
+      applyRateLimit(request, {
+        scope: "speech_transcribe",
+        maxRequests: 25,
+        windowMs: 60_000,
+        keySuffix: params.id
+      });
 
-    const formData = await request.formData();
-    const audioFile = formData.get("audio");
+      await requireChild(request, params.id);
 
-    if (!audioFile || typeof audioFile.arrayBuffer !== "function") {
-      throw new ApiError(400, "validation_error", "audio file is required.");
+      const formData = await request.formData();
+      const audioFile = formData.get("audio");
+
+      if (!audioFile || typeof audioFile.arrayBuffer !== "function") {
+        throw new ApiError(400, "validation_error", "audio file is required.");
+      }
+
+      const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
+      if (audioBuffer.length === 0) {
+        throw new ApiError(400, "validation_error", "audio file must not be empty.");
+      }
+
+      const languageCode = formData.get("language_code");
+      const result = await transcribe({
+        audioBytes: audioBuffer,
+        languageCode: typeof languageCode === "string" ? languageCode : undefined
+      });
+
+      return Response.json(result);
+    } catch (error) {
+      return onError(error, "speech_transcribe_failed");
     }
-
-    const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
-    if (audioBuffer.length === 0) {
-      throw new ApiError(400, "validation_error", "audio file must not be empty.");
-    }
-
-    const languageCode = formData.get("language_code");
-    const result = await transcribeSpeech({
-      audioBytes: audioBuffer,
-      languageCode: typeof languageCode === "string" ? languageCode : undefined
-    });
-
-    return Response.json(result);
-  } catch (error) {
-    return handleRouteError(error, "speech_transcribe_failed");
-  }
+  };
 }
+
+export const POST = createSpeechTranscribePostHandler();

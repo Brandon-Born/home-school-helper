@@ -1,23 +1,30 @@
-import { NextResponse } from "next/server";
 import { handleRouteError } from "../../../../src/server/route-errors.js";
 import { redeemSessionCode } from "../../../../src/server/session-foundation-service.js";
 import { enforceRateLimit } from "../../../../src/server/rate-limit.js";
 
-export async function POST(request) {
-  try {
-    enforceRateLimit(request, {
-      scope: "session_join",
-      maxRequests: 10,
-      windowMs: 60_000
-    });
+export function createSessionJoinPostHandler(dependencies = {}) {
+  const applyRateLimit = dependencies.enforceRateLimit ?? enforceRateLimit;
+  const redeemCode = dependencies.redeemSessionCode ?? redeemSessionCode;
+  const onError = dependencies.handleRouteError ?? handleRouteError;
 
-    const payload = await request.json();
-    const sessionAccess = await redeemSessionCode(payload);
+  return async function POST(request) {
+    try {
+      applyRateLimit(request, {
+        scope: "session_join",
+        maxRequests: 10,
+        windowMs: 60_000
+      });
 
-    return NextResponse.json({
-      session_access: sessionAccess
-    });
-  } catch (error) {
-    return handleRouteError(error, "session_join_failed");
-  }
+      const payload = await request.json();
+      const sessionAccess = await redeemCode(payload);
+
+      return Response.json({
+        session_access: sessionAccess
+      });
+    } catch (error) {
+      return onError(error, "session_join_failed");
+    }
+  };
 }
+
+export const POST = createSessionJoinPostHandler();
