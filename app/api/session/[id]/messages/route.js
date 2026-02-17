@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { handleRouteError } from "../../../../../src/server/route-errors.js";
 import { listSessionMessages } from "../../../../../src/server/session-foundation-service.js";
 import { resolveSessionViewerContext } from "../../../../../src/server/session-viewer-context.js";
@@ -20,7 +19,7 @@ export function createMessagesGetHandler(dependencies = {}) {
         limit
       });
 
-      return NextResponse.json({
+      return Response.json({
         messages,
         visibility: viewerContext.visibility
       });

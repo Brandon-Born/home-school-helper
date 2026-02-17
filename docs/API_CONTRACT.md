@@ -234,6 +234,41 @@ Auth behavior:
 - `message_append`: newly appended transcript rows.
 - `error`: recoverable stream-side polling error.
 
+## POST `/api/session/:id/speech/transcribe`
+Transcribes child audio using Google Speech-to-Text V2.
+
+Auth behavior:
+- Requires valid child session bearer token for this session.
+
+### Request
+- `multipart/form-data`
+- field `audio`: recorded audio file/blob.
+- optional field `language_code`: BCP-47 language code (default server config).
+
+### Response (200)
+```json
+{
+  "transcript": "Can we do another multiplication example?"
+}
+```
+
+## POST `/api/session/:id/speech/synthesize`
+Synthesizes child-facing tutor speech audio using Google Chirp 3 TTS.
+
+Auth behavior:
+- Requires valid child session bearer token for this session.
+
+### Request
+```json
+{
+  "text": "Great effort. Let us solve this step by step.",
+  "speaking_rate": 1.0
+}
+```
+
+### Response (200)
+- Binary audio payload (`audio/mpeg`).
+
 ## POST `/api/session/:id/override`
 Parent toggles direct-answer mode for a bounded duration.
 

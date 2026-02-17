@@ -22,6 +22,17 @@ Web-first homeschool tutoring assistant with parent steering and scaffold-first 
 - `ANTHROPIC_MAX_TOKENS` (default: `512`)
 - `ANTHROPIC_TEMPERATURE` (default: `0.3`)
 - `TUTOR_SYSTEM_PROMPT_VERSION` (default: `v1`)
+- Google Speech (enables cloud STT/TTS for child voice loop):
+  - `GOOGLE_CLOUD_PROJECT_ID`
+  - `GOOGLE_SERVICE_ACCOUNT_JSON`
+  - `GOOGLE_CLOUD_LOCATION` (default: `global`)
+  - `GOOGLE_STT_RECOGNIZER` (default: `_`)
+  - `GOOGLE_STT_LANGUAGE_CODE` (default: `en-US`)
+  - `GOOGLE_STT_MODEL` (default: `chirp_2`)
+  - `GOOGLE_TTS_LANGUAGE_CODE` (default: `en-US`)
+  - `GOOGLE_TTS_VOICE_NAME` (default: `en-US-Chirp3-HD-Achernar`)
+  - `GOOGLE_TTS_AUDIO_ENCODING` (default: `MP3`)
+  - `GOOGLE_TTS_SPEAKING_RATE` (default: `1.0`)
 
 ## API Routes
 - `GET /api/parent/me` (parent bearer token required)
@@ -34,6 +45,8 @@ Web-first homeschool tutoring assistant with parent steering and scaffold-first 
 - `GET /api/session/:id/messages`
 - `GET /api/session/:id/stream` (SSE subscription)
 - `POST /api/session/:id/override`
+- `POST /api/session/:id/speech/transcribe` (child bearer token required)
+- `POST /api/session/:id/speech/synthesize` (child bearer token required)
 
 ## UI Routes
 - `/parent` parent onboarding/session console

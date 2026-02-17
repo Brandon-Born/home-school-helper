@@ -1,3 +1,13 @@
+export class EventStreamError extends Error {
+  constructor(message, { status = null, code = null, payload = null } = {}) {
+    super(message);
+    this.name = "EventStreamError";
+    this.status = status;
+    this.code = code;
+    this.payload = payload;
+  }
+}
+
 export async function openEventStream({ path, bearerToken, onEvent, signal }) {
   const headers = {
     accept: "text/event-stream"
@@ -16,7 +26,17 @@ export async function openEventStream({ path, bearerToken, onEvent, signal }) {
 
   if (!response.ok || !response.body) {
     const text = await response.text().catch(() => "");
-    throw new Error(text || `Stream request failed with status ${response.status}`);
+    const parsed = parsePossiblyJson(text);
+    const message =
+      parsed?.message ||
+      (typeof parsed === "string" && parsed.trim()) ||
+      `Stream request failed with status ${response.status}`;
+
+    throw new EventStreamError(message, {
+      status: response.status,
+      code: parsed?.error || null,
+      payload: parsed
+    });
   }
 
   const reader = response.body.getReader();
@@ -45,6 +65,23 @@ export async function openEventStream({ path, bearerToken, onEvent, signal }) {
         onEvent(eventPayload);
       }
     }
+  }
+}
+
+function parsePossiblyJson(rawValue) {
+  if (typeof rawValue !== "string") {
+    return rawValue;
+  }
+
+  const trimmed = rawValue.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return rawValue;
   }
 }
 

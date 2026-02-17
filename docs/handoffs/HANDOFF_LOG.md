@@ -551,3 +551,142 @@
 
 ### Blocking Questions
 - None.
+
+## 2026-02-17T14:23:21Z - Codex
+
+### Scope Worked
+- Implemented the next three roadmap priorities in order: child voice loop, route-factory integration tests, and stream token-expiry/reconnect UX hardening.
+
+### Last Agent Accomplished
+- Added child voice loop in `/Users/bborn/home-school-helper/app/child/page.js`:
+  - Push-to-talk speech input using browser SpeechRecognition/WebKitSpeechRecognition.
+  - TTS playback via `speechSynthesis` for assistant messages (with text fallback when unavailable).
+  - Voice availability/status UX and auto-speak toggle.
+- Hardened child stream/session expiry handling:
+  - Detects auth/token failures and clears stale child session state with rejoin guidance.
+- Hardened parent stream/session expiry handling in `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js`:
+  - Attempts Supabase token refresh on auth failure.
+  - Falls back to sign-out + clear UX when refresh fails.
+- Improved client error fidelity:
+  - Added `ApiRequestError` in `/Users/bborn/home-school-helper/src/lib/http.js` with status/code metadata.
+  - Added `EventStreamError` in `/Users/bborn/home-school-helper/src/lib/event-stream.js` with status/code metadata.
+- Added route-factory integration tests:
+  - `/Users/bborn/home-school-helper/tests/messages-route.test.js`
+  - `/Users/bborn/home-school-helper/tests/stream-route.test.js`
+- Minor server response cleanup for testability/runtime consistency:
+  - `/Users/bborn/home-school-helper/app/api/session/[id]/messages/route.js` now returns `Response.json`.
+  - `/Users/bborn/home-school-helper/src/server/route-errors.js` now returns `Response.json`.
+  - `/Users/bborn/home-school-helper/app/api/session/[id]/stream/route.js` initial SSE snapshot write is non-blocking to avoid backpressure deadlock.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/child/page.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js`
+- `/Users/bborn/home-school-helper/src/lib/http.js`
+- `/Users/bborn/home-school-helper/src/lib/event-stream.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/messages/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/stream/route.js`
+- `/Users/bborn/home-school-helper/src/server/route-errors.js`
+- `/Users/bborn/home-school-helper/tests/messages-route.test.js`
+- `/Users/bborn/home-school-helper/tests/stream-route.test.js`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (29 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+
+### Open Risks / Issues
+- Browser STT/TTS support varies by platform and permissions; child flow now degrades to text-only UX when unavailable.
+- Stream tests currently validate handler factory behavior and visibility routing, not full SSE chunk sequencing under real timers.
+
+### Next Steps (Ordered)
+1. Add direct stream sequencing tests for `snapshot` + `message_append` under deterministic stream harness utilities.
+2. Add parent UI indicator for "session refreshed" and explicit re-auth CTA when refresh fails.
+3. Continue with additional voice quality controls (voice selection, speaking rate, interruption handling).
+
+### Blocking Questions
+- None.
+
+## 2026-02-17T15:21:17Z - Codex
+
+### Scope Worked
+- Implemented Google cloud voice stack integration (STT V2 + Chirp 3 TTS) for child session flow.
+- Completed the previously queued route-factory tests and token-expiry/reconnect hardening end-to-end.
+
+### Last Agent Accomplished
+- Added Google speech server modules:
+  - `/Users/bborn/home-school-helper/src/server/google-speech-config.js`
+  - `/Users/bborn/home-school-helper/src/server/google-speech.js`
+- Added child-authenticated speech routes:
+  - `POST /api/session/:id/speech/transcribe`
+  - `POST /api/session/:id/speech/synthesize`
+  - files under `/Users/bborn/home-school-helper/app/api/session/[id]/speech/*`
+- Updated child UI to prefer cloud voice path with robust fallback behavior:
+  - cloud mic capture + upload transcription
+  - cloud TTS playback for assistant messages
+  - browser STT/TTS fallback when needed
+  - child token-expiry handling clears stale session and prompts rejoin
+  - file: `/Users/bborn/home-school-helper/app/child/page.js`
+- Hardened parent token-expiry handling in stream/request paths:
+  - refresh-on-failure + forced sign-out fallback
+  - file: `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js`
+- Added richer request/stream error metadata for consistent auth-failure handling:
+  - `/Users/bborn/home-school-helper/src/lib/http.js`
+  - `/Users/bborn/home-school-helper/src/lib/event-stream.js`
+- Added route-factory tests:
+  - `/Users/bborn/home-school-helper/tests/messages-route.test.js`
+  - `/Users/bborn/home-school-helper/tests/stream-route.test.js`
+- Updated route response consistency for Node-native tests:
+  - `/Users/bborn/home-school-helper/src/server/route-errors.js`
+  - `/Users/bborn/home-school-helper/app/api/session/[id]/messages/route.js`
+  - `/Users/bborn/home-school-helper/app/api/session/[id]/stream/route.js`
+- Updated env/docs for Google speech setup and API contract:
+  - `/Users/bborn/home-school-helper/.env.example`
+  - `/Users/bborn/home-school-helper/README.md`
+  - `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+  - `/Users/bborn/home-school-helper/docs/START_HERE.md`
+  - `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
+  - `/Users/bborn/home-school-helper/scripts/validate-env.mjs`
+
+### Files Touched
+- `/Users/bborn/home-school-helper/.env.example`
+- `/Users/bborn/home-school-helper/README.md`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/messages/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/stream/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/speech/transcribe/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/speech/synthesize/route.js`
+- `/Users/bborn/home-school-helper/app/child/page.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js`
+- `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+- `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
+- `/Users/bborn/home-school-helper/docs/START_HERE.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+- `/Users/bborn/home-school-helper/scripts/validate-env.mjs`
+- `/Users/bborn/home-school-helper/src/lib/event-stream.js`
+- `/Users/bborn/home-school-helper/src/lib/http.js`
+- `/Users/bborn/home-school-helper/src/server/route-errors.js`
+- `/Users/bborn/home-school-helper/src/server/google-speech-config.js`
+- `/Users/bborn/home-school-helper/src/server/google-speech.js`
+- `/Users/bborn/home-school-helper/tests/messages-route.test.js`
+- `/Users/bborn/home-school-helper/tests/stream-route.test.js`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (29 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+- Command: `npm run check:env`
+- Result: pass (`Speech=disabled` when Google speech env vars are unset).
+
+### Open Risks / Issues
+- Google STT V2 model/recognizer defaults (`chirp_2`, `_`) are configurable by env and must match project-region availability.
+- Cloud voice path depends on browser microphone permission and media recording support; browser STT/TTS fallback remains enabled.
+
+### Next Steps (Ordered)
+1. Configure `GOOGLE_CLOUD_PROJECT_ID` + `GOOGLE_SERVICE_ACCOUNT_JSON` in local/Vercel and run live audio validation.
+2. Optionally pin a specific Chirp 3 child voice name per locale and add UI control for speaking rate.
+3. Add telemetry counters for STT/TTS success/failure and fallback frequency.
+
+### Blocking Questions
+- None.

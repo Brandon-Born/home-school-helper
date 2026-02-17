@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { apiRequest } from "../../../src/lib/http.js";
-import { openEventStream } from "../../../src/lib/event-stream.js";
+import { EventStreamError, openEventStream } from "../../../src/lib/event-stream.js";
+import { ApiRequestError, apiRequest } from "../../../src/lib/http.js";
 import { getBrowserSupabaseClient } from "../../../src/lib/supabase-browser.js";
 
 function toList(value) {
@@ -21,6 +21,21 @@ function mergeMessages(previous, incoming) {
   return Array.from(map.values()).sort(
     (left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime()
   );
+}
+
+function isParentTokenFailure(error) {
+  if (error instanceof EventStreamError || error instanceof ApiRequestError) {
+    if ([401, 403].includes(error.status)) {
+      return true;
+    }
+
+    if (error.code === "invalid_parent_token" || error.code === "missing_authorization") {
+      return true;
+    }
+  }
+
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  return message.includes("invalid") && message.includes("token");
 }
 
 const initialChildForm = {
@@ -55,18 +70,66 @@ export function useParentConsole() {
   const [sessionForm, setSessionForm] = useState(initialSessionForm);
   const [nudgeText, setNudgeText] = useState("");
 
+  const clearParentState = useCallback(() => {
+    setSession(null);
+    setParentProfile(null);
+    setChildren([]);
+    setActiveSession(null);
+    setMessages([]);
+  }, []);
+
+  const invalidateParentSession = useCallback(
+    async (message = "Parent session expired. Please sign in again.") => {
+      await supabase.auth.signOut();
+      clearParentState();
+      setError(message);
+    },
+    [clearParentState, supabase]
+  );
+
+  const refreshParentSession = useCallback(async () => {
+    const {
+      data: { session: refreshedSession },
+      error: refreshError
+    } = await supabase.auth.refreshSession();
+
+    if (refreshError || !refreshedSession?.access_token) {
+      return null;
+    }
+
+    setSession(refreshedSession);
+    return refreshedSession;
+  }, [supabase]);
+
   const parentRequest = useCallback(
     async (path, options = {}) => {
+      const runRequest = (accessToken) =>
+        apiRequest(path, {
+          ...options,
+          bearerToken: accessToken
+        });
+
       if (!session?.access_token) {
         throw new Error("Parent session is not available.");
       }
 
-      return apiRequest(path, {
-        ...options,
-        bearerToken: session.access_token
-      });
+      try {
+        return await runRequest(session.access_token);
+      } catch (requestError) {
+        if (!isParentTokenFailure(requestError)) {
+          throw requestError;
+        }
+
+        const refreshedSession = await refreshParentSession();
+        if (refreshedSession?.access_token) {
+          return runRequest(refreshedSession.access_token);
+        }
+
+        await invalidateParentSession();
+        throw new Error("Parent session expired. Please sign in again.");
+      }
     },
-    [session?.access_token]
+    [invalidateParentSession, refreshParentSession, session?.access_token]
   );
 
   const fetchParentData = useCallback(async () => {
@@ -141,6 +204,7 @@ export function useParentConsole() {
 
             if (event === "snapshot") {
               setMessages(data.messages ?? []);
+              setError("");
               return;
             }
 
@@ -156,6 +220,22 @@ export function useParentConsole() {
         });
       } catch (streamError) {
         if (disposed) {
+          return;
+        }
+
+        if (isParentTokenFailure(streamError)) {
+          const refreshedSession = await refreshParentSession();
+          if (disposed) {
+            return;
+          }
+
+          if (refreshedSession?.access_token) {
+            setError("Refreshing parent session...");
+            reconnectTimer = window.setTimeout(connect, 500);
+            return;
+          }
+
+          await invalidateParentSession("Parent session expired while streaming. Please sign in again.");
           return;
         }
 
@@ -175,7 +255,12 @@ export function useParentConsole() {
         streamAbortController.abort();
       }
     };
-  }, [activeSession?.session_id, session?.access_token]);
+  }, [
+    activeSession?.session_id,
+    invalidateParentSession,
+    refreshParentSession,
+    session?.access_token
+  ]);
 
   const signInWithGoogle = useCallback(async () => {
     const redirectTo = `${window.location.origin}/auth/callback`;
@@ -193,12 +278,8 @@ export function useParentConsole() {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
-    setSession(null);
-    setParentProfile(null);
-    setChildren([]);
-    setActiveSession(null);
-    setMessages([]);
-  }, [supabase]);
+    clearParentState();
+  }, [clearParentState, supabase]);
 
   const createChild = useCallback(
     async (event) => {

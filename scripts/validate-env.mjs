@@ -1,6 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getTutorConfig, resetTutorConfigCache } from "../src/server/config.js";
+import {
+  getGoogleSpeechConfig,
+  resetGoogleSpeechConfigCache
+} from "../src/server/google-speech-config.js";
 import { getSupabaseConfig, resetSupabaseConfigCache } from "../src/server/supabase-config.js";
 
 function normalizeValue(rawValue) {
@@ -58,11 +62,15 @@ try {
   loadDotEnvFiles();
   resetTutorConfigCache();
   resetSupabaseConfigCache();
+  resetGoogleSpeechConfigCache();
   const config = getTutorConfig(process.env);
   const supabase = getSupabaseConfig(process.env);
+  const shouldValidateGoogleSpeech =
+    Boolean(process.env.GOOGLE_CLOUD_PROJECT_ID) || Boolean(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+  const speechConfig = shouldValidateGoogleSpeech ? getGoogleSpeechConfig(process.env) : null;
   const supabaseHost = new URL(supabase.url).host;
   console.log(
-    `Tutor environment valid. Model=${config.model}, PromptVersion=${config.promptVersion}, SupabaseHost=${supabaseHost}`
+    `Tutor environment valid. Model=${config.model}, PromptVersion=${config.promptVersion}, SupabaseHost=${supabaseHost}, Speech=${speechConfig ? "configured" : "disabled"}`
   );
 } catch (error) {
   console.error(error instanceof Error ? error.message : "Environment validation failed");

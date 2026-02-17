@@ -48,7 +48,7 @@ Implemented:
 - CI guard for handoff log updates on runtime code changes.
 
 Not yet implemented:
-- Voice-first UX (STT/TTS) on parent/child surfaces.
+- Voice controls on parent surface (child cloud voice loop implemented).
 - Production-grade realtime event fan-out and client subscription wiring.
 - End-to-end tests and deployment hardening.
 
@@ -137,7 +137,7 @@ Required internal config module behavior:
 - Update this plan when priorities, constraints, or sequencing materially change.
 
 ## 9. Immediate Next Steps
-1. Add voice input/output integration (push-to-talk + TTS fallback) to child flow.
-2. Add integration tests for authorization and visibility guarantees.
-3. Harden OAuth UX for multi-device and expired-session recovery.
+1. Validate Google Speech STT/TTS configuration in local/Vercel and run end-to-end child voice tests.
+2. Add deeper SSE sequencing tests for stream framing and append ordering.
+3. Add explicit parent re-auth CTA path when token refresh fails.
 4. Evaluate migrating SSE transcript stream to direct Supabase Realtime channels.

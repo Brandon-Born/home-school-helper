@@ -37,12 +37,17 @@ export function createStreamGetHandler(dependencies = {}) {
         seenIds.add(message.id);
       }
 
-      await writer.write(
+      // Do not block handler return on initial backpressure; stream consumer may not be attached yet.
+      void writer
+        .write(
         serializeSse("snapshot", {
           visibility: viewerContext.visibility,
           messages: initialMessages
         })
-      );
+        )
+        .catch(() => {
+          // Ignore early backpressure/teardown races before reader attaches.
+        });
 
       const poll = async () => {
         if (closed || isPolling) {

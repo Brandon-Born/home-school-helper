@@ -8,7 +8,7 @@
 5. `/Users/bborn/home-school-helper/docs/DB_SCHEMA_AND_RLS.md`
 
 ## Current Goal
-Implement Supabase-backed persistent session + auth + realtime so parent/child shared session behavior is production-ready.
+Stabilize cloud voice UX (Google STT V2 + Chirp 3), auth robustness, and launch-critical testing.
 
 ## Current Status Snapshot
 - Tutor pipeline exists and is Anthropic-only.
@@ -18,18 +18,20 @@ Implement Supabase-backed persistent session + auth + realtime so parent/child s
   - `GET|POST /api/children`
   - `POST /api/session/start`
   - `POST /api/session/join`
+  - `POST /api/session/:id/speech/transcribe`
+  - `POST /api/session/:id/speech/synthesize`
 - Child-turn now requires child session token; parent-nudge now requires authenticated parent ownership.
 - Messages are persisted in `messages` table via server routes.
 - Supabase migration exists at `supabase/migrations/20260217040000_session_foundation.sql`.
 - Minimal UI flows now exist:
   - `/parent` for auth, child profile creation, session start, nudges, transcript subscription.
-  - `/child` for join-code redemption and chat turn submission.
+  - `/child` for join-code redemption, cloud voice capture/transcription, and cloud tutor speech playback.
 - Realtime transcript updates now stream through `GET /api/session/:id/stream` (SSE).
 
 ## First Tasks To Execute
-1. Add voice input/output integration (push-to-talk + TTS fallback) in `/parent` and `/child` experience as appropriate.
-2. Add integration tests for token redemption, session ownership, and visibility constraints.
-3. Harden OAuth UX and session refresh handling for multi-device reliability.
+1. Verify Google Speech env config in each environment (local/Vercel) and run child cloud voice flow end-to-end.
+2. Add deeper SSE sequencing tests for stream `snapshot` + `message_append` framing under deterministic harnesses.
+3. Add explicit parent re-auth CTA surface when token refresh fails.
 4. Consider migrating SSE transcript stream to direct Supabase Realtime channels if lower-latency fan-out is needed.
 
 ## Hard Rules
