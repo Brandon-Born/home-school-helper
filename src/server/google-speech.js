@@ -31,6 +31,41 @@ function parseGoogleError(payload, fallbackMessage) {
   return fallbackMessage;
 }
 
+function mapGoogleError(payload, fallbackCode, fallbackMessage) {
+  const status = String(payload?.error?.status || "").trim().toUpperCase();
+  const message = parseGoogleError(payload, fallbackMessage);
+
+  if (status === "RESOURCE_EXHAUSTED") {
+    return new ApiError(429, "speech_provider_rate_limited", message);
+  }
+
+  if (status === "DEADLINE_EXCEEDED") {
+    return new ApiError(504, "speech_provider_timeout", message);
+  }
+
+  if (status === "UNAVAILABLE" || status === "INTERNAL") {
+    return new ApiError(503, "speech_provider_unavailable", message);
+  }
+
+  if (status === "UNAUTHENTICATED" || status === "PERMISSION_DENIED") {
+    return new ApiError(502, "speech_provider_auth_failed", message);
+  }
+
+  if (status === "INVALID_ARGUMENT") {
+    return new ApiError(400, "validation_error", message);
+  }
+
+  return new ApiError(502, fallbackCode, message);
+}
+
+function clampSpeakingRate(rawValue, fallbackValue) {
+  if (!Number.isFinite(rawValue)) {
+    return fallbackValue;
+  }
+
+  return Math.min(1.2, Math.max(0.8, rawValue));
+}
+
 function createSignedJwt(config) {
   const nowSeconds = Math.floor(Date.now() / 1000);
 
@@ -56,7 +91,7 @@ function createSignedJwt(config) {
   return `${signingInput}.${signature.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "")}`;
 }
 
-async function getGoogleAccessToken(config) {
+async function getGoogleAccessToken(config, { signal } = {}) {
   if (tokenCache && tokenCache.expiresAtMs > Date.now() + 60_000) {
     return tokenCache.accessToken;
   }
@@ -72,16 +107,13 @@ async function getGoogleAccessToken(config) {
     headers: {
       "content-type": "application/x-www-form-urlencoded"
     },
-    body
+    body,
+    signal
   });
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok || !payload?.access_token) {
-    throw new ApiError(
-      502,
-      "speech_provider_auth_failed",
-      parseGoogleError(payload, "Unable to authenticate Google Speech provider.")
-    );
+    throw mapGoogleError(payload, "speech_provider_auth_failed", "Unable to authenticate Google Speech provider.");
   }
 
   const expiresInSeconds = Number(payload.expires_in) || 3600;
@@ -93,9 +125,9 @@ async function getGoogleAccessToken(config) {
   return payload.access_token;
 }
 
-export async function transcribeWithGoogleSpeech({ audioBytes, languageCode }) {
+export async function transcribeWithGoogleSpeech({ audioBytes, languageCode, signal }) {
   const config = getGoogleSpeechConfig();
-  const accessToken = await getGoogleAccessToken(config);
+  const accessToken = await getGoogleAccessToken(config, { signal });
 
   const recognizerPath = `projects/${config.projectId}/locations/${config.location}/recognizers/${config.sttRecognizer}`;
   const endpoint = `https://speech.googleapis.com/v2/${recognizerPath}:recognize`;
@@ -106,6 +138,7 @@ export async function transcribeWithGoogleSpeech({ audioBytes, languageCode }) {
       authorization: `Bearer ${accessToken}`,
       "content-type": "application/json"
     },
+    signal,
     body: JSON.stringify({
       config: {
         autoDecodingConfig: {},
@@ -118,11 +151,7 @@ export async function transcribeWithGoogleSpeech({ audioBytes, languageCode }) {
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new ApiError(
-      502,
-      "speech_transcription_failed",
-      parseGoogleError(payload, "Unable to transcribe audio.")
-    );
+    throw mapGoogleError(payload, "speech_transcription_failed", "Unable to transcribe audio.");
   }
 
   const segments = [];
@@ -138,9 +167,9 @@ export async function transcribeWithGoogleSpeech({ audioBytes, languageCode }) {
   };
 }
 
-export async function synthesizeWithGoogleTts({ text, speakingRate }) {
+export async function synthesizeWithGoogleTts({ text, speakingRate, signal }) {
   const config = getGoogleSpeechConfig();
-  const accessToken = await getGoogleAccessToken(config);
+  const accessToken = await getGoogleAccessToken(config, { signal });
 
   const trimmedText = String(text || "").trim();
   if (!trimmedText) {
@@ -153,6 +182,7 @@ export async function synthesizeWithGoogleTts({ text, speakingRate }) {
       authorization: `Bearer ${accessToken}`,
       "content-type": "application/json"
     },
+    signal,
     body: JSON.stringify({
       input: {
         text: trimmedText
@@ -163,18 +193,14 @@ export async function synthesizeWithGoogleTts({ text, speakingRate }) {
       },
       audioConfig: {
         audioEncoding: config.ttsAudioEncoding,
-        speakingRate: Number.isFinite(speakingRate) ? speakingRate : config.ttsSpeakingRate
+        speakingRate: clampSpeakingRate(speakingRate, config.ttsSpeakingRate)
       }
     })
   });
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok || !payload?.audioContent) {
-    throw new ApiError(
-      502,
-      "speech_synthesis_failed",
-      parseGoogleError(payload, "Unable to synthesize speech audio.")
-    );
+    throw mapGoogleError(payload, "speech_synthesis_failed", "Unable to synthesize speech audio.");
   }
 
   return Buffer.from(payload.audioContent, "base64");

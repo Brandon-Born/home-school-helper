@@ -27,6 +27,7 @@ export default function ChildPage() {
           <SessionStatusPanel
             sessionAccess={state.sessionAccess}
             voiceStatus={state.voiceStatus}
+            turnStatus={state.turnStatus}
             autoSpeak={state.autoSpeak}
             setAutoSpeak={actions.setAutoSpeak}
             speechSupport={state.speechSupport}
@@ -38,6 +39,10 @@ export default function ChildPage() {
             setStudentInput={actions.setStudentInput}
             loading={state.loading}
             voiceBusy={state.voiceBusy}
+            isTranscribing={state.isTranscribing}
+            isPlayingSpeech={state.isPlayingSpeech}
+            pendingTutorReply={state.pendingTutorReply}
+            turnStatus={state.turnStatus}
             onSend={actions.sendTurn}
             onVoiceStart={actions.startVoiceCapture}
             onVoiceStop={actions.stopVoiceCapture}
@@ -47,7 +52,7 @@ export default function ChildPage() {
             listeningLabel={state.listeningLabel}
           />
 
-          <TranscriptPanel messages={state.messages} />
+          <TranscriptPanel messages={state.messages} pendingTutorReply={state.pendingTutorReply} />
         </>
       )}
 

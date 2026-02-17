@@ -8,7 +8,7 @@ const cardStyle = {
   background: "#fff"
 };
 
-export function TranscriptPanel({ messages }) {
+export function TranscriptPanel({ messages, pendingTutorReply }) {
   return (
     <section style={cardStyle}>
       <div
@@ -31,6 +31,9 @@ export function TranscriptPanel({ messages }) {
             </div>
           ))
         )}
+        {pendingTutorReply ? (
+          <div style={{ marginTop: 10, color: "#175cd3", fontStyle: "italic" }}>Tutor is thinking...</div>
+        ) : null}
       </div>
     </section>
   );

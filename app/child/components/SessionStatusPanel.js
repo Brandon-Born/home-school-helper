@@ -8,7 +8,15 @@ const cardStyle = {
   background: "#fff"
 };
 
-export function SessionStatusPanel({ sessionAccess, voiceStatus, autoSpeak, setAutoSpeak, speechSupport, onLeave }) {
+export function SessionStatusPanel({
+  sessionAccess,
+  voiceStatus,
+  turnStatus,
+  autoSpeak,
+  setAutoSpeak,
+  speechSupport,
+  onLeave
+}) {
   return (
     <section style={cardStyle}>
       <p style={{ marginTop: 0 }}>
@@ -16,6 +24,7 @@ export function SessionStatusPanel({ sessionAccess, voiceStatus, autoSpeak, setA
       </p>
       <p style={{ marginBottom: 12 }}>Token expires at: {sessionAccess.expires_at}</p>
       <p style={{ marginBottom: 12 }}>{voiceStatus}</p>
+      {turnStatus ? <p style={{ marginBottom: 12, color: "#175cd3" }}>{turnStatus}</p> : null}
 
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <button type="button" onClick={onLeave}>

@@ -6,11 +6,11 @@ const DEFAULTS = {
   GOOGLE_CLOUD_LOCATION: "global",
   GOOGLE_STT_RECOGNIZER: "_",
   GOOGLE_STT_LANGUAGE_CODE: "en-US",
-  GOOGLE_STT_MODEL: "chirp_2",
+  GOOGLE_STT_MODEL: "latest_short",
   GOOGLE_TTS_LANGUAGE_CODE: "en-US",
   GOOGLE_TTS_VOICE_NAME: "en-US-Chirp3-HD-Achernar",
   GOOGLE_TTS_AUDIO_ENCODING: "MP3",
-  GOOGLE_TTS_SPEAKING_RATE: "1.0"
+  GOOGLE_TTS_SPEAKING_RATE: "0.92"
 };
 
 let cachedConfig;
@@ -26,7 +26,13 @@ function parseFloatValue(name, rawValue, min, max) {
 
 function parseServiceAccount(rawValue) {
   try {
-    const parsed = JSON.parse(String(rawValue));
+    const normalizedValue = String(rawValue || "").trim();
+    const unwrappedValue =
+      (normalizedValue.startsWith("\"") && normalizedValue.endsWith("\"")) ||
+      (normalizedValue.startsWith("'") && normalizedValue.endsWith("'"))
+        ? normalizedValue.slice(1, -1)
+        : normalizedValue;
+    const parsed = JSON.parse(unwrappedValue);
     if (!parsed.client_email || !parsed.private_key) {
       throw new Error("Missing client_email or private_key.");
     }

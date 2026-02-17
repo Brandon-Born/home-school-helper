@@ -29,11 +29,14 @@ Web-first homeschool tutoring assistant with parent steering and scaffold-first 
   - `GOOGLE_CLOUD_LOCATION` (default: `global`)
   - `GOOGLE_STT_RECOGNIZER` (default: `_`)
   - `GOOGLE_STT_LANGUAGE_CODE` (default: `en-US`)
-  - `GOOGLE_STT_MODEL` (default: `chirp_2`)
+  - `GOOGLE_STT_MODEL` (default: `latest_short`)
   - `GOOGLE_TTS_LANGUAGE_CODE` (default: `en-US`)
   - `GOOGLE_TTS_VOICE_NAME` (default: `en-US-Chirp3-HD-Achernar`)
   - `GOOGLE_TTS_AUDIO_ENCODING` (default: `MP3`)
-  - `GOOGLE_TTS_SPEAKING_RATE` (default: `1.0`)
+  - `GOOGLE_TTS_SPEAKING_RATE` (default: `0.92`)
+  - `SPEECH_REQUEST_TIMEOUT_MS` (default: `12000`)
+  - `SPEECH_MAX_RETRIES` (default: `1`)
+  - `SPEECH_RETRY_BASE_DELAY_MS` (default: `250`)
 
 ## API Routes
 - `GET /api/parent/me` (parent bearer token required)

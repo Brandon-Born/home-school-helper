@@ -41,7 +41,10 @@ export function useChildConsole() {
   const [studentInput, setStudentInput] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [voiceBusy, setVoiceBusy] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isPlayingSpeech, setIsPlayingSpeech] = useState(false);
+  const [pendingTutorReply, setPendingTutorReply] = useState(false);
+  const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [speechSupport, setSpeechSupport] = useState({
     cloudStt: false,
@@ -62,6 +65,11 @@ export function useChildConsole() {
   const playbackAudioRef = useRef(null);
   const playbackUrlRef = useRef(null);
   const spokenAssistantMessageIdsRef = useRef(new Set());
+  const autoSpeakRef = useRef(autoSpeak);
+  const speechSupportRef = useRef(speechSupport);
+  const studentInputRef = useRef(studentInput);
+
+  const voiceBusy = isTranscribing || isPlayingSpeech;
 
   const voiceStatus = useMemo(() => {
     if (speechSupport.cloudStt && speechSupport.cloudTts) {
@@ -97,6 +105,31 @@ export function useChildConsole() {
       URL.revokeObjectURL(playbackUrlRef.current);
       playbackUrlRef.current = null;
     }
+
+    setIsPlayingSpeech(false);
+  }
+
+  function classifySpeechFailure(error, fallbackMessage) {
+    if (error instanceof ApiRequestError) {
+      if (error.status === 429 || error.code === "speech_provider_rate_limited") {
+        return "Voice service is busy. Try again in a few seconds or type your question.";
+      }
+
+      if (error.code === "speech_provider_timeout") {
+        return "Voice service timed out. Try again, or type your question.";
+      }
+
+      if (error.status >= 500 || error.code === "speech_provider_unavailable") {
+        return "Voice service is temporarily unavailable. You can keep going in text mode.";
+      }
+    }
+
+    const message = error instanceof Error ? error.message : "";
+    if (/timeout|timed out/i.test(message)) {
+      return "Voice service timed out. Try again, or type your question.";
+    }
+
+    return fallbackMessage;
   }
 
   function stopBrowserVoiceCapture() {
@@ -157,27 +190,40 @@ export function useChildConsole() {
     setSessionAccess(null);
     setMessages([]);
     setLoading(false);
-    setVoiceBusy(false);
+    setIsTranscribing(false);
+    setIsPlayingSpeech(false);
+    setPendingTutorReply(false);
+    setNotice("");
     setStudentInput("");
+    studentInputRef.current = "";
     setError(message || "");
   }
 
   function speakTextFallback(text) {
-    if (!speechSupport.browserTts || typeof window === "undefined") {
-      return;
+    if (!speechSupportRef.current.browserTts || typeof window === "undefined") {
+      return false;
     }
 
     const trimmed = String(text || "").trim();
     if (!trimmed) {
-      return;
+      return false;
     }
 
     window.speechSynthesis?.cancel();
+    setIsPlayingSpeech(true);
     const utterance = new SpeechSynthesisUtterance(trimmed);
     utterance.lang = "en-US";
-    utterance.rate = 1;
+    utterance.rate = 0.95;
     utterance.pitch = 1;
+    utterance.onend = () => {
+      setIsPlayingSpeech(false);
+    };
+    utterance.onerror = () => {
+      setIsPlayingSpeech(false);
+      setNotice("Audio fallback failed. Read the tutor reply below.");
+    };
     window.speechSynthesis?.speak(utterance);
+    return true;
   }
 
   async function playCloudTts(text) {
@@ -210,16 +256,26 @@ export function useChildConsole() {
     playbackUrlRef.current = objectUrl;
     const audio = new Audio(objectUrl);
     playbackAudioRef.current = audio;
+    setIsPlayingSpeech(true);
 
     audio.onended = () => {
       revokePlaybackResources();
     };
+    audio.onerror = () => {
+      revokePlaybackResources();
+      setNotice("Audio playback failed. Read the tutor reply below.");
+    };
 
-    await audio.play();
+    try {
+      await audio.play();
+    } catch {
+      revokePlaybackResources();
+      throw new Error("Audio playback is blocked right now. Read the tutor reply below.");
+    }
   }
 
   function speakAssistantMessages(incoming = []) {
-    if (!autoSpeak) {
+    if (!autoSpeakRef.current) {
       return;
     }
 
@@ -236,9 +292,12 @@ export function useChildConsole() {
       return;
     }
 
+    setPendingTutorReply(false);
+    setNotice("");
+
     void (async () => {
       try {
-        if (speechSupport.cloudTts) {
+        if (speechSupportRef.current.cloudTts) {
           await playCloudTts(latest.content);
           return;
         }
@@ -247,9 +306,14 @@ export function useChildConsole() {
           clearChildSession("Session token expired or invalid. Rejoin with a fresh code.");
           return;
         }
+
+        setNotice("Cloud audio had an issue. Falling back to browser voice.");
       }
 
-      speakTextFallback(latest.content);
+      const usedBrowserFallback = speakTextFallback(latest.content);
+      if (!usedBrowserFallback) {
+        setNotice("Audio unavailable right now. Read the tutor reply below.");
+      }
     })();
   }
 
@@ -272,7 +336,7 @@ export function useChildConsole() {
       throw new Error("No speech transcript detected. Try speaking closer to the microphone.");
     }
 
-    const baseInput = studentInput.trim();
+    const baseInput = studentInputRef.current.trim();
     setStudentInput([baseInput, transcript].filter(Boolean).join(" "));
   }
 
@@ -302,7 +366,8 @@ export function useChildConsole() {
       };
 
       recorder.onerror = () => {
-        setError("Voice recording failed.");
+        setError("Voice recording failed. Hold to talk and try again.");
+        setNotice("");
         setIsCloudRecording(false);
       };
 
@@ -322,27 +387,32 @@ export function useChildConsole() {
           return;
         }
 
-        setVoiceBusy(true);
+        setIsTranscribing(true);
+        setNotice("Transcribing your voice...");
         try {
           await transcribeCloudRecording(new Blob(chunks, { type: recorder.mimeType || "audio/webm" }));
           setError("");
+          setNotice("Voice captured. You can send it now.");
         } catch (speechError) {
           if (isChildAuthFailure(speechError)) {
             clearChildSession("Session token expired or invalid. Rejoin with a fresh code.");
             return;
           }
 
-          setError(speechError instanceof Error ? speechError.message : "Voice transcription failed.");
+          setError(classifySpeechFailure(speechError, "Voice transcription failed. Hold to talk and retry."));
+          setNotice("");
         } finally {
-          setVoiceBusy(false);
+          setIsTranscribing(false);
         }
       };
 
       recorder.start();
       setError("");
+      setNotice("Listening. Release to transcribe.");
       setIsCloudRecording(true);
     } catch {
       setError("Microphone access is required for voice input.");
+      setNotice("");
     }
   }
 
@@ -389,22 +459,26 @@ export function useChildConsole() {
       } else {
         setError(`Voice input failed: ${event.error}`);
       }
+      setNotice("");
     };
 
     recognition.onend = () => {
       recognitionRef.current = null;
       setIsListening(false);
+      setNotice("");
     };
 
     try {
       recognitionRef.current = recognition;
       setError("");
+      setNotice("Listening. Release to stop.");
       setIsListening(true);
       recognition.start();
     } catch {
       recognitionRef.current = null;
       setIsListening(false);
       setError("Unable to start voice capture.");
+      setNotice("");
     }
   }
 
@@ -427,12 +501,28 @@ export function useChildConsole() {
   }
 
   useEffect(() => {
-    setSpeechSupport({
+    autoSpeakRef.current = autoSpeak;
+  }, [autoSpeak]);
+
+  useEffect(() => {
+    speechSupportRef.current = speechSupport;
+  }, [speechSupport]);
+
+  useEffect(() => {
+    studentInputRef.current = studentInput;
+  }, [studentInput]);
+
+  useEffect(() => {
+    const support = {
       cloudStt: getCloudSttSupport(),
       browserStt: Boolean(getSpeechRecognitionCtor()),
       cloudTts: typeof window !== "undefined" && typeof Audio !== "undefined",
       browserTts: typeof window !== "undefined" && typeof window.speechSynthesis !== "undefined"
+    };
+    setSpeechSupport({
+      ...support
     });
+    speechSupportRef.current = support;
 
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -492,6 +582,10 @@ export function useChildConsole() {
 
             if (event === "message_append") {
               const incoming = data.messages ?? [];
+              if (incoming.some((message) => message.actor_type === "assistant")) {
+                setPendingTutorReply(false);
+                setNotice("");
+              }
               setMessages((previous) => mergeMessages(previous, incoming));
               speakAssistantMessages(incoming);
               return;
@@ -528,12 +622,14 @@ export function useChildConsole() {
         streamAbortController.abort();
       }
     };
-  }, [autoSpeak, sessionAccess?.session_id, sessionAccess?.child_session_token, speechSupport.cloudTts]);
+  }, [sessionAccess?.session_id, sessionAccess?.child_session_token]);
 
   async function joinSession(event) {
     event.preventDefault();
     setLoading(true);
     setError("");
+    setNotice("");
+    setPendingTutorReply(false);
 
     try {
       const payload = await apiRequest("/api/session/join", {
@@ -547,6 +643,7 @@ export function useChildConsole() {
       const access = payload.session_access;
       setSessionAccess(access);
       spokenAssistantMessageIdsRef.current = new Set();
+      setNotice("");
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(access));
       setJoinCode("");
     } catch (requestError) {
@@ -564,6 +661,8 @@ export function useChildConsole() {
 
     setLoading(true);
     setError("");
+    setNotice("Sending your question...");
+    setPendingTutorReply(true);
 
     try {
       await apiRequest(`/api/session/${sessionAccess.session_id}/child-turn`, {
@@ -575,6 +674,7 @@ export function useChildConsole() {
       });
 
       setStudentInput("");
+      studentInputRef.current = "";
     } catch (requestError) {
       if (isChildAuthFailure(requestError)) {
         clearChildSession("Session token expired or invalid. Rejoin with a fresh code.");
@@ -582,6 +682,8 @@ export function useChildConsole() {
       }
 
       setError(requestError instanceof Error ? requestError.message : "Unable to send turn.");
+      setNotice("");
+      setPendingTutorReply(false);
     } finally {
       setLoading(false);
     }
@@ -591,11 +693,49 @@ export function useChildConsole() {
     clearChildSession("");
   }
 
-  const listeningLabel = isCloudRecording
-    ? "Recording... release to transcribe"
-    : isListening
-      ? "Listening... release to stop"
-      : "Hold to talk";
+  const turnStatus = useMemo(() => {
+    if (isCloudRecording) {
+      return "Listening. Release to transcribe.";
+    }
+
+    if (isListening) {
+      return "Listening. Release to stop.";
+    }
+
+    if (isTranscribing) {
+      return "Transcribing your voice...";
+    }
+
+    if (pendingTutorReply) {
+      return "Tutor is thinking...";
+    }
+
+    if (isPlayingSpeech) {
+      return "Tutor is speaking...";
+    }
+
+    return notice;
+  }, [isCloudRecording, isListening, isTranscribing, pendingTutorReply, isPlayingSpeech, notice]);
+
+  const listeningLabel = useMemo(() => {
+    if (isCloudRecording) {
+      return "Recording... release to transcribe";
+    }
+
+    if (isListening) {
+      return "Listening... release to stop";
+    }
+
+    if (isTranscribing) {
+      return "Transcribing...";
+    }
+
+    if (isPlayingSpeech) {
+      return "Tutor speaking...";
+    }
+
+    return "Hold to talk";
+  }, [isCloudRecording, isListening, isTranscribing, isPlayingSpeech]);
 
   return {
     state: {
@@ -606,6 +746,10 @@ export function useChildConsole() {
       messages,
       loading,
       voiceBusy,
+      isTranscribing,
+      isPlayingSpeech,
+      pendingTutorReply,
+      turnStatus,
       error,
       speechSupport,
       isListening,

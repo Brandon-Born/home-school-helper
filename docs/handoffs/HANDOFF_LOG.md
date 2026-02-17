@@ -1,5 +1,72 @@
 # Handoff Log
 
+## 2026-02-17T18:29:26Z - Codex
+
+### Scope Worked
+- Improved child-side voice UX resilience with explicit recording/transcribing/speaking/thinking states and fallback messaging.
+- Hardened server speech provider flow with request timeout guards, bounded retries, and structured telemetry.
+- Tuned Google speech defaults for lower latency and kid-friendly pacing while preserving Chirp 3 output quality.
+
+### Last Agent Accomplished
+- Updated child console flow in `/Users/bborn/home-school-helper/app/child/hooks/useChildConsole.js` to:
+  - show clearer status transitions (`turnStatus`, pending tutor reply, playback/transcription states),
+  - avoid SSE reconnects when toggling auto-speak, and
+  - provide explicit fallback messaging when cloud speech fails.
+- Updated child UI components:
+  - `/Users/bborn/home-school-helper/app/child/components/TutorComposerPanel.js`
+  - `/Users/bborn/home-school-helper/app/child/components/SessionStatusPanel.js`
+  - `/Users/bborn/home-school-helper/app/child/components/TranscriptPanel.js`
+  - `/Users/bborn/home-school-helper/app/child/page.js`
+- Added server reliability controls in `/Users/bborn/home-school-helper/src/server/speech-provider.js`:
+  - `SPEECH_REQUEST_TIMEOUT_MS`
+  - `SPEECH_MAX_RETRIES`
+  - `SPEECH_RETRY_BASE_DELAY_MS`
+  - retry classification + structured telemetry events.
+- Improved Google provider error mapping and signal propagation in `/Users/bborn/home-school-helper/src/server/google-speech.js`.
+- Updated speech config robustness/defaults in `/Users/bborn/home-school-helper/src/server/google-speech-config.js`:
+  - default STT model to `latest_short`,
+  - default TTS speaking rate to `0.92`,
+  - parse wrapped service-account JSON safely.
+- Added speaking-rate clamp in `/Users/bborn/home-school-helper/app/api/session/[id]/speech/synthesize/route.js`.
+- Updated environment docs in `/Users/bborn/home-school-helper/.env.example` and `/Users/bborn/home-school-helper/README.md`.
+- Added/expanded tests:
+  - `/Users/bborn/home-school-helper/tests/google-speech-config.test.js`
+  - `/Users/bborn/home-school-helper/tests/speech-provider.test.js`
+
+### Files Touched
+- `/Users/bborn/home-school-helper/.env.example`
+- `/Users/bborn/home-school-helper/README.md`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/speech/synthesize/route.js`
+- `/Users/bborn/home-school-helper/app/child/components/SessionStatusPanel.js`
+- `/Users/bborn/home-school-helper/app/child/components/TranscriptPanel.js`
+- `/Users/bborn/home-school-helper/app/child/components/TutorComposerPanel.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/useChildConsole.js`
+- `/Users/bborn/home-school-helper/app/child/page.js`
+- `/Users/bborn/home-school-helper/src/server/google-speech-config.js`
+- `/Users/bborn/home-school-helper/src/server/google-speech.js`
+- `/Users/bborn/home-school-helper/src/server/speech-provider.js`
+- `/Users/bborn/home-school-helper/tests/google-speech-config.test.js`
+- `/Users/bborn/home-school-helper/tests/speech-provider.test.js`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (42 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass (`Next.js 15.5.12` production build).
+
+### Open Risks / Issues
+- Browser speech APIs still vary by device/browser; cloud path is now resilient but UX still depends on microphone permissions and autoplay policy behavior.
+- Speech telemetry currently logs to application stdout only; no external aggregation/dashboard is wired yet.
+
+### Next Steps (Ordered)
+1. Add live speech observability counters (timeouts, retries, fallback rate) to your deployment logs/dashboard.
+2. Add an explicit "Retry audio playback" UI action in the child surface for autoplay-blocked devices.
+3. Run real-device QA across iOS Safari, Android Chrome, and low-bandwidth conditions for speech loop quality.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-17T02:10:41Z - Codex
 
 ### Scope Worked

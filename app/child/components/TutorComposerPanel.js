@@ -21,6 +21,10 @@ export function TutorComposerPanel({
   setStudentInput,
   loading,
   voiceBusy,
+  isTranscribing,
+  isPlayingSpeech,
+  pendingTutorReply,
+  turnStatus,
   onSend,
   onVoiceStart,
   onVoiceStop,
@@ -40,7 +44,7 @@ export function TutorComposerPanel({
             value={studentInput}
             onChange={(event) => setStudentInput(event.target.value)}
           />
-          <button type="submit" disabled={loading || voiceBusy || !studentInput.trim()}>
+          <button type="submit" disabled={loading || voiceBusy || pendingTutorReply || !studentInput.trim()}>
             Send
           </button>
         </div>
@@ -66,7 +70,7 @@ export function TutorComposerPanel({
                 onVoiceStop();
               }
             }}
-            disabled={voiceBusy || (!speechSupport.cloudStt && !speechSupport.browserStt)}
+            disabled={loading || voiceBusy || pendingTutorReply || (!speechSupport.cloudStt && !speechSupport.browserStt)}
             style={{
               background: isCloudRecording || isListening ? "#fee4e2" : "#eef4ff",
               border: "1px solid #d0d5dd",
@@ -77,7 +81,11 @@ export function TutorComposerPanel({
             {listeningLabel}
           </button>
 
-          {voiceBusy ? <span style={{ color: "#555" }}>Transcribing...</span> : null}
+          {turnStatus ? (
+            <span style={{ color: isTranscribing || pendingTutorReply || isPlayingSpeech ? "#175cd3" : "#555" }}>
+              {turnStatus}
+            </span>
+          ) : null}
         </div>
       </form>
     </section>

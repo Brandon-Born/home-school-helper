@@ -16,7 +16,9 @@ export async function POST(request, { params }) {
     const speakingRateValue = Number.parseFloat(String(payload?.speaking_rate ?? ""));
     const audioBuffer = await synthesizeSpeech({
       text,
-      speakingRate: Number.isFinite(speakingRateValue) ? speakingRateValue : undefined
+      speakingRate: Number.isFinite(speakingRateValue)
+        ? Math.min(1.2, Math.max(0.8, speakingRateValue))
+        : undefined
     });
 
     return new Response(audioBuffer, {
