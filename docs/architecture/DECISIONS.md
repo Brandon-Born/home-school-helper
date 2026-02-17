@@ -47,3 +47,16 @@
 - Consequences:
   - Requires secure token hashing and expiry handling in backend storage.
   - Requires migration and policy setup before production use.
+
+## ADR-005: Server-Trusted Tutor Context
+- Status: Accepted
+- Date: 2026-02-17
+- Decision:
+  - Child-facing tutor generation must use context loaded from server-owned session state (`sessions`, `children`, `messages`, `overrides`).
+  - Client payload fields such as `profile`, `daily_context`, `parent_guidance`, and `allow_direct_answer` are not trusted for policy decisions.
+- Rationale:
+  - Prevents child clients from escalating permissions or bypassing scaffold-first behavior by crafting request payloads.
+  - Keeps hidden parent channel and override controls enforceable at backend boundaries.
+- Consequences:
+  - Tutor routes require additional DB reads per request.
+  - Cache/optimization can be added later, but correctness takes priority in v1.

@@ -198,6 +198,52 @@ Parent sends hidden nudge to steer tutor response.
 }
 ```
 
+## GET `/api/session/:id/messages`
+Fetches transcript rows for a session.
+
+Auth behavior:
+- Parent bearer token: returns all visibility scopes.
+- Child session token: returns only `child_and_parent` rows.
+
+### Response (200)
+```json
+{
+  "messages": [
+    {
+      "id": "uuid",
+      "actor_type": "assistant",
+      "visibility_scope": "child_and_parent",
+      "content": "Let's solve this together.",
+      "policy_flags": ["none"],
+      "created_at": "timestamp"
+    }
+  ],
+  "visibility": "all"
+}
+```
+
+## POST `/api/session/:id/override`
+Parent toggles direct-answer mode for a bounded duration.
+
+### Request
+```json
+{
+  "enabled": true,
+  "duration_minutes": 15
+}
+```
+
+### Response (200)
+```json
+{
+  "override": {
+    "session_id": "uuid",
+    "direct_answer_enabled": true,
+    "expires_at": "timestamp"
+  }
+}
+```
+
 ## Visibility Rules
 - Parent can read parent-only and shared messages for owned sessions.
 - Child routes only accept valid child session token issued by `/api/session/join`.

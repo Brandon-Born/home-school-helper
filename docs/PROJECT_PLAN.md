@@ -36,14 +36,15 @@ Implemented:
   - `POST /api/session/:id/child-turn`
   - `POST /api/session/:id/parent-nudge`
 - Supabase migration and RLS policy SQL scaffold (`supabase/migrations/20260217040000_session_foundation.sql`).
+- Supabase migration applied and verified against remote project (`20260217040000`).
 - Child session token auth on child-turn route.
 - Parent session ownership auth on parent-nudge route.
+- Initial web UI routes for parent and child operational flows (`/parent`, `/child`, `/auth/callback`).
 - Agent operations docs (`AGENT.md`) and handoff system.
 - CI guard for handoff log updates on runtime code changes.
 
 Not yet implemented:
-- Supabase migration execution and verification in a live Supabase project.
-- Parent/child onboarding UIs and flows.
+- Voice-first UX (STT/TTS) on parent/child surfaces.
 - Production-grade realtime event fan-out and client subscription wiring.
 - End-to-end tests and deployment hardening.
 

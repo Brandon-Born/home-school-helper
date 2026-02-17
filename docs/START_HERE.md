@@ -21,12 +21,15 @@ Implement Supabase-backed persistent session + auth + realtime so parent/child s
 - Child-turn now requires child session token; parent-nudge now requires authenticated parent ownership.
 - Messages are persisted in `messages` table via server routes.
 - Supabase migration exists at `supabase/migrations/20260217040000_session_foundation.sql`.
+- Minimal UI flows now exist:
+  - `/parent` for auth, child profile creation, session start, nudges, transcript polling.
+  - `/child` for join-code redemption and chat turn submission.
 
 ## First Tasks To Execute
-1. Apply the migration in Supabase and verify RLS/policies in a real project.
-2. Build parent and child onboarding UI flows on top of the new APIs.
-3. Replace API-only message persistence with Supabase realtime fan-out.
-4. Add integration tests for token redemption, session ownership, and visibility constraints.
+1. Replace polling with Supabase realtime subscriptions for live transcript updates.
+2. Add voice input/output integration (push-to-talk + TTS fallback) in `/parent` and `/child` experience as appropriate.
+3. Add integration tests for token redemption, session ownership, and visibility constraints.
+4. Harden OAuth UX and session refresh handling for multi-device reliability.
 
 ## Hard Rules
 - Never expose `ANTHROPIC_API_KEY` in client code.

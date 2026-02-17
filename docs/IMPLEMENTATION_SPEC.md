@@ -32,6 +32,11 @@ This spec covers the first production-capable version of the homeschool tutor we
 - Parent can send hidden nudge text.
 - Tutor pipeline calls Anthropic and enforces guardrails before response.
 
+## Implemented UI Surfaces (Current)
+- `/parent`: auth + child profile + session start + hidden nudge + transcript polling.
+- `/child`: join by code + turn submission + transcript polling.
+- `/auth/callback`: OAuth code exchange completion.
+
 ## Server Modules
 - `src/server/config.js`: typed env parsing/validation.
 - `src/server/anthropic.js`: Anthropic messages API wrapper.

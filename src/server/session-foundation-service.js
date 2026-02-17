@@ -344,6 +344,85 @@ export async function persistSessionMessage(
   return data;
 }
 
+export async function listSessionMessages(
+  { sessionId, visibility = "all", limit = 100 },
+  options = {}
+) {
+  const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
+  const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 200);
+
+  let query = serviceClient
+    .from("messages")
+    .select("id, actor_type, visibility_scope, content, policy_flags, created_at")
+    .eq("session_id", sessionId)
+    .order("created_at", { ascending: true })
+    .limit(safeLimit);
+
+  if (visibility === "child") {
+    query = query.eq("visibility_scope", "child_and_parent");
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    throw new ApiError(500, "messages_fetch_failed", "Unable to fetch session messages.");
+  }
+
+  return data ?? [];
+}
+
+export async function setSessionDirectAnswerOverride(
+  { sessionId, parentId, enabled, durationMinutes = 10 },
+  options = {}
+) {
+  const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
+  await ensureParentOwnsSession(parentId, sessionId, options);
+
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const boundedMinutes = Math.min(Math.max(Number(durationMinutes) || 10, 1), 60);
+
+  const { error: revokeError } = await serviceClient
+    .from("overrides")
+    .update({
+      enabled: false,
+      expires_at: nowIso
+    })
+    .eq("session_id", sessionId)
+    .eq("parent_id", parentId)
+    .eq("enabled", true)
+    .gt("expires_at", nowIso);
+
+  if (revokeError) {
+    throw new ApiError(500, "override_update_failed", "Unable to update active override state.");
+  }
+
+  if (!enabled) {
+    return {
+      session_id: sessionId,
+      direct_answer_enabled: false,
+      expires_at: nowIso
+    };
+  }
+
+  const expiresAt = new Date(now.getTime() + boundedMinutes * 60 * 1000).toISOString();
+  const { error: insertError } = await serviceClient.from("overrides").insert({
+    session_id: sessionId,
+    parent_id: parentId,
+    enabled: true,
+    expires_at: expiresAt
+  });
+
+  if (insertError) {
+    throw new ApiError(500, "override_update_failed", "Unable to create direct-answer override.");
+  }
+
+  return {
+    session_id: sessionId,
+    direct_answer_enabled: true,
+    expires_at: expiresAt
+  };
+}
+
 export async function getSessionTutorContext(
   { sessionId, childId = null, parentId = null },
   options = {}

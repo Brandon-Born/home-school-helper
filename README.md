@@ -31,6 +31,13 @@ Web-first homeschool tutoring assistant with parent steering and scaffold-first 
 - `POST /api/session/join` (one-time code redemption)
 - `POST /api/session/:id/child-turn`
 - `POST /api/session/:id/parent-nudge`
+- `GET /api/session/:id/messages`
+- `POST /api/session/:id/override`
+
+## UI Routes
+- `/parent` parent onboarding/session console
+- `/child` child join + tutor chat
+- `/auth/callback` OAuth callback completion
 
 ## Commands
 - `npm run dev`

@@ -346,3 +346,64 @@
 
 ### Blocking Questions
 - Please provide either Supabase access token flow or DB connection credentials for migration execution.
+
+## 2026-02-17T04:11:04Z - Codex
+
+### Scope Worked
+- Implemented first end-to-end parent/child web UI slice on top of existing session foundation APIs.
+- Added transcript retrieval and override APIs needed for usable session operations.
+- Hardened tutor-context trust boundaries and updated docs to match implemented behavior.
+
+### Last Agent Accomplished
+- Added browser Supabase client helper and generic client API helper.
+- Added new UI routes:
+  - `/parent` for Google OAuth sign-in, child profile creation, session start, override controls, hidden nudges, and transcript polling.
+  - `/child` for join-code redemption, child token storage, chat turn submission, and transcript polling.
+  - `/auth/callback` for OAuth code exchange and redirect.
+- Added new backend API routes:
+  - `GET /api/session/:id/messages`
+  - `POST /api/session/:id/override`
+- Added new service functions:
+  - `listSessionMessages`
+  - `setSessionDirectAnswerOverride`
+- Added ADR-005 enforcing server-trusted tutor context.
+- Updated docs (README/API contract/start-here/plan/spec) for new routes and current status.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/page.js`
+- `/Users/bborn/home-school-helper/app/parent/page.js`
+- `/Users/bborn/home-school-helper/app/child/page.js`
+- `/Users/bborn/home-school-helper/app/auth/callback/page.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/messages/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/override/route.js`
+- `/Users/bborn/home-school-helper/src/lib/supabase-browser.js`
+- `/Users/bborn/home-school-helper/src/lib/http.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation-service.js`
+- `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+- `/Users/bborn/home-school-helper/docs/IMPLEMENTATION_SPEC.md`
+- `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
+- `/Users/bborn/home-school-helper/docs/START_HERE.md`
+- `/Users/bborn/home-school-helper/docs/architecture/DECISIONS.md`
+- `/Users/bborn/home-school-helper/README.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (15 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+- Command: `npm run check:env`
+- Result: pass.
+
+### Open Risks / Issues
+- Parent/child transcript updates currently use polling; realtime subscriptions are still pending.
+- Voice input/output integration (STT/TTS) is not implemented yet.
+- OAuth behavior depends on Supabase provider config and Vercel callback URL correctness.
+
+### Next Steps (Ordered)
+1. Replace message polling with Supabase realtime channel subscriptions.
+2. Add voice capture (push-to-talk) and TTS playback in child surface.
+3. Add integration tests for auth + join + transcript visibility end-to-end.
+
+### Blocking Questions
+- None.
