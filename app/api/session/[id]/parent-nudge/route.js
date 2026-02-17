@@ -6,16 +6,12 @@ import {
   getSessionTutorContext
 } from "../../../../../src/server/session-foundation-service.js";
 import { enforceRateLimit } from "../../../../../src/server/rate-limit.js";
+import { buildRateLimitPolicy } from "../../../../../src/server/rate-limit-policies.js";
 import { runSessionTutorTurn } from "../../../../../src/server/session-turn-orchestrator.js";
 
 export async function POST(request, { params }) {
   try {
-    enforceRateLimit(request, {
-      scope: "parent_nudge",
-      maxRequests: 30,
-      windowMs: 60_000,
-      keySuffix: params.id
-    });
+    enforceRateLimit(request, buildRateLimitPolicy("parentNudge", params.id));
 
     const payload = await request.json();
     const { parent } = await requireParentContext(request);

@@ -3,36 +3,10 @@ import assert from "node:assert/strict";
 
 import { ApiError } from "../src/server/api-error.js";
 import { createStreamGetHandler, serializeSse } from "../app/api/session/[id]/stream/route.js";
-
-function parseSseEvents(chunkText) {
-  const blocks = chunkText.split("\n\n").filter(Boolean);
-  const events = [];
-
-  for (const block of blocks) {
-    const lines = block.split("\n");
-    let eventName = "message";
-    const dataLines = [];
-
-    for (const line of lines) {
-      if (line.startsWith("event:")) {
-        eventName = line.slice(6).trim();
-      } else if (line.startsWith("data:")) {
-        dataLines.push(line.slice(5).trim());
-      }
-    }
-
-    if (dataLines.length === 0) {
-      continue;
-    }
-
-    events.push({
-      event: eventName,
-      data: JSON.parse(dataLines.join("\n"))
-    });
-  }
-
-  return events;
-}
+import {
+  assertApiErrorResponse,
+  parseSseEvents
+} from "./helpers/route-test-helpers.js";
 
 test("serializeSse formats event payload blocks", () => {
   const encoded = serializeSse("snapshot", { visibility: "child" });
@@ -105,9 +79,8 @@ test("createStreamGetHandler returns JSON error response for viewer resolution f
     params: { id: "s1" }
   });
 
-  assert.equal(response.status, 403);
-  const payload = await response.json();
-  assert.deepEqual(payload, {
+  await assertApiErrorResponse(response, {
+    status: 403,
     error: "session_forbidden",
     message: "Forbidden"
   });

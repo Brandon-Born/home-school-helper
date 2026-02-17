@@ -2,6 +2,7 @@ import { requireParentContext } from "../../../../src/server/auth.js";
 import { handleRouteError } from "../../../../src/server/route-errors.js";
 import { startSessionForParent } from "../../../../src/server/session-foundation-service.js";
 import { enforceRateLimit } from "../../../../src/server/rate-limit.js";
+import { buildRateLimitPolicy } from "../../../../src/server/rate-limit-policies.js";
 
 export function createSessionStartPostHandler(dependencies = {}) {
   const applyRateLimit = dependencies.enforceRateLimit ?? enforceRateLimit;
@@ -11,11 +12,7 @@ export function createSessionStartPostHandler(dependencies = {}) {
 
   return async function POST(request) {
     try {
-      applyRateLimit(request, {
-        scope: "session_start",
-        maxRequests: 20,
-        windowMs: 60_000
-      });
+      applyRateLimit(request, buildRateLimitPolicy("sessionStart"));
 
       const payload = await request.json();
       const { parent } = await requireParent(request);

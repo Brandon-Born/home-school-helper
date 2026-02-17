@@ -1,8 +1,9 @@
 import { requireChildSessionContext } from "../../../../../../src/server/auth.js";
-import { ApiError } from "../../../../../../src/server/api-error.js";
 import { handleRouteError } from "../../../../../../src/server/route-errors.js";
 import { transcribeSpeech } from "../../../../../../src/server/speech-provider.js";
 import { enforceRateLimit } from "../../../../../../src/server/rate-limit.js";
+import { buildRateLimitPolicy } from "../../../../../../src/server/rate-limit-policies.js";
+import { parseSpeechTranscribeInput } from "../../../../../../src/server/speech-route-validators.js";
 
 export function createSpeechTranscribePostHandler(dependencies = {}) {
   const applyRateLimit = dependencies.enforceRateLimit ?? enforceRateLimit;
@@ -12,32 +13,11 @@ export function createSpeechTranscribePostHandler(dependencies = {}) {
 
   return async function POST(request, { params }) {
     try {
-      applyRateLimit(request, {
-        scope: "speech_transcribe",
-        maxRequests: 25,
-        windowMs: 60_000,
-        keySuffix: params.id
-      });
+      applyRateLimit(request, buildRateLimitPolicy("speechTranscribe", params.id));
 
       await requireChild(request, params.id);
-
-      const formData = await request.formData();
-      const audioFile = formData.get("audio");
-
-      if (!audioFile || typeof audioFile.arrayBuffer !== "function") {
-        throw new ApiError(400, "validation_error", "audio file is required.");
-      }
-
-      const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
-      if (audioBuffer.length === 0) {
-        throw new ApiError(400, "validation_error", "audio file must not be empty.");
-      }
-
-      const languageCode = formData.get("language_code");
-      const result = await transcribe({
-        audioBytes: audioBuffer,
-        languageCode: typeof languageCode === "string" ? languageCode : undefined
-      });
+      const input = await parseSpeechTranscribeInput(request);
+      const result = await transcribe(input);
 
       return Response.json(result);
     } catch (error) {

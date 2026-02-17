@@ -1,5 +1,79 @@
 # Handoff Log
 
+## 2026-02-17T20:29:09Z - Codex
+
+### Scope Worked
+- Completed requested refactors 1-4 and proceeded with #5 E2E critical-path coverage.
+- Preserved route behavior while extracting shared runtime and test utilities.
+
+### Last Agent Accomplished
+- Refactor 1 (centralized rate-limit policies):
+  - Added `/Users/bborn/home-school-helper/src/server/rate-limit-policies.js`.
+  - Wired all targeted routes to `buildRateLimitPolicy(...)`:
+    - `/Users/bborn/home-school-helper/app/api/session/join/route.js`
+    - `/Users/bborn/home-school-helper/app/api/session/start/route.js`
+    - `/Users/bborn/home-school-helper/app/api/session/[id]/child-turn/route.js`
+    - `/Users/bborn/home-school-helper/app/api/session/[id]/parent-nudge/route.js`
+    - `/Users/bborn/home-school-helper/app/api/session/[id]/speech/transcribe/route.js`
+    - `/Users/bborn/home-school-helper/app/api/session/[id]/speech/synthesize/route.js`
+- Refactor 2 (shared speech request validation):
+  - Added `/Users/bborn/home-school-helper/src/server/speech-route-validators.js`.
+  - Speech routes now consume shared validators instead of inline parsing.
+  - Added validator coverage in `/Users/bborn/home-school-helper/tests/speech-route-validators.test.js`.
+- Refactor 3 (stream core extraction):
+  - Added `/Users/bborn/home-school-helper/src/server/transcript-stream-runtime.js`.
+  - Moved polling/seen-id/keepalive/close lifecycle out of route wrapper.
+  - Updated `/Users/bborn/home-school-helper/app/api/session/[id]/stream/route.js` to delegate runtime lifecycle and re-export `serializeSse`.
+- Refactor 4 (shared route-test helpers):
+  - Added `/Users/bborn/home-school-helper/tests/helpers/route-test-helpers.js`.
+  - Updated route tests to use shared request/error/SSE helpers:
+    - `/Users/bborn/home-school-helper/tests/session-routes.test.js`
+    - `/Users/bborn/home-school-helper/tests/speech-routes.test.js`
+    - `/Users/bborn/home-school-helper/tests/stream-route.test.js`
+- E2E critical-path tests (#5):
+  - Added `/Users/bborn/home-school-helper/tests/e2e-critical-path.test.js`.
+  - Covers parent onboarding/auth context -> child profile creation -> session start -> child join/redeem -> child tutor turn with message + policy-event persistence assertions.
+- Test-infra helper extraction used by integration/E2E:
+  - Added `/Users/bborn/home-school-helper/tests/helpers/fake-service-client.js`.
+  - Updated `/Users/bborn/home-school-helper/tests/session-auth-integration.test.js` to consume shared fake client.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/api/session/join/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/start/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/child-turn/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/parent-nudge/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/speech/transcribe/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/speech/synthesize/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/stream/route.js`
+- `/Users/bborn/home-school-helper/src/server/rate-limit-policies.js`
+- `/Users/bborn/home-school-helper/src/server/speech-route-validators.js`
+- `/Users/bborn/home-school-helper/src/server/transcript-stream-runtime.js`
+- `/Users/bborn/home-school-helper/tests/helpers/route-test-helpers.js`
+- `/Users/bborn/home-school-helper/tests/helpers/fake-service-client.js`
+- `/Users/bborn/home-school-helper/tests/session-routes.test.js`
+- `/Users/bborn/home-school-helper/tests/speech-routes.test.js`
+- `/Users/bborn/home-school-helper/tests/stream-route.test.js`
+- `/Users/bborn/home-school-helper/tests/speech-route-validators.test.js`
+- `/Users/bborn/home-school-helper/tests/e2e-critical-path.test.js`
+- `/Users/bborn/home-school-helper/tests/session-auth-integration.test.js`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (64 tests, 0 failures).
+
+### Open Risks / Issues
+- Rate limiting remains in-memory per process (not distributed).
+- Stream transport remains polling-backed SSE; Supabase Realtime migration remains optional future work.
+
+### Next Steps (Ordered)
+1. Run live browser E2E (parent + child surfaces) against deployed env to validate auth/session UX on real Supabase.
+2. If needed, add route-level integration tests for `child-turn`/`parent-nudge` via injectable handler factories similar to join/start/speech routes.
+3. Evaluate distributed rate-limit backing before multi-instance scale.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-17T20:11:21Z - Codex
 
 ### Scope Worked

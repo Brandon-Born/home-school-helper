@@ -4,6 +4,11 @@ import assert from "node:assert/strict";
 import { ApiError } from "../src/server/api-error.js";
 import { createSpeechTranscribePostHandler } from "../app/api/session/[id]/speech/transcribe/route.js";
 import { createSpeechSynthesizePostHandler } from "../app/api/session/[id]/speech/synthesize/route.js";
+import {
+  assertApiErrorResponse,
+  createAudioFormRequest,
+  createJsonRequest
+} from "./helpers/route-test-helpers.js";
 
 test("createSpeechTranscribePostHandler surfaces speech provider failures", async () => {
   const handler = createSpeechTranscribePostHandler({
@@ -16,20 +21,12 @@ test("createSpeechTranscribePostHandler surfaces speech provider failures", asyn
     }
   });
 
-  const formData = new FormData();
-  formData.append("audio", new Blob(["audio-bytes"], { type: "audio/webm" }), "utterance.webm");
+  const response = await handler(createAudioFormRequest("https://example.test/api/session/s1/speech/transcribe"), {
+    params: { id: "s1" }
+  });
 
-  const response = await handler(
-    new Request("https://example.test/api/session/s1/speech/transcribe", {
-      method: "POST",
-      body: formData
-    }),
-    { params: { id: "s1" } }
-  );
-
-  assert.equal(response.status, 503);
-  const payload = await response.json();
-  assert.deepEqual(payload, {
+  await assertApiErrorResponse(response, {
+    status: 503,
     error: "speech_provider_unavailable",
     message: "Speech provider unavailable."
   });
@@ -42,16 +39,12 @@ test("createSpeechTranscribePostHandler returns rate_limited when limiter reject
     }
   });
 
-  const response = await handler(
-    new Request("https://example.test/api/session/s1/speech/transcribe", {
-      method: "POST"
-    }),
-    { params: { id: "s1" } }
-  );
+  const response = await handler(new Request("https://example.test/api/session/s1/speech/transcribe", { method: "POST" }), {
+    params: { id: "s1" }
+  });
 
-  assert.equal(response.status, 429);
-  const payload = await response.json();
-  assert.deepEqual(payload, {
+  await assertApiErrorResponse(response, {
+    status: 429,
     error: "rate_limited",
     message: "Too many requests. Please try again shortly."
   });
@@ -69,17 +62,12 @@ test("createSpeechSynthesizePostHandler surfaces speech provider failures", asyn
   });
 
   const response = await handler(
-    new Request("https://example.test/api/session/s1/speech/synthesize", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ text: "Hello" })
-    }),
+    createJsonRequest("https://example.test/api/session/s1/speech/synthesize", { text: "Hello" }),
     { params: { id: "s1" } }
   );
 
-  assert.equal(response.status, 503);
-  const payload = await response.json();
-  assert.deepEqual(payload, {
+  await assertApiErrorResponse(response, {
+    status: 503,
     error: "speech_provider_unavailable",
     message: "Speech provider unavailable."
   });
@@ -93,17 +81,12 @@ test("createSpeechSynthesizePostHandler returns rate_limited when limiter reject
   });
 
   const response = await handler(
-    new Request("https://example.test/api/session/s1/speech/synthesize", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ text: "Hello" })
-    }),
+    createJsonRequest("https://example.test/api/session/s1/speech/synthesize", { text: "Hello" }),
     { params: { id: "s1" } }
   );
 
-  assert.equal(response.status, 429);
-  const payload = await response.json();
-  assert.deepEqual(payload, {
+  await assertApiErrorResponse(response, {
+    status: 429,
     error: "rate_limited",
     message: "Too many requests. Please try again shortly."
   });

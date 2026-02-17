@@ -5,16 +5,12 @@ import {
 } from "../../../../../src/server/session-foundation-service.js";
 import { handleRouteError } from "../../../../../src/server/route-errors.js";
 import { enforceRateLimit } from "../../../../../src/server/rate-limit.js";
+import { buildRateLimitPolicy } from "../../../../../src/server/rate-limit-policies.js";
 import { runSessionTutorTurn } from "../../../../../src/server/session-turn-orchestrator.js";
 
 export async function POST(request, { params }) {
   try {
-    enforceRateLimit(request, {
-      scope: "child_turn",
-      maxRequests: 45,
-      windowMs: 60_000,
-      keySuffix: params.id
-    });
+    enforceRateLimit(request, buildRateLimitPolicy("childTurn", params.id));
 
     const payload = await request.json();
     const childContext = await requireChildSessionContext(request, params.id);

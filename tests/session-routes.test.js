@@ -4,6 +4,10 @@ import assert from "node:assert/strict";
 import { ApiError } from "../src/server/api-error.js";
 import { createSessionJoinPostHandler } from "../app/api/session/join/route.js";
 import { createSessionStartPostHandler } from "../app/api/session/start/route.js";
+import {
+  assertApiErrorResponse,
+  createJsonRequest
+} from "./helpers/route-test-helpers.js";
 
 test("createSessionJoinPostHandler returns rate_limited error when limiter rejects", async () => {
   const handler = createSessionJoinPostHandler({
@@ -12,17 +16,10 @@ test("createSessionJoinPostHandler returns rate_limited error when limiter rejec
     }
   });
 
-  const response = await handler(
-    new Request("https://example.test/api/session/join", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ code: "AB12CD34" })
-    })
-  );
+  const response = await handler(createJsonRequest("https://example.test/api/session/join", { code: "AB12CD34" }));
 
-  assert.equal(response.status, 429);
-  const payload = await response.json();
-  assert.deepEqual(payload, {
+  await assertApiErrorResponse(response, {
+    status: 429,
     error: "rate_limited",
     message: "Too many requests. Please try again shortly."
   });
@@ -36,16 +33,11 @@ test("createSessionStartPostHandler returns rate_limited error when limiter reje
   });
 
   const response = await handler(
-    new Request("https://example.test/api/session/start", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ child_id: "child_1", daily_subjects: ["Math"] })
-    })
+    createJsonRequest("https://example.test/api/session/start", { child_id: "child_1", daily_subjects: ["Math"] })
   );
 
-  assert.equal(response.status, 429);
-  const payload = await response.json();
-  assert.deepEqual(payload, {
+  await assertApiErrorResponse(response, {
+    status: 429,
     error: "rate_limited",
     message: "Too many requests. Please try again shortly."
   });
@@ -73,13 +65,7 @@ test("createSessionStartPostHandler starts session when auth and payload are val
   });
 
   const inputPayload = { child_id: "child_1", daily_subjects: ["Math"] };
-  const response = await handler(
-    new Request("https://example.test/api/session/start", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(inputPayload)
-    })
-  );
+  const response = await handler(createJsonRequest("https://example.test/api/session/start", inputPayload));
 
   assert.equal(response.status, 201);
   assert.equal(recordedParentId, "parent_1");
