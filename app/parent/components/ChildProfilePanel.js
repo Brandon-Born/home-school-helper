@@ -1,70 +1,64 @@
 "use client";
-
-const inputStyle = {
-  width: "100%",
-  boxSizing: "border-box",
-  padding: 10,
-  border: "1px solid #c8c8c8",
-  borderRadius: 8
-};
-
-const cardStyle = {
-  border: "1px solid #dadada",
-  borderRadius: 12,
-  padding: 16,
-  marginBottom: 16,
-  background: "#fff"
-};
+import { TextAreaField, TextField } from "../../components/forms/FormFields.js";
 
 export function ChildProfilePanel({ childForm, loading, onSubmit, setChildForm }) {
   return (
-    <section style={cardStyle}>
-      <h2 style={{ marginTop: 0 }}>Create Child Profile</h2>
-      <form onSubmit={onSubmit} style={{ display: "grid", gap: 10 }}>
-        <input
-          style={inputStyle}
-          placeholder="Child name"
+    <section className="card">
+      <h2 className="section-title">Create Child Profile</h2>
+      <p className="section-muted">Set baseline details so tutoring guidance fits the student.</p>
+      <form onSubmit={onSubmit} className="form-grid">
+        <TextField
+          id="child-name"
+          label="Child name"
+          placeholder="Ava"
           value={childForm.child_name}
           onChange={(event) => setChildForm((prev) => ({ ...prev, child_name: event.target.value }))}
         />
-        <input
-          style={inputStyle}
-          placeholder="Age"
+        <TextField
+          id="child-age"
+          label="Age"
           type="number"
           min="4"
           max="21"
+          placeholder="10"
           value={childForm.age}
           onChange={(event) => setChildForm((prev) => ({ ...prev, age: event.target.value }))}
         />
-        <input
-          style={inputStyle}
-          placeholder="Grade"
+        <TextField
+          id="child-grade"
+          label="Grade"
+          placeholder="5"
           value={childForm.grade}
           onChange={(event) => setChildForm((prev) => ({ ...prev, grade: event.target.value }))}
         />
-        <input
-          style={inputStyle}
-          placeholder="Subjects (comma separated)"
+        <TextField
+          id="child-subjects"
+          label="Subjects"
+          placeholder="Math, Science"
           value={childForm.subjects}
           onChange={(event) => setChildForm((prev) => ({ ...prev, subjects: event.target.value }))}
         />
-        <textarea
-          style={{ ...inputStyle, minHeight: 70 }}
-          placeholder="Personality notes"
+        <TextAreaField
+          id="child-personality"
+          label="Personality notes"
+          placeholder="Curious, likes examples."
           value={childForm.personality_description}
           onChange={(event) =>
             setChildForm((prev) => ({ ...prev, personality_description: event.target.value }))
           }
         />
-        <textarea
-          style={{ ...inputStyle, minHeight: 70 }}
-          placeholder="Special needs"
+        <TextAreaField
+          id="child-needs"
+          label="Special needs"
+          placeholder="Needs shorter instructions."
           value={childForm.special_needs}
           onChange={(event) => setChildForm((prev) => ({ ...prev, special_needs: event.target.value }))}
         />
-        <button type="submit" disabled={loading}>
-          Save Child
-        </button>
+        <div className="btn-row">
+          <button type="submit" disabled={loading} className="btn btn--primary">
+            Save Child
+          </button>
+        </div>
       </form>
     </section>
   );

@@ -5,25 +5,32 @@ import { SessionStatusPanel } from "./components/SessionStatusPanel.js";
 import { TranscriptPanel } from "./components/TranscriptPanel.js";
 import { TutorComposerPanel } from "./components/TutorComposerPanel.js";
 import { useChildConsole } from "./hooks/useChildConsole.js";
+import { AppShell } from "../components/layout/AppShell.js";
 
 export default function ChildPage() {
   const { state, actions } = useChildConsole();
 
   return (
-    <main style={{ maxWidth: 920, margin: "0 auto", padding: 20, background: "#f5fff8", minHeight: "100vh" }}>
-      <h1 style={{ marginTop: 0 }}>Child Tutor Surface</h1>
+    <AppShell
+      role="child"
+      title="Child Tutor Surface"
+      subtitle="Join with your session code, then ask by voice or text while the tutor guides your next step."
+    >
+      {state.error ? <div className="alert alert--error">{state.error}</div> : null}
 
       {!state.sessionAccess ? (
-        <JoinSessionPanel
-          joinCode={state.joinCode}
-          setJoinCode={actions.setJoinCode}
-          deviceFingerprint={state.deviceFingerprint}
-          setDeviceFingerprint={actions.setDeviceFingerprint}
-          onSubmit={actions.joinSession}
-          loading={state.loading}
-        />
+        <div className="console-centered">
+          <JoinSessionPanel
+            joinCode={state.joinCode}
+            setJoinCode={actions.setJoinCode}
+            deviceFingerprint={state.deviceFingerprint}
+            setDeviceFingerprint={actions.setDeviceFingerprint}
+            onSubmit={actions.joinSession}
+            loading={state.loading}
+          />
+        </div>
       ) : (
-        <>
+        <div className="stack">
           <SessionStatusPanel
             sessionAccess={state.sessionAccess}
             voiceStatus={state.voiceStatus}
@@ -53,10 +60,8 @@ export default function ChildPage() {
           />
 
           <TranscriptPanel messages={state.messages} pendingTutorReply={state.pendingTutorReply} />
-        </>
+        </div>
       )}
-
-      {state.error ? <p style={{ color: "#b42318" }}>{state.error}</p> : null}
-    </main>
+    </AppShell>
   );
 }

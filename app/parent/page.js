@@ -5,59 +5,70 @@ import { ChildProfilePanel } from "./components/ChildProfilePanel.js";
 import { SessionControlPanel } from "./components/SessionControlPanel.js";
 import { TranscriptPanel } from "./components/TranscriptPanel.js";
 import { useParentConsole } from "./hooks/useParentConsole.js";
+import { AppShell } from "../components/layout/AppShell.js";
 
 export default function ParentPage() {
   const { state, actions } = useParentConsole();
 
   return (
-    <main style={{ maxWidth: 980, margin: "0 auto", padding: 20, background: "#f6f7fb", minHeight: "100vh" }}>
-      <h1 style={{ marginTop: 0 }}>Parent Session Console</h1>
+    <AppShell
+      role="parent"
+      title="Parent Session Console"
+      subtitle="Set context, start guided sessions, and steer the tutor through private nudges."
+    >
+      {state.error ? <div className="alert alert--error">{state.error}</div> : null}
 
-      <AuthPanel
-        session={state.session}
-        needsReauth={state.needsReauth}
-        parentProfile={state.parentProfile}
-        loading={state.loading}
-        onRefresh={actions.refreshParentData}
-        onSignOut={actions.signOut}
-        onSignIn={actions.signInWithGoogle}
-      />
-
-      {state.session ? (
-        <>
-          <ChildProfilePanel
-            childForm={state.childForm}
-            setChildForm={actions.setChildForm}
-            onSubmit={actions.createChild}
+      <div className="console-grid console-grid--parent">
+        <div className="stack">
+          <AuthPanel
+            session={state.session}
+            needsReauth={state.needsReauth}
+            parentProfile={state.parentProfile}
             loading={state.loading}
+            onRefresh={actions.refreshParentData}
+            onSignOut={actions.signOut}
+            onSignIn={actions.signInWithGoogle}
           />
 
-          <SessionControlPanel
-            children={state.children}
-            selectedChildId={state.selectedChildId}
-            setSelectedChildId={actions.setSelectedChildId}
-            sessionForm={state.sessionForm}
-            setSessionForm={actions.setSessionForm}
-            onStartSession={actions.startSession}
-            activeSession={state.activeSession}
-            loading={state.loading}
-            onEnableOverride={() => actions.setOverride(true)}
-            onDisableOverride={() => actions.setOverride(false)}
-          />
+          {state.session ? (
+            <ChildProfilePanel
+              childForm={state.childForm}
+              setChildForm={actions.setChildForm}
+              onSubmit={actions.createChild}
+              loading={state.loading}
+            />
+          ) : null}
+        </div>
 
-          <TranscriptPanel
-            activeSession={state.activeSession}
-            nudgeText={state.nudgeText}
-            setNudgeText={actions.setNudgeText}
-            onSendNudge={actions.sendNudge}
-            loading={state.loading}
-            nudgeResponse={state.nudgeResponse}
-            messages={state.messages}
-          />
-        </>
-      ) : null}
+        <div className="stack">
+          {state.session ? (
+            <SessionControlPanel
+              children={state.children}
+              selectedChildId={state.selectedChildId}
+              setSelectedChildId={actions.setSelectedChildId}
+              sessionForm={state.sessionForm}
+              setSessionForm={actions.setSessionForm}
+              onStartSession={actions.startSession}
+              activeSession={state.activeSession}
+              loading={state.loading}
+              onEnableOverride={() => actions.setOverride(true)}
+              onDisableOverride={() => actions.setOverride(false)}
+            />
+          ) : null}
 
-      {state.error ? <p style={{ color: "#b42318" }}>{state.error}</p> : null}
-    </main>
+          {state.session ? (
+            <TranscriptPanel
+              activeSession={state.activeSession}
+              nudgeText={state.nudgeText}
+              setNudgeText={actions.setNudgeText}
+              onSendNudge={actions.sendNudge}
+              loading={state.loading}
+              nudgeResponse={state.nudgeResponse}
+              messages={state.messages}
+            />
+          ) : null}
+        </div>
+      </div>
+    </AppShell>
   );
 }

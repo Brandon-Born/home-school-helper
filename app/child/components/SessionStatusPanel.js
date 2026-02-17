@@ -1,13 +1,5 @@
 "use client";
 
-const cardStyle = {
-  border: "1px solid #dadada",
-  borderRadius: 12,
-  padding: 16,
-  marginBottom: 16,
-  background: "#fff"
-};
-
 export function SessionStatusPanel({
   sessionAccess,
   voiceStatus,
@@ -18,19 +10,25 @@ export function SessionStatusPanel({
   onLeave
 }) {
   return (
-    <section style={cardStyle}>
-      <p style={{ marginTop: 0 }}>
+    <section className="card card--elevated">
+      <h2 className="section-title">Session Status</h2>
+      <p className="section-muted">
         Connected to session <code>{sessionAccess.session_id}</code>
       </p>
-      <p style={{ marginBottom: 12 }}>Token expires at: {sessionAccess.expires_at}</p>
-      <p style={{ marginBottom: 12 }}>{voiceStatus}</p>
-      {turnStatus ? <p style={{ marginBottom: 12, color: "#175cd3" }}>{turnStatus}</p> : null}
+      <p className="section-muted">Token expires at: {sessionAccess.expires_at}</p>
 
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <button type="button" onClick={onLeave}>
+      <div className="status-panel">
+        <div className="status-row">
+          <span className="pill">{voiceStatus}</span>
+          {turnStatus ? <span className="pill">{turnStatus}</span> : null}
+        </div>
+      </div>
+
+      <div className="btn-row">
+        <button type="button" onClick={onLeave} className="btn btn--ghost">
           Leave Session
         </button>
-        <label style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+        <label className="toggle">
           <input
             type="checkbox"
             checked={autoSpeak}

@@ -3,45 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isChildAuthFailure } from "../../../src/lib/auth-failures.js";
 import { ApiRequestError, apiFormRequest } from "../../../src/lib/http.js";
-
-function getSpeechRecognitionCtor() {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
-}
-
-function getCloudSttSupport() {
-  if (typeof window === "undefined" || typeof navigator === "undefined") {
-    return false;
-  }
-
-  return Boolean(window.MediaRecorder && navigator.mediaDevices?.getUserMedia);
-}
-
-function classifySpeechFailure(error, fallbackMessage) {
-  if (error instanceof ApiRequestError) {
-    if (error.status === 429 || error.code === "speech_provider_rate_limited") {
-      return "Voice service is busy. Try again in a few seconds or type your question.";
-    }
-
-    if (error.code === "speech_provider_timeout") {
-      return "Voice service timed out. Try again, or type your question.";
-    }
-
-    if (error.status >= 500 || error.code === "speech_provider_unavailable") {
-      return "Voice service is temporarily unavailable. You can keep going in text mode.";
-    }
-  }
-
-  const message = error instanceof Error ? error.message : "";
-  if (/timeout|timed out/i.test(message)) {
-    return "Voice service timed out. Try again, or type your question.";
-  }
-
-  return fallbackMessage;
-}
+import { initializeSpokenAssistantMessageIds, takeFreshAssistantMessages } from "./voice/assistant-messages.js";
+import { classifySpeechFailure } from "./voice/speech-errors.js";
+import { detectSpeechSupport, getSpeechRecognitionCtor } from "./voice/speech-support.js";
+import { getListeningLabelText, getTurnStatusText, getVoiceStatusText } from "./voice/speech-status.js";
 
 export function useChildVoiceRuntime({
   sessionAccess,
@@ -79,29 +44,7 @@ export function useChildVoiceRuntime({
 
   const voiceBusy = isTranscribing || isPlayingSpeech;
 
-  const voiceStatus = useMemo(() => {
-    if (speechSupport.cloudStt && speechSupport.cloudTts) {
-      return "Cloud speech active: Google STT V2 + Chirp 3 TTS.";
-    }
-
-    if (speechSupport.cloudStt) {
-      return "Cloud STT active. Tutor audio uses browser fallback.";
-    }
-
-    if (speechSupport.browserStt && speechSupport.browserTts) {
-      return "Browser voice fallback active.";
-    }
-
-    if (speechSupport.browserStt) {
-      return "Browser voice input fallback active.";
-    }
-
-    if (speechSupport.browserTts) {
-      return "Browser audio playback fallback active.";
-    }
-
-    return "Voice unavailable in this browser. Text mode only.";
-  }, [speechSupport]);
+  const voiceStatus = useMemo(() => getVoiceStatusText(speechSupport), [speechSupport]);
 
   function revokePlaybackResources() {
     if (playbackAudioRef.current) {
@@ -253,9 +196,7 @@ export function useChildVoiceRuntime({
   }
 
   function initializeFromSnapshot(messages = []) {
-    spokenAssistantMessageIdsRef.current = new Set(
-      messages.filter((message) => message.actor_type === "assistant").map((message) => message.id)
-    );
+    spokenAssistantMessageIdsRef.current = initializeSpokenAssistantMessageIds(messages);
   }
 
   function handleIncomingMessages(incoming = []) {
@@ -263,14 +204,7 @@ export function useChildVoiceRuntime({
       return;
     }
 
-    const freshAssistantMessages = incoming.filter(
-      (message) => message.actor_type === "assistant" && !spokenAssistantMessageIdsRef.current.has(message.id)
-    );
-
-    for (const message of freshAssistantMessages) {
-      spokenAssistantMessageIdsRef.current.add(message.id);
-    }
-
+    const freshAssistantMessages = takeFreshAssistantMessages(incoming, spokenAssistantMessageIdsRef.current);
     const latest = freshAssistantMessages[freshAssistantMessages.length - 1];
     if (!latest) {
       return;
@@ -497,12 +431,7 @@ export function useChildVoiceRuntime({
   }, [studentInput]);
 
   useEffect(() => {
-    const support = {
-      cloudStt: getCloudSttSupport(),
-      browserStt: Boolean(getSpeechRecognitionCtor()),
-      cloudTts: typeof window !== "undefined" && typeof Audio !== "undefined",
-      browserTts: typeof window !== "undefined" && typeof window.speechSynthesis !== "undefined"
-    };
+    const support = detectSpeechSupport();
     setSpeechSupport({
       ...support
     });
@@ -518,47 +447,23 @@ export function useChildVoiceRuntime({
   }, []);
 
   const turnStatus = useMemo(() => {
-    if (isCloudRecording) {
-      return "Listening. Release to transcribe.";
-    }
-
-    if (isListening) {
-      return "Listening. Release to stop.";
-    }
-
-    if (isTranscribing) {
-      return "Transcribing your voice...";
-    }
-
-    if (pendingTutorReply) {
-      return "Tutor is thinking...";
-    }
-
-    if (isPlayingSpeech) {
-      return "Tutor is speaking...";
-    }
-
-    return notice;
+    return getTurnStatusText({
+      isCloudRecording,
+      isListening,
+      isTranscribing,
+      pendingTutorReply,
+      isPlayingSpeech,
+      notice
+    });
   }, [isCloudRecording, isListening, isTranscribing, pendingTutorReply, isPlayingSpeech, notice]);
 
   const listeningLabel = useMemo(() => {
-    if (isCloudRecording) {
-      return "Recording... release to transcribe";
-    }
-
-    if (isListening) {
-      return "Listening... release to stop";
-    }
-
-    if (isTranscribing) {
-      return "Transcribing...";
-    }
-
-    if (isPlayingSpeech) {
-      return "Tutor speaking...";
-    }
-
-    return "Hold to talk";
+    return getListeningLabelText({
+      isCloudRecording,
+      isListening,
+      isTranscribing,
+      isPlayingSpeech
+    });
   }, [isCloudRecording, isListening, isTranscribing, isPlayingSpeech]);
 
   return {

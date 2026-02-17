@@ -1,0 +1,136 @@
+.app-shell {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  padding: 22px 20px 40px;
+}
+
+.app-shell--home {
+  --role-accent: var(--accent-home);
+}
+
+.app-shell--parent {
+  --role-accent: var(--accent-parent);
+}
+
+.app-shell--child {
+  --role-accent: var(--accent-child);
+}
+
+.app-shell--auth {
+  --role-accent: var(--accent-auth);
+}
+
+.app-shell__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.app-shell__brand {
+  font-family: var(--font-display), "Fraunces", serif;
+  font-weight: 700;
+  font-size: clamp(1.35rem, 2.6vw, 1.8rem);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+
+.app-shell__tagline {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 0.93rem;
+}
+
+.app-shell__controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-shell__nav {
+  display: flex;
+  gap: 8px;
+}
+
+.app-shell__nav-link {
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-weight: 600;
+  background: color-mix(in oklab, var(--surface) 92%, var(--bg-soft) 8%);
+}
+
+.app-shell__nav-link.is-active {
+  color: color-mix(in oklab, var(--role-accent) 76%, var(--text) 24%);
+  border-color: color-mix(in oklab, var(--role-accent) 50%, var(--border) 50%);
+  background: color-mix(in oklab, var(--role-accent) 20%, var(--surface) 80%);
+}
+
+.app-shell__hero {
+  margin: 18px 0 18px;
+}
+
+.page-title {
+  margin: 0;
+  font-family: var(--font-display), "Fraunces", serif;
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  line-height: 1.08;
+  letter-spacing: 0.01em;
+}
+
+.page-subtitle {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+  font-size: clamp(1rem, 1.8vw, 1.1rem);
+  max-width: 72ch;
+}
+
+.app-shell__content {
+  display: grid;
+  gap: 18px;
+}
+
+.stack {
+  display: grid;
+  gap: 14px;
+}
+
+.console-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.console-grid--parent {
+  grid-template-columns: 1fr;
+}
+
+.console-centered {
+  max-width: 620px;
+}
+
+@media (min-width: 900px) {
+  .console-grid--parent {
+    grid-template-columns: minmax(320px, 0.95fr) minmax(380px, 1.25fr);
+    align-items: start;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    padding-inline: 14px;
+    padding-top: 14px;
+  }
+
+  .app-shell__header {
+    flex-direction: column;
+  }
+
+  .app-shell__controls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

@@ -1,0 +1,46 @@
+.hero {
+  display: grid;
+  gap: 16px;
+}
+
+.heroCopy {
+  display: grid;
+  gap: 12px;
+}
+
+.trustPanel {
+  border-radius: 14px;
+  border: 1px solid color-mix(in oklab, var(--role-accent) 35%, var(--border) 65%);
+  background: color-mix(in oklab, var(--surface) 82%, var(--role-accent) 18%);
+  padding: 12px;
+}
+
+.trustTitle {
+  margin: 0 0 8px;
+  font-family: var(--font-display), "Fraunces", serif;
+  font-size: 1.05rem;
+}
+
+.trustList {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 8px;
+  color: var(--text-muted);
+}
+
+.routeGrid {
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 760px) {
+  .hero {
+    grid-template-columns: 1.35fr 1fr;
+    align-items: stretch;
+  }
+
+  .routeGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

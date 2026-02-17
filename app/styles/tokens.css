@@ -1,0 +1,40 @@
+:root {
+  --font-body: "Avenir Next", "Nunito Sans", "Trebuchet MS", "Segoe UI", sans-serif;
+  --font-display: "Iowan Old Style", "Baskerville", "Palatino Linotype", "Book Antiqua", serif;
+  --bg: #fdf8ef;
+  --bg-soft: #f6eee1;
+  --surface: #ffffff;
+  --surface-muted: #f8f5ee;
+  --text: #261f16;
+  --text-muted: #66594a;
+  --border: #dfd2bd;
+  --shadow: 0 12px 30px rgba(53, 35, 10, 0.12);
+  --brand: #cc7a1f;
+  --brand-strong: #a85f10;
+  --success: #147561;
+  --danger: #b63b2b;
+  --accent-home: #cb7a20;
+  --accent-parent: #0f766e;
+  --accent-child: #d96016;
+  --accent-auth: #3369b0;
+  --role-accent: var(--accent-home);
+}
+
+:root[data-theme="dark"] {
+  --bg: #17120d;
+  --bg-soft: #241b13;
+  --surface: #231b14;
+  --surface-muted: #2e2318;
+  --text: #f3ebdc;
+  --text-muted: #c3b5a2;
+  --border: #4f3c2b;
+  --shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
+  --brand: #ef9a3c;
+  --brand-strong: #f2b266;
+  --success: #4ac6ab;
+  --danger: #f08375;
+  --accent-home: #f2a145;
+  --accent-parent: #29b5ab;
+  --accent-child: #f1884a;
+  --accent-auth: #74a8ef;
+}

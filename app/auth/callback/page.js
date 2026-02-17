@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getBrowserSupabaseClient } from "../../../src/lib/supabase-browser.js";
+import { AppShell } from "../../components/layout/AppShell.js";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -43,9 +44,17 @@ export default function AuthCallbackPage() {
   }, [router]);
 
   return (
-    <main style={{ maxWidth: 680, margin: "0 auto", padding: 24 }}>
-      <h1>Authentication Callback</h1>
-      <p>{statusText}</p>
-    </main>
+    <AppShell
+      role="auth"
+      title="Completing Sign-In"
+      subtitle="Finishing secure parent authentication and preparing your console."
+    >
+      <div className="console-centered">
+        <section className="card card--elevated">
+          <h2 className="section-title">Authentication Callback</h2>
+          <p className="section-muted">{statusText}</p>
+        </section>
+      </div>
+    </AppShell>
   );
 }

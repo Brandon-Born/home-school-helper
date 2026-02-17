@@ -1,21 +1,5 @@
 "use client";
 
-const inputStyle = {
-  width: "100%",
-  boxSizing: "border-box",
-  padding: 10,
-  border: "1px solid #c8c8c8",
-  borderRadius: 8
-};
-
-const cardStyle = {
-  border: "1px solid #dadada",
-  borderRadius: 12,
-  padding: 16,
-  marginBottom: 16,
-  background: "#fff"
-};
-
 export function TutorComposerPanel({
   studentInput,
   setStudentInput,
@@ -33,23 +17,30 @@ export function TutorComposerPanel({
   speechSupport,
   listeningLabel
 }) {
+  const voiceButtonClass = `btn btn--secondary voice-button${isCloudRecording || isListening ? " is-active" : ""}`;
+
   return (
-    <section style={cardStyle}>
-      <h2 style={{ marginTop: 0 }}>Ask the Tutor</h2>
-      <form onSubmit={onSend} style={{ display: "grid", gap: 10, marginBottom: 12 }}>
-        <div style={{ display: "flex", gap: 8 }}>
+    <section className="card">
+      <h2 className="section-title">Ask the Tutor</h2>
+      <p className="section-muted">Type a question or hold the mic button to speak.</p>
+      <form onSubmit={onSend} className="form-grid">
+        <div className="voice-row">
           <input
-            style={{ ...inputStyle, flex: 1 }}
+            className="input"
             placeholder="Type your question"
             value={studentInput}
             onChange={(event) => setStudentInput(event.target.value)}
           />
-          <button type="submit" disabled={loading || voiceBusy || pendingTutorReply || !studentInput.trim()}>
+          <button
+            type="submit"
+            className="btn btn--primary"
+            disabled={loading || voiceBusy || pendingTutorReply || !studentInput.trim()}
+          >
             Send
           </button>
         </div>
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div className="voice-row">
           <button
             type="button"
             onPointerDown={(event) => {
@@ -71,21 +62,13 @@ export function TutorComposerPanel({
               }
             }}
             disabled={loading || voiceBusy || pendingTutorReply || (!speechSupport.cloudStt && !speechSupport.browserStt)}
-            style={{
-              background: isCloudRecording || isListening ? "#fee4e2" : "#eef4ff",
-              border: "1px solid #d0d5dd",
-              borderRadius: 8,
-              padding: "8px 12px"
-            }}
+            className={voiceButtonClass}
           >
             {listeningLabel}
           </button>
 
-          {turnStatus ? (
-            <span style={{ color: isTranscribing || pendingTutorReply || isPlayingSpeech ? "#175cd3" : "#555" }}>
-              {turnStatus}
-            </span>
-          ) : null}
+          {turnStatus ? <span className="pill">{turnStatus}</span> : null}
+          {isTranscribing || pendingTutorReply || isPlayingSpeech ? <span className="pill">Working...</span> : null}
         </div>
       </form>
     </section>

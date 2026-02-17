@@ -57,6 +57,11 @@ Web-first homeschool tutoring assistant with parent steering and scaffold-first 
 - `/child` child join + tutor chat
 - `/auth/callback` OAuth callback completion
 
+## UX + Theming
+- Consumer-oriented visual system with shared warm styling across all routes.
+- System-aware dark/light mode with persistent user override (`System`, `Light`, `Dark`).
+- Theme preference stored in browser local storage key `hsh_theme_mode`.
+
 ## Commands
 - `npm run dev`
 - `npm run build`

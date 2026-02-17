@@ -74,6 +74,162 @@
 ### Blocking Questions
 - None.
 
+## 2026-02-17T21:22:03Z - Codex
+
+### Scope Worked
+- Completed targeted refactors for newly identified UX codebase pain points after the consumer-theme rollout.
+
+### Last Agent Accomplished
+- Refactor 1 (child voice runtime decomposition):
+  - Extracted voice-specific helper modules under:
+    - `/Users/bborn/home-school-helper/app/child/hooks/voice/speech-support.js`
+    - `/Users/bborn/home-school-helper/app/child/hooks/voice/speech-errors.js`
+    - `/Users/bborn/home-school-helper/app/child/hooks/voice/speech-status.js`
+    - `/Users/bborn/home-school-helper/app/child/hooks/voice/assistant-messages.js`
+  - Reworked `/Users/bborn/home-school-helper/app/child/hooks/useChildVoiceRuntime.js` to delegate status/support/error/message bookkeeping to those modules and reduce monolithic in-file logic.
+- Refactor 2 (theme bootstrap/provider dedupe):
+  - Moved shared bootstrap script and storage-resolution helper into `/Users/bborn/home-school-helper/src/lib/theme-mode.js`.
+  - Updated `/Users/bborn/home-school-helper/app/layout.js` to consume shared bootstrap constant.
+  - Updated `/Users/bborn/home-school-helper/app/components/theme/ThemeProvider.js` to consume shared resolution helper and consolidate initial state calculation.
+- Refactor 3 (global style modularization):
+  - Split styling into modular files:
+    - `/Users/bborn/home-school-helper/app/styles/tokens.css`
+    - `/Users/bborn/home-school-helper/app/styles/base.css`
+    - `/Users/bborn/home-school-helper/app/styles/layout.css`
+    - `/Users/bborn/home-school-helper/app/styles/components.css`
+    - `/Users/bborn/home-school-helper/app/styles/motion.css`
+  - Converted `/Users/bborn/home-school-helper/app/globals.css` into a thin import hub.
+- Refactor 4 (shared transcript renderer):
+  - Added `/Users/bborn/home-school-helper/app/components/transcript/TranscriptFeed.js`.
+  - Replaced duplicated transcript role-label/render blocks in:
+    - `/Users/bborn/home-school-helper/app/parent/components/TranscriptPanel.js`
+    - `/Users/bborn/home-school-helper/app/child/components/TranscriptPanel.js`
+- Refactor 5 (shared parent form primitives):
+  - Added `/Users/bborn/home-school-helper/app/components/forms/FormFields.js`.
+  - Replaced repetitive field markup in:
+    - `/Users/bborn/home-school-helper/app/parent/components/ChildProfilePanel.js`
+    - `/Users/bborn/home-school-helper/app/parent/components/SessionControlPanel.js`
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/child/hooks/useChildVoiceRuntime.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/voice/speech-support.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/voice/speech-errors.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/voice/speech-status.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/voice/assistant-messages.js`
+- `/Users/bborn/home-school-helper/src/lib/theme-mode.js`
+- `/Users/bborn/home-school-helper/app/layout.js`
+- `/Users/bborn/home-school-helper/app/components/theme/ThemeProvider.js`
+- `/Users/bborn/home-school-helper/app/globals.css`
+- `/Users/bborn/home-school-helper/app/styles/tokens.css`
+- `/Users/bborn/home-school-helper/app/styles/base.css`
+- `/Users/bborn/home-school-helper/app/styles/layout.css`
+- `/Users/bborn/home-school-helper/app/styles/components.css`
+- `/Users/bborn/home-school-helper/app/styles/motion.css`
+- `/Users/bborn/home-school-helper/app/components/transcript/TranscriptFeed.js`
+- `/Users/bborn/home-school-helper/app/parent/components/TranscriptPanel.js`
+- `/Users/bborn/home-school-helper/app/child/components/TranscriptPanel.js`
+- `/Users/bborn/home-school-helper/app/components/forms/FormFields.js`
+- `/Users/bborn/home-school-helper/app/parent/components/ChildProfilePanel.js`
+- `/Users/bborn/home-school-helper/app/parent/components/SessionControlPanel.js`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (68 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+
+### Open Risks / Issues
+- `useChildVoiceRuntime` is materially slimmer and more modular, but still large; next split candidate is a dedicated `useChildVoiceCapture` hook to isolate recorder/recognizer state transitions.
+- New shared form/transcript primitives are currently parent-focused; if parent/child surfaces diverge visually later, add variant props or role-specific wrappers to avoid branching inside base primitives.
+
+### Next Steps (Ordered)
+1. Add focused unit tests for `speech-status` and `assistant-messages` helpers to lock behavior of extracted logic.
+2. Add lightweight component tests for `TranscriptFeed` and `FormFields` to protect shared UI contracts.
+3. Continue existing launch-hardening queue (speech metrics, speech route failure-path tests, E2E critical path coverage).
+
+### Blocking Questions
+- None.
+
+## 2026-02-17T21:05:37Z - Codex
+
+### Scope Worked
+- Implemented a full consumer-facing UI refresh across all core routes with shared theming and dark/light mode support.
+
+### Last Agent Accomplished
+- Added global design-system styling + semantic tokens:
+  - `/Users/bborn/home-school-helper/app/globals.css`
+- Added persistent theme mode helpers and context:
+  - `/Users/bborn/home-school-helper/src/lib/theme-mode.js`
+  - `/Users/bborn/home-school-helper/app/components/theme/ThemeProvider.js`
+  - `/Users/bborn/home-school-helper/app/components/theme/ThemeToggle.js`
+- Added shared consumer shell:
+  - `/Users/bborn/home-school-helper/app/components/layout/AppShell.js`
+- Rebuilt route UI composition around the shell and new classes:
+  - `/Users/bborn/home-school-helper/app/layout.js`
+  - `/Users/bborn/home-school-helper/app/page.js`
+  - `/Users/bborn/home-school-helper/app/page.module.css`
+  - `/Users/bborn/home-school-helper/app/parent/page.js`
+  - `/Users/bborn/home-school-helper/app/child/page.js`
+  - `/Users/bborn/home-school-helper/app/auth/callback/page.js`
+- Restyled parent and child component surfaces (removed inline styles):
+  - `/Users/bborn/home-school-helper/app/parent/components/AuthPanel.js`
+  - `/Users/bborn/home-school-helper/app/parent/components/ChildProfilePanel.js`
+  - `/Users/bborn/home-school-helper/app/parent/components/SessionControlPanel.js`
+  - `/Users/bborn/home-school-helper/app/parent/components/TranscriptPanel.js`
+  - `/Users/bborn/home-school-helper/app/child/components/JoinSessionPanel.js`
+  - `/Users/bborn/home-school-helper/app/child/components/SessionStatusPanel.js`
+  - `/Users/bborn/home-school-helper/app/child/components/TutorComposerPanel.js`
+  - `/Users/bborn/home-school-helper/app/child/components/TranscriptPanel.js`
+- Added tests for theme-mode behavior:
+  - `/Users/bborn/home-school-helper/tests/theme-mode.test.js`
+- Updated top-level docs:
+  - `/Users/bborn/home-school-helper/README.md`
+
+### Files Touched
+- `/Users/bborn/home-school-helper/README.md`
+- `/Users/bborn/home-school-helper/app/auth/callback/page.js`
+- `/Users/bborn/home-school-helper/app/child/components/JoinSessionPanel.js`
+- `/Users/bborn/home-school-helper/app/child/components/SessionStatusPanel.js`
+- `/Users/bborn/home-school-helper/app/child/components/TranscriptPanel.js`
+- `/Users/bborn/home-school-helper/app/child/components/TutorComposerPanel.js`
+- `/Users/bborn/home-school-helper/app/child/page.js`
+- `/Users/bborn/home-school-helper/app/components/layout/AppShell.js`
+- `/Users/bborn/home-school-helper/app/components/theme/ThemeProvider.js`
+- `/Users/bborn/home-school-helper/app/components/theme/ThemeToggle.js`
+- `/Users/bborn/home-school-helper/app/globals.css`
+- `/Users/bborn/home-school-helper/app/layout.js`
+- `/Users/bborn/home-school-helper/app/page.js`
+- `/Users/bborn/home-school-helper/app/page.module.css`
+- `/Users/bborn/home-school-helper/app/parent/components/AuthPanel.js`
+- `/Users/bborn/home-school-helper/app/parent/components/ChildProfilePanel.js`
+- `/Users/bborn/home-school-helper/app/parent/components/SessionControlPanel.js`
+- `/Users/bborn/home-school-helper/app/parent/components/TranscriptPanel.js`
+- `/Users/bborn/home-school-helper/app/parent/page.js`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+- `/Users/bborn/home-school-helper/src/lib/theme-mode.js`
+- `/Users/bborn/home-school-helper/tests/theme-mode.test.js`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (68 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+- Command: `npm run check:env`
+- Result: fail (local env missing `GOOGLE_SERVICE_ACCOUNT_JSON` while speech provider is enabled).
+
+### Open Risks / Issues
+- Theme token system currently uses global CSS classes; if component count grows, tokenized CSS modules may improve local maintainability.
+- No browser visual regression snapshots yet; dark/light rendering was validated by build/test only in this pass.
+
+### Next Steps (Ordered)
+1. Run manual visual QA on `/`, `/parent`, `/child`, and `/auth/callback` across mobile + desktop in both light and dark themes.
+2. Add route-level UI smoke tests (Playwright or equivalent) covering theme toggle persistence + critical auth/session flows.
+3. Continue launch hardening work already queued in plan/handoff (speech metrics, speech route failure-path tests, E2E critical path).
+
+### Blocking Questions
+- None.
+
 ## 2026-02-17T20:11:21Z - Codex
 
 ### Scope Worked
