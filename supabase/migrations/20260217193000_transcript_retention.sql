@@ -24,7 +24,7 @@ $$;
 revoke all on function public.purge_expired_messages(integer) from public;
 grant execute on function public.purge_expired_messages(integer) to service_role;
 
-do $$
+do $job$
 declare
   existing_job_id bigint;
 begin
@@ -41,7 +41,7 @@ begin
   perform cron.schedule(
     'purge-expired-messages',
     '13 3 * * *',
-    $$select public.purge_expired_messages(30);$$
+    'select public.purge_expired_messages(30);'
   );
 end;
-$$;
+$job$;
