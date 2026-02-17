@@ -690,3 +690,75 @@
 
 ### Blocking Questions
 - None.
+
+## 2026-02-17T15:37:22Z - Codex
+
+### Scope Worked
+- Completed targeted refactors to address maintainability pain points identified during recent voice/reliability implementation.
+
+### Last Agent Accomplished
+- Refactor 1 (child surface split):
+  - Extracted child runtime logic from page into hook:
+    - `/Users/bborn/home-school-helper/app/child/hooks/useChildConsole.js`
+  - Split child UI into focused components:
+    - `/Users/bborn/home-school-helper/app/child/components/JoinSessionPanel.js`
+    - `/Users/bborn/home-school-helper/app/child/components/SessionStatusPanel.js`
+    - `/Users/bborn/home-school-helper/app/child/components/TutorComposerPanel.js`
+    - `/Users/bborn/home-school-helper/app/child/components/TranscriptPanel.js`
+  - Reduced `/Users/bborn/home-school-helper/app/child/page.js` to composition-only wrapper.
+- Refactor 2 (speech provider abstraction):
+  - Added provider interface module:
+    - `/Users/bborn/home-school-helper/src/server/speech-provider.js`
+  - Updated speech routes to use provider abstraction instead of direct Google module calls:
+    - `/Users/bborn/home-school-helper/app/api/session/[id]/speech/transcribe/route.js`
+    - `/Users/bborn/home-school-helper/app/api/session/[id]/speech/synthesize/route.js`
+- Refactor 3 (centralized auth-failure classification):
+  - Added shared utility:
+    - `/Users/bborn/home-school-helper/src/lib/auth-failures.js`
+  - Updated parent + child clients to use shared classification logic:
+    - `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js`
+    - `/Users/bborn/home-school-helper/app/child/hooks/useChildConsole.js`
+- Added tests for new abstraction/utilities:
+  - `/Users/bborn/home-school-helper/tests/auth-failures.test.js`
+  - `/Users/bborn/home-school-helper/tests/speech-provider.test.js`
+- Updated env/docs for provider selection:
+  - `/Users/bborn/home-school-helper/.env.example`
+  - `/Users/bborn/home-school-helper/README.md`
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/child/page.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/useChildConsole.js`
+- `/Users/bborn/home-school-helper/app/child/components/JoinSessionPanel.js`
+- `/Users/bborn/home-school-helper/app/child/components/SessionStatusPanel.js`
+- `/Users/bborn/home-school-helper/app/child/components/TutorComposerPanel.js`
+- `/Users/bborn/home-school-helper/app/child/components/TranscriptPanel.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js`
+- `/Users/bborn/home-school-helper/src/lib/auth-failures.js`
+- `/Users/bborn/home-school-helper/src/server/speech-provider.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/speech/transcribe/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/speech/synthesize/route.js`
+- `/Users/bborn/home-school-helper/tests/auth-failures.test.js`
+- `/Users/bborn/home-school-helper/tests/speech-provider.test.js`
+- `/Users/bborn/home-school-helper/.env.example`
+- `/Users/bborn/home-school-helper/README.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (37 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+- Command: `npm run check:env`
+- Result: pass.
+
+### Open Risks / Issues
+- Current provider abstraction has one concrete provider (`google`) and should be extended before adding alternate vendors.
+- Child voice orchestration is now isolated in one hook but can be further split into dedicated `useChildVoice` + `useChildStream` hooks if complexity grows.
+
+### Next Steps (Ordered)
+1. Add provider-level metrics/tracing (transcribe latency, synth latency, failure codes).
+2. Add route tests for speech endpoints with injected/mock provider failures.
+3. If adding a second provider, move provider registry to a separate factory module with explicit per-provider config validation.
+
+### Blocking Questions
+- None.

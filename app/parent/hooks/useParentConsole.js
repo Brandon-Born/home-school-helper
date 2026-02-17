@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { EventStreamError, openEventStream } from "../../../src/lib/event-stream.js";
-import { ApiRequestError, apiRequest } from "../../../src/lib/http.js";
+import { openEventStream } from "../../../src/lib/event-stream.js";
+import { isParentAuthFailure } from "../../../src/lib/auth-failures.js";
+import { apiRequest } from "../../../src/lib/http.js";
 import { getBrowserSupabaseClient } from "../../../src/lib/supabase-browser.js";
 
 function toList(value) {
@@ -21,21 +22,6 @@ function mergeMessages(previous, incoming) {
   return Array.from(map.values()).sort(
     (left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime()
   );
-}
-
-function isParentTokenFailure(error) {
-  if (error instanceof EventStreamError || error instanceof ApiRequestError) {
-    if ([401, 403].includes(error.status)) {
-      return true;
-    }
-
-    if (error.code === "invalid_parent_token" || error.code === "missing_authorization") {
-      return true;
-    }
-  }
-
-  const message = error instanceof Error ? error.message.toLowerCase() : "";
-  return message.includes("invalid") && message.includes("token");
 }
 
 const initialChildForm = {
@@ -116,7 +102,7 @@ export function useParentConsole() {
       try {
         return await runRequest(session.access_token);
       } catch (requestError) {
-        if (!isParentTokenFailure(requestError)) {
+        if (!isParentAuthFailure(requestError)) {
           throw requestError;
         }
 
@@ -223,7 +209,7 @@ export function useParentConsole() {
           return;
         }
 
-        if (isParentTokenFailure(streamError)) {
+        if (isParentAuthFailure(streamError)) {
           const refreshedSession = await refreshParentSession();
           if (disposed) {
             return;

@@ -1,7 +1,7 @@
 import { requireChildSessionContext } from "../../../../../../src/server/auth.js";
 import { ApiError } from "../../../../../../src/server/api-error.js";
 import { handleRouteError } from "../../../../../../src/server/route-errors.js";
-import { synthesizeWithGoogleTts } from "../../../../../../src/server/google-speech.js";
+import { synthesizeSpeech } from "../../../../../../src/server/speech-provider.js";
 
 export async function POST(request, { params }) {
   try {
@@ -14,7 +14,7 @@ export async function POST(request, { params }) {
     }
 
     const speakingRateValue = Number.parseFloat(String(payload?.speaking_rate ?? ""));
-    const audioBuffer = await synthesizeWithGoogleTts({
+    const audioBuffer = await synthesizeSpeech({
       text,
       speakingRate: Number.isFinite(speakingRateValue) ? speakingRateValue : undefined
     });

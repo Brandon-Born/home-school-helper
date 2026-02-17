@@ -1,7 +1,7 @@
 import { requireChildSessionContext } from "../../../../../../src/server/auth.js";
 import { ApiError } from "../../../../../../src/server/api-error.js";
 import { handleRouteError } from "../../../../../../src/server/route-errors.js";
-import { transcribeWithGoogleSpeech } from "../../../../../../src/server/google-speech.js";
+import { transcribeSpeech } from "../../../../../../src/server/speech-provider.js";
 
 export async function POST(request, { params }) {
   try {
@@ -20,7 +20,7 @@ export async function POST(request, { params }) {
     }
 
     const languageCode = formData.get("language_code");
-    const result = await transcribeWithGoogleSpeech({
+    const result = await transcribeSpeech({
       audioBytes: audioBuffer,
       languageCode: typeof languageCode === "string" ? languageCode : undefined
     });

@@ -23,6 +23,7 @@ Web-first homeschool tutoring assistant with parent steering and scaffold-first 
 - `ANTHROPIC_TEMPERATURE` (default: `0.3`)
 - `TUTOR_SYSTEM_PROMPT_VERSION` (default: `v1`)
 - Google Speech (enables cloud STT/TTS for child voice loop):
+  - `SPEECH_PROVIDER` (default: `google`)
   - `GOOGLE_CLOUD_PROJECT_ID`
   - `GOOGLE_SERVICE_ACCOUNT_JSON`
   - `GOOGLE_CLOUD_LOCATION` (default: `global`)
