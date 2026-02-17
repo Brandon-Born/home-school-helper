@@ -1,0 +1,178 @@
+import { ApiError } from "../api-error.js";
+import {
+  createChildSessionToken,
+  generateJoinCode,
+  hashOpaqueToken
+} from "../session-codes.js";
+import { getServiceSupabaseClient } from "../supabase-clients.js";
+import {
+  normalizeSessionJoinPayload,
+  normalizeSessionStartPayload
+} from "./payload-normalizers.js";
+
+const JOIN_CODE_TTL_MINUTES = 10;
+const CHILD_SESSION_TTL_HOURS = 12;
+
+export async function startSessionForParent(parentId, payload, options = {}) {
+  const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
+  const normalized = normalizeSessionStartPayload(payload);
+
+  const { data: child, error: childError } = await serviceClient
+    .from("children")
+    .select("id")
+    .eq("id", normalized.child_id)
+    .eq("parent_id", parentId)
+    .maybeSingle();
+
+  if (childError) {
+    throw new ApiError(500, "child_lookup_failed", "Unable to validate child for session start.");
+  }
+
+  if (!child) {
+    throw new ApiError(404, "child_not_found", "Child profile not found for this parent.");
+  }
+
+  const { data: activeSessions, error: activeError } = await serviceClient
+    .from("sessions")
+    .select("id")
+    .eq("child_id", normalized.child_id)
+    .eq("status", "active")
+    .limit(1);
+
+  if (activeError) {
+    throw new ApiError(500, "session_lookup_failed", "Unable to check active session status.");
+  }
+
+  if (Array.isArray(activeSessions) && activeSessions.length > 0) {
+    throw new ApiError(409, "active_session_exists", "Child already has an active session.");
+  }
+
+  const dailyContext = {
+    daily_subjects: normalized.daily_subjects,
+    parent_context: normalized.parent_context,
+    goal_notes: normalized.goal_notes,
+    additional_context: normalized.additional_context
+  };
+
+  const { data: session, error: sessionError } = await serviceClient
+    .from("sessions")
+    .insert({
+      child_id: normalized.child_id,
+      parent_id: parentId,
+      status: "active",
+      daily_context: dailyContext
+    })
+    .select("id, child_id, parent_id, status, daily_context, started_at")
+    .single();
+
+  if (sessionError || !session) {
+    throw new ApiError(500, "session_create_failed", "Unable to start session.");
+  }
+
+  const joinCode = generateJoinCode(8);
+  const codeHash = hashOpaqueToken(joinCode);
+  const expiresAt = new Date(Date.now() + JOIN_CODE_TTL_MINUTES * 60 * 1000).toISOString();
+
+  const { error: codeError } = await serviceClient.from("session_codes").insert({
+    session_id: session.id,
+    code_hash: codeHash,
+    expires_at: expiresAt
+  });
+
+  if (codeError) {
+    throw new ApiError(500, "session_code_create_failed", "Unable to create one-time session code.");
+  }
+
+  return {
+    session_id: session.id,
+    child_id: session.child_id,
+    status: session.status,
+    join_code: joinCode,
+    expires_at: expiresAt,
+    daily_context: session.daily_context
+  };
+}
+
+export async function redeemSessionCode(payload, options = {}) {
+  const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
+  const normalized = normalizeSessionJoinPayload(payload);
+  const codeHash = hashOpaqueToken(normalized.code);
+
+  const { data: codeRow, error: codeError } = await serviceClient
+    .from("session_codes")
+    .select("id, session_id, expires_at, redeemed_at")
+    .eq("code_hash", codeHash)
+    .maybeSingle();
+
+  if (codeError) {
+    throw new ApiError(500, "session_code_lookup_failed", "Unable to validate session code.");
+  }
+
+  if (!codeRow) {
+    throw new ApiError(404, "session_code_invalid", "Session code is invalid.");
+  }
+
+  if (codeRow.redeemed_at) {
+    throw new ApiError(409, "session_code_used", "Session code has already been redeemed.");
+  }
+
+  const nowIso = new Date().toISOString();
+  if (new Date(codeRow.expires_at).getTime() <= Date.now()) {
+    throw new ApiError(410, "session_code_expired", "Session code has expired.");
+  }
+
+  const { data: sessionRow, error: sessionError } = await serviceClient
+    .from("sessions")
+    .select("id, child_id, status")
+    .eq("id", codeRow.session_id)
+    .maybeSingle();
+
+  if (sessionError || !sessionRow) {
+    throw new ApiError(500, "session_lookup_failed", "Unable to resolve session for this code.");
+  }
+
+  if (sessionRow.status !== "active") {
+    throw new ApiError(409, "session_not_active", "Session is not active.");
+  }
+
+  const { data: updateRow, error: updateError } = await serviceClient
+    .from("session_codes")
+    .update({
+      redeemed_at: nowIso,
+      redeemed_device_fingerprint: normalized.device_fingerprint
+    })
+    .eq("id", codeRow.id)
+    .is("redeemed_at", null)
+    .select("id")
+    .maybeSingle();
+
+  if (updateError) {
+    throw new ApiError(500, "session_code_redeem_failed", "Unable to redeem session code.");
+  }
+
+  if (!updateRow) {
+    throw new ApiError(409, "session_code_used", "Session code has already been redeemed.");
+  }
+
+  const childSessionToken = createChildSessionToken();
+  const childSessionTokenHash = hashOpaqueToken(childSessionToken);
+  const childTokenExpiresAt = new Date(Date.now() + CHILD_SESSION_TTL_HOURS * 60 * 60 * 1000).toISOString();
+
+  const { error: childTokenError } = await serviceClient.from("child_session_tokens").insert({
+    session_id: sessionRow.id,
+    child_id: sessionRow.child_id,
+    token_hash: childSessionTokenHash,
+    expires_at: childTokenExpiresAt
+  });
+
+  if (childTokenError) {
+    throw new ApiError(500, "child_session_token_failed", "Unable to issue child session token.");
+  }
+
+  return {
+    session_id: sessionRow.id,
+    child_id: sessionRow.child_id,
+    child_session_token: childSessionToken,
+    expires_at: childTokenExpiresAt
+  };
+}

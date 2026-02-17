@@ -462,3 +462,92 @@
 
 ### Blocking Questions
 - None.
+
+## 2026-02-17T14:04:40Z - Codex
+
+### Scope Worked
+- Added integration-focused test coverage for auth/session primitives to harden critical security boundaries.
+- Implemented an in-memory Supabase-like query client for realistic service/auth lifecycle tests without external dependencies.
+
+### Last Agent Accomplished
+- Added `/Users/bborn/home-school-helper/tests/session-auth-integration.test.js` with integration tests covering:
+  - one-time join code redemption + child token issuance (`redeemSessionCode`)
+  - parent session ownership enforcement (`ensureParentOwnsSession`)
+  - child transcript visibility filtering (`listSessionMessages`)
+  - child bearer token/session scoping + expiry checks (`requireChildSessionContext`)
+  - parent bearer token validation + parent upsert behavior (`requireParentContext`)
+- Expanded test suite from 15 to 20 passing tests.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/tests/session-auth-integration.test.js`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (20 tests, 0 failures).
+
+### Open Risks / Issues
+- Stream route behavior (`GET /api/session/:id/stream`) is still untested at route-level due current direct module dependency wiring; existing tests cover underlying auth/visibility service logic.
+
+### Next Steps (Ordered)
+1. Add route-level stream visibility tests (parent sees `parent_only`, child does not) by introducing test-friendly dependency injection seams.
+2. Add token-expiry UX handling tests for parent/child stream reconnect flows.
+3. Implement push-to-talk STT + TTS fallback on child surface.
+
+### Blocking Questions
+- None.
+
+## 2026-02-17T14:10:56Z - Codex
+
+### Scope Worked
+- Refactored session-domain backend into focused modules to reduce coupling and improve testability.
+- Removed duplicated parent/child visibility-auth fallback logic by introducing a shared session viewer resolver.
+- Converted session message/stream routes to dependency-injected handler factories for easier route-level integration testing.
+
+### Last Agent Accomplished
+- Split `/Users/bborn/home-school-helper/src/server/session-foundation-service.js` into module files under:
+  - `/Users/bborn/home-school-helper/src/server/session-foundation/payload-normalizers.js`
+  - `/Users/bborn/home-school-helper/src/server/session-foundation/children-service.js`
+  - `/Users/bborn/home-school-helper/src/server/session-foundation/session-service.js`
+  - `/Users/bborn/home-school-helper/src/server/session-foundation/session-access-service.js`
+  - `/Users/bborn/home-school-helper/src/server/session-foundation/message-service.js`
+  - `/Users/bborn/home-school-helper/src/server/session-foundation/override-service.js`
+- Kept backward-compatible exports in `/Users/bborn/home-school-helper/src/server/session-foundation-service.js` as a barrel module.
+- Added shared resolver `/Users/bborn/home-school-helper/src/server/session-viewer-context.js` and updated both routes to use it:
+  - `/Users/bborn/home-school-helper/app/api/session/[id]/messages/route.js`
+  - `/Users/bborn/home-school-helper/app/api/session/[id]/stream/route.js`
+- Added/kept integration tests:
+  - `/Users/bborn/home-school-helper/tests/session-auth-integration.test.js`
+  - `/Users/bborn/home-school-helper/tests/session-viewer-context.test.js`
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/api/session/[id]/messages/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/stream/route.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation-service.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation/payload-normalizers.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation/children-service.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation/session-service.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation/session-access-service.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation/message-service.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation/override-service.js`
+- `/Users/bborn/home-school-helper/src/server/session-viewer-context.js`
+- `/Users/bborn/home-school-helper/tests/session-auth-integration.test.js`
+- `/Users/bborn/home-school-helper/tests/session-viewer-context.test.js`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (23 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+
+### Open Risks / Issues
+- Stream route now has injectable seams, but no direct route-factory tests yet for SSE payload sequencing; current coverage validates shared auth/visibility logic and underlying message services.
+
+### Next Steps (Ordered)
+1. Add direct `createStreamGetHandler` tests that assert `snapshot` and `message_append` framing under injected timers.
+2. Add direct `createMessagesGetHandler` tests for fallback behavior and status/error mapping.
+3. Continue with voice loop implementation (push-to-talk STT + TTS fallback).
+
+### Blocking Questions
+- None.
