@@ -21,17 +21,6 @@ How to use:
 
 ## P1 (High Value)
 
-### 18) Decompose parent console orchestration hook
-Status: Open
-Problem:
-- `app/parent/hooks/useParentConsole.js` now carries auth/session refresh, child CRUD, session lifecycle, nudge/override actions, and UI-alert orchestration in one module.
-Scope:
-- Split `useParentConsole` into focused domain hooks (for example `useParentChildren`, `useParentSessions`, `useParentGuidanceActions`).
-- Keep existing outward page API stable while extracting ownership boundaries.
-- Add targeted tests around extracted domain hooks.
-Success metric:
-- Smaller modules with clear responsibilities and lower change risk when adjusting parent workflows.
-
 ### 19) Split child voice capture by transport strategy
 Status: Open
 Problem:

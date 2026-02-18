@@ -4,6 +4,65 @@ Notes:
 - Compacted on 2026-02-18 to a rolling window.
 - Keep detailed entries for current context; older granular history is summarized below.
 
+## 2026-02-18T23:25:13Z - Codex
+
+### Scope Worked
+- Completed backlog item `18)` by decomposing parent console orchestration into focused domain hooks while preserving the page-facing API.
+
+### Last Agent Accomplished
+- Extracted shared parent-console primitives into:
+  - `app/parent/hooks/parent-console-shared.js`
+  - `toList`, `mergeMessages`, `buildSessionForUi`
+  - initial state constants (`initialChildForm`, `initialSessionForm`, `initialLoadingState`, `initialActionAlerts`)
+- Added focused domain hooks:
+  - `app/parent/hooks/useParentChildren.js` (child create/update/delete)
+  - `app/parent/hooks/useParentSessions.js` (start/rejoin/end/regenerate)
+  - `app/parent/hooks/useParentGuidanceActions.js` (nudge/override)
+- Refactored `app/parent/hooks/useParentConsole.js` to compose extracted domain hooks:
+  - kept outward `state/actions` contract stable for `app/parent/page.js`
+  - retained transcript stream orchestration and parent session bootstrap logic at the top-level hook
+  - preserved existing action alert/loading behavior
+- Added targeted tests for extracted hooks:
+  - `tests/use-parent-children-hook.test.js`
+  - `tests/use-parent-sessions-hook.test.js`
+  - `tests/use-parent-guidance-actions-hook.test.js`
+- Removed completed backlog item `18)` from `docs/PRODUCT_BACKLOG.md`.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/parent/hooks/parent-console-shared.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentChildren.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentSessions.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentGuidanceActions.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js`
+- `/Users/bborn/home-school-helper/tests/use-parent-children-hook.test.js`
+- `/Users/bborn/home-school-helper/tests/use-parent-sessions-hook.test.js`
+- `/Users/bborn/home-school-helper/tests/use-parent-guidance-actions-hook.test.js`
+- `/Users/bborn/home-school-helper/tests/use-parent-console-hook.test.js`
+- `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `node --test tests/use-parent-console-hook.test.js tests/use-parent-children-hook.test.js tests/use-parent-sessions-hook.test.js tests/use-parent-guidance-actions-hook.test.js`
+- Result: pass.
+- Command: `npm run test:unit`
+- Result: pass (123 tests, 0 failures).
+- Command: `npm run test:e2e`
+- Result: pass (default Playwright suite + transport matrix).
+- Command: `npm run build`
+- Result: pass.
+
+### Open Risks / Issues
+- Async action loading/alert lifecycle boilerplate remains duplicated across extracted domain hooks; this is tracked as backlog item `20)` for consolidation.
+- Existing non-functional warnings remain (`react-test-renderer` deprecation; Playwright `NO_COLOR` vs `FORCE_COLOR`).
+
+### Next Steps (Ordered)
+1. Execute backlog item `19)` split child voice capture by transport strategy.
+2. Execute backlog item `20)` consolidate async action status boilerplate.
+3. Execute backlog item `21)` migrate hook tests off `react-test-renderer`.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-18T23:19:09Z - Codex
 
 ### Scope Worked
