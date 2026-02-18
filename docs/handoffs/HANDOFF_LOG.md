@@ -4,6 +4,62 @@ Notes:
 - Compacted on 2026-02-18 to a rolling window.
 - Keep detailed entries for current context; older granular history is summarized below.
 
+## 2026-02-18T23:35:11Z - Codex
+
+### Scope Worked
+- Completed backlog item `20)` by introducing a shared async action-status helper and applying it across parent child/session/nudge/override action flows.
+
+### Last Agent Accomplished
+- Added shared async action lifecycle helper:
+  - `app/parent/hooks/parent-action-status.js`
+  - standardizes `pending`/`success`/`error` handling with scoped action alerts and optional success/error callbacks
+- Refactored parent action domain hooks to use shared helper:
+  - `app/parent/hooks/useParentChildren.js`
+  - `app/parent/hooks/useParentSessions.js`
+  - `app/parent/hooks/useParentGuidanceActions.js`
+- Preserved existing outward behavior:
+  - scoped loading flags (`childMutation`, `sessionStart`, `sessionManage`, `nudge`, `override`)
+  - scoped action alert messaging
+  - return semantics used by parent page/forms (`boolean` for child mutations, result/null for regenerate code)
+- Added focused helper regression tests:
+  - `tests/parent-action-status.test.js`
+- Verified existing parent-hook tests continue to pass after refactor:
+  - `tests/use-parent-console-hook.test.js`
+  - `tests/use-parent-children-hook.test.js`
+  - `tests/use-parent-sessions-hook.test.js`
+  - `tests/use-parent-guidance-actions-hook.test.js`
+- Removed completed backlog item `20)` from `docs/PRODUCT_BACKLOG.md`.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/parent/hooks/parent-action-status.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentChildren.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentSessions.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentGuidanceActions.js`
+- `/Users/bborn/home-school-helper/tests/parent-action-status.test.js`
+- `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `node --test tests/parent-action-status.test.js tests/use-parent-console-hook.test.js tests/use-parent-children-hook.test.js tests/use-parent-sessions-hook.test.js tests/use-parent-guidance-actions-hook.test.js`
+- Result: pass.
+- Command: `npm run test:unit`
+- Result: pass (130 tests, 0 failures).
+- Command: `npm run test:e2e`
+- Result: pass (default Playwright suite + transport matrix).
+- Command: `npm run build`
+- Result: pass.
+
+### Open Risks / Issues
+- Hook test suite still depends on `react-test-renderer` and emits React 19 deprecation warnings; this remains tracked as item `21)`.
+- Existing non-functional Playwright warning (`NO_COLOR` vs `FORCE_COLOR`) remains unchanged.
+
+### Next Steps (Ordered)
+1. Execute backlog item `21)` migrate hook tests off `react-test-renderer`.
+2. Continue quality backlog items `11)`, `12)`, and `13)`.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-18T23:31:19Z - Codex
 
 ### Scope Worked

@@ -45,17 +45,6 @@ Scope:
 - Add privacy-safe funnel events (session start, child join success/fail, turn send, nudge send, voice usage).
 - Define baseline activation and retention metrics for iteration.
 
-### 20) Consolidate async action status boilerplate
-Status: Open
-Problem:
-- Parent action handlers repeat loading toggles, try/catch wrappers, and scoped success/error alert updates, which increases drift risk.
-Scope:
-- Introduce a shared helper/reducer pattern for async action lifecycle (`pending`, `success`, `error`) with message support.
-- Apply pattern across parent child/session/nudge/override actions.
-- Add focused tests for helper behavior.
-Success metric:
-- Less duplicated status code and more consistent UX behavior across parent actions.
-
 ### 21) Migrate hook tests off `react-test-renderer`
 Status: Open
 Problem:

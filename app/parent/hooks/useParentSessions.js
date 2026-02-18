@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { buildSessionForUi, toList } from "./parent-console-shared.js";
+import { runAsyncActionStatus } from "./parent-action-status.js";
 
 export function createUseParentSessions() {
   return function useParentSessions({
@@ -22,39 +23,36 @@ export function createUseParentSessions() {
     const startSession = useCallback(
       async (event) => {
         event.preventDefault();
-        setLoadingState("sessionStart", true);
-        setError("");
-        clearActionAlert("sessionStart");
-
-        try {
-          const payload = await parentRequest("/api/session/start", {
-            method: "POST",
-            body: {
-              child_id: selectedChildId,
-              daily_subjects: toList(sessionForm.daily_subjects),
-              parent_context: sessionForm.parent_context,
-              goal_notes: sessionForm.goal_notes,
-              additional_context: sessionForm.additional_context
-            }
-          });
-
-          const nextSession = buildSessionForUi(payload.session, children);
-          setActiveSession(nextSession);
-          setActiveSessions((previous) => {
-            const rest = previous.filter((sessionRow) => sessionRow.session_id !== nextSession.session_id);
-            return [nextSession, ...rest];
-          });
-          setMessages([]);
-          setActionAlert("sessionStart", "success", "Join code is ready to share.");
-        } catch (requestError) {
-          setActionAlert(
-            "sessionStart",
-            "error",
-            requestError instanceof Error ? requestError.message : "We couldn't start the session. Please try again."
-          );
-        } finally {
-          setLoadingState("sessionStart", false);
-        }
+        await runAsyncActionStatus({
+          actionKey: "sessionStart",
+          setLoadingState,
+          setError,
+          clearActionAlert,
+          setActionAlert,
+          fallbackErrorMessage: "We couldn't start the session. Please try again.",
+          run: async () => {
+            return parentRequest("/api/session/start", {
+              method: "POST",
+              body: {
+                child_id: selectedChildId,
+                daily_subjects: toList(sessionForm.daily_subjects),
+                parent_context: sessionForm.parent_context,
+                goal_notes: sessionForm.goal_notes,
+                additional_context: sessionForm.additional_context
+              }
+            });
+          },
+          onSuccess: (payload) => {
+            const nextSession = buildSessionForUi(payload.session, children);
+            setActiveSession(nextSession);
+            setActiveSessions((previous) => {
+              const rest = previous.filter((sessionRow) => sessionRow.session_id !== nextSession.session_id);
+              return [nextSession, ...rest];
+            });
+            setMessages([]);
+            return "Join code is ready to share.";
+          }
+        });
       },
       [children, clearActionAlert, parentRequest, selectedChildId, sessionForm, setActionAlert, setActiveSession, setActiveSessions, setError, setLoadingState, setMessages]
     );
@@ -77,49 +75,53 @@ export function createUseParentSessions() {
 
     const endSession = useCallback(
       async (sessionId) => {
-        setLoadingState("sessionManage", true);
-        setError("");
-        clearActionAlert("sessionManage");
+        await runAsyncActionStatus({
+          actionKey: "sessionManage",
+          setLoadingState,
+          setError,
+          clearActionAlert,
+          setActionAlert,
+          fallbackErrorMessage: "We couldn't end that session. Please try again.",
+          run: async () => {
+            await parentRequest(`/api/session/${sessionId}/manage`, {
+              method: "POST",
+              body: { action: "end" }
+            });
+          },
+          onSuccess: () => {
+            if (activeSessionId === sessionId) {
+              setActiveSession(null);
+              setMessages([]);
+            }
 
-        try {
-          await parentRequest(`/api/session/${sessionId}/manage`, {
-            method: "POST",
-            body: { action: "end" }
-          });
-
-          if (activeSessionId === sessionId) {
-            setActiveSession(null);
-            setMessages([]);
+            setActiveSessions((previous) => previous.filter((sessionRow) => sessionRow.session_id !== sessionId));
+            return "Session ended.";
           }
-
-          setActiveSessions((previous) => previous.filter((sessionRow) => sessionRow.session_id !== sessionId));
-          setActionAlert("sessionManage", "success", "Session ended.");
-        } catch (requestError) {
-          setActionAlert(
-            "sessionManage",
-            "error",
-            requestError instanceof Error ? requestError.message : "We couldn't end that session. Please try again."
-          );
-        } finally {
-          setLoadingState("sessionManage", false);
-        }
+        });
       },
       [activeSessionId, clearActionAlert, parentRequest, setActionAlert, setActiveSession, setActiveSessions, setError, setLoadingState, setMessages]
     );
 
     const regenerateCode = useCallback(
       async (sessionId) => {
-        setLoadingState("sessionManage", true);
-        setError("");
-        clearActionAlert("sessionManage");
+        const outcome = await runAsyncActionStatus({
+          actionKey: "sessionManage",
+          setLoadingState,
+          setError,
+          clearActionAlert,
+          setActionAlert,
+          fallbackErrorMessage: "We couldn't regenerate the join code. Please try again.",
+          run: async () => {
+            return parentRequest(`/api/session/${sessionId}/manage`, {
+              method: "POST",
+              body: { action: "regenerate_code" }
+            });
+          },
+          onSuccess: (result) => {
+            if (!result?.join_code) {
+              return null;
+            }
 
-        try {
-          const result = await parentRequest(`/api/session/${sessionId}/manage`, {
-            method: "POST",
-            body: { action: "regenerate_code" }
-          });
-
-          if (result?.join_code) {
             setActiveSession((previous) => {
               if (!previous || previous.session_id !== sessionId) {
                 return previous;
@@ -153,20 +155,11 @@ export function createUseParentSessions() {
                 );
               })
             );
-            setActionAlert("sessionManage", "success", "Join code refreshed.");
+            return "Join code refreshed.";
           }
+        });
 
-          return result;
-        } catch (requestError) {
-          setActionAlert(
-            "sessionManage",
-            "error",
-            requestError instanceof Error ? requestError.message : "We couldn't regenerate the join code. Please try again."
-          );
-          return null;
-        } finally {
-          setLoadingState("sessionManage", false);
-        }
+        return outcome.ok ? outcome.result : null;
       },
       [children, clearActionAlert, parentRequest, setActionAlert, setActiveSession, setActiveSessions, setError, setLoadingState]
     );

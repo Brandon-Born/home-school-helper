@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { runAsyncActionStatus } from "./parent-action-status.js";
 
 export function createUseParentGuidanceActions() {
   return function useParentGuidanceActions({
@@ -20,30 +21,27 @@ export function createUseParentGuidanceActions() {
           return;
         }
 
-        setLoadingState("nudge", true);
-        setError("");
-        clearActionAlert("nudge");
-
-        try {
-          const payload = await parentRequest(`/api/session/${activeSessionId}/parent-nudge`, {
-            method: "POST",
-            body: {
-              nudge_text: nudgeText.trim(),
-              parent_guidance: nudgeText.trim()
-            }
-          });
-
-          setActionAlert("nudge", "success", payload.assistant_text || "Private note sent.");
-          setNudgeText("");
-        } catch (requestError) {
-          setActionAlert(
-            "nudge",
-            "error",
-            requestError instanceof Error ? requestError.message : "We couldn't send that private note. Please try again."
-          );
-        } finally {
-          setLoadingState("nudge", false);
-        }
+        await runAsyncActionStatus({
+          actionKey: "nudge",
+          setLoadingState,
+          setError,
+          clearActionAlert,
+          setActionAlert,
+          fallbackErrorMessage: "We couldn't send that private note. Please try again.",
+          run: async () => {
+            return parentRequest(`/api/session/${activeSessionId}/parent-nudge`, {
+              method: "POST",
+              body: {
+                nudge_text: nudgeText.trim(),
+                parent_guidance: nudgeText.trim()
+              }
+            });
+          },
+          onSuccess: (payload) => {
+            setNudgeText("");
+            return payload.assistant_text || "Private note sent.";
+          }
+        });
       },
       [activeSessionId, clearActionAlert, nudgeText, parentRequest, setActionAlert, setError, setLoadingState, setNudgeText]
     );
@@ -54,32 +52,26 @@ export function createUseParentGuidanceActions() {
           return;
         }
 
-        setLoadingState("override", true);
-        setError("");
-        clearActionAlert("override");
-
-        try {
-          await parentRequest(`/api/session/${activeSessionId}/override`, {
-            method: "POST",
-            body: {
-              enabled,
-              duration_minutes: 15
-            }
-          });
-          setActionAlert(
-            "override",
-            "success",
-            enabled ? "Direct-answer mode enabled for 15 minutes." : "Back to guided mode."
-          );
-        } catch (requestError) {
-          setActionAlert(
-            "override",
-            "error",
-            requestError instanceof Error ? requestError.message : "We couldn't update direct-answer mode. Please try again."
-          );
-        } finally {
-          setLoadingState("override", false);
-        }
+        await runAsyncActionStatus({
+          actionKey: "override",
+          setLoadingState,
+          setError,
+          clearActionAlert,
+          setActionAlert,
+          fallbackErrorMessage: "We couldn't update direct-answer mode. Please try again.",
+          run: async () => {
+            await parentRequest(`/api/session/${activeSessionId}/override`, {
+              method: "POST",
+              body: {
+                enabled,
+                duration_minutes: 15
+              }
+            });
+          },
+          onSuccess: () => {
+            return enabled ? "Direct-answer mode enabled for 15 minutes." : "Back to guided mode.";
+          }
+        });
       },
       [activeSessionId, clearActionAlert, parentRequest, setActionAlert, setError, setLoadingState]
     );
