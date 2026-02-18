@@ -38,21 +38,47 @@ function isAfterCursor(message, cursor) {
   return compareCursorValues(toCursor(message), cursor) > 0;
 }
 
+function normalizeTransportMode(rawValue) {
+  const value = String(rawValue || "auto").trim().toLowerCase();
+  if (value === "realtime" || value === "polling") {
+    return value;
+  }
+  return "auto";
+}
+
+function filterByVisibility(messages, visibility) {
+  if (visibility !== "child") {
+    return messages;
+  }
+
+  return messages.filter((message) => message?.visibility_scope === "child_and_parent");
+}
+
 export async function startTranscriptStreamRuntime({
   writer,
   sessionId,
   visibility,
   limit,
   listSessionMessages,
+  createSessionMessageSubscription = null,
   setTimer = (callback, interval) => setInterval(callback, interval),
   clearTimer = (timerId) => clearInterval(timerId),
   pollIntervalMs = 1800,
-  keepAliveIntervalMs = 12000
+  keepAliveIntervalMs = 12000,
+  logStreamEvent = () => {},
+  streamTransportMode = null
 }) {
   let closed = false;
   let isPolling = false;
   let seenIds = new Set();
   let lastSeenCursor = null;
+  let streamHadPollError = false;
+  let pollTimer = null;
+  let keepAliveTimer = null;
+  let unsubscribeMessages = null;
+  let activeTransport = "none";
+  const connectedAtMs = Date.now();
+  const desiredTransportMode = normalizeTransportMode(streamTransportMode);
 
   const initialSnapshotRows = await listSessionMessages({
     sessionId,
@@ -79,12 +105,43 @@ export async function startTranscriptStreamRuntime({
       // Ignore early backpressure/teardown races before reader attaches.
     });
 
+  const appendFreshMessages = async (messages) => {
+    if (closed || !Array.isArray(messages) || messages.length === 0) {
+      return;
+    }
+
+    const fresh = filterByVisibility(messages, visibility)
+      .filter((message) => message?.id)
+      .sort((left, right) => compareCursorValues(toCursor(left), toCursor(right)))
+      .filter((message) => isAfterCursor(message, lastSeenCursor) && !seenIds.has(message.id));
+
+    if (fresh.length === 0) {
+      return;
+    }
+
+    for (const message of fresh) {
+      seenIds.add(message.id);
+      lastSeenCursor = toCursor(message);
+    }
+
+    if (seenIds.size > 5000) {
+      const recentIds = fresh.slice(-400).map((message) => message.id);
+      if (lastSeenCursor?.id) {
+        recentIds.push(lastSeenCursor.id);
+      }
+      seenIds = new Set(recentIds.filter(Boolean));
+    }
+
+    await writer.write(serializeSse("message_append", { messages: fresh }));
+  };
+
   const poll = async () => {
     if (closed || isPolling) {
       return;
     }
 
     isPolling = true;
+    let pollFailed = false;
 
     try {
       const messages = await listSessionMessages({
@@ -94,33 +151,110 @@ export async function startTranscriptStreamRuntime({
         order: "asc",
         afterCreatedAt: lastSeenCursor?.createdAt ?? null
       });
-
-      const fresh = messages.filter((message) => isAfterCursor(message, lastSeenCursor) && !seenIds.has(message.id));
-      if (fresh.length > 0) {
-        for (const message of fresh) {
-          seenIds.add(message.id);
-          lastSeenCursor = toCursor(message);
-        }
-
-        if (seenIds.size > 5000) {
-          seenIds = new Set(messages.slice(-400).map((message) => message.id));
-        }
-
-        await writer.write(serializeSse("message_append", { messages: fresh }));
-      }
+      await appendFreshMessages(messages);
     } catch (error) {
+      pollFailed = true;
+      streamHadPollError = true;
+      logStreamEvent("warn", {
+        event: "stream_poll_error",
+        session_id: sessionId,
+        visibility,
+        error_message: error instanceof Error ? error.message : "Stream polling failed."
+      });
       await writer.write(
         serializeSse("error", {
           message: error instanceof Error ? error.message : "Stream polling failed."
         })
       );
     } finally {
+      if (!pollFailed && streamHadPollError) {
+        streamHadPollError = false;
+        logStreamEvent("info", {
+          event: "stream_poll_recovered",
+          session_id: sessionId,
+          visibility
+        });
+      }
       isPolling = false;
     }
   };
 
-  const pollTimer = setTimer(poll, pollIntervalMs);
-  const keepAliveTimer = setTimer(async () => {
+  const startPollingTransport = (reason) => {
+    if (closed || pollTimer) {
+      return;
+    }
+
+    activeTransport = "polling";
+    pollTimer = setTimer(poll, pollIntervalMs);
+    logStreamEvent("info", {
+      event: "stream_transport_connected",
+      session_id: sessionId,
+      visibility,
+      mode: "polling",
+      reason
+    });
+  };
+
+  const startRealtimeTransport = async () => {
+    if (typeof createSessionMessageSubscription !== "function") {
+      throw new Error("Realtime stream transport is unavailable.");
+    }
+
+    unsubscribeMessages = await createSessionMessageSubscription({
+      sessionId,
+      onMessage: async (message) => {
+        await appendFreshMessages([message]);
+      },
+      onError: async (error) => {
+        if (closed) {
+          return;
+        }
+
+        logStreamEvent("warn", {
+          event: "stream_realtime_error",
+          session_id: sessionId,
+          visibility,
+          error_message: error instanceof Error ? error.message : "Realtime stream error."
+        });
+
+        if (desiredTransportMode === "auto" && !pollTimer) {
+          startPollingTransport("realtime_error");
+        }
+      }
+    });
+
+    activeTransport = "realtime";
+    logStreamEvent("info", {
+      event: "stream_transport_connected",
+      session_id: sessionId,
+      visibility,
+      mode: "realtime"
+    });
+  };
+
+  if (desiredTransportMode === "polling") {
+    startPollingTransport("configured_polling");
+  } else {
+    try {
+      await startRealtimeTransport();
+    } catch (error) {
+      logStreamEvent("warn", {
+        event: "stream_transport_failed",
+        session_id: sessionId,
+        visibility,
+        mode: "realtime",
+        error_message: error instanceof Error ? error.message : "Realtime transport failed."
+      });
+
+      if (desiredTransportMode === "realtime") {
+        throw error;
+      }
+
+      startPollingTransport("realtime_unavailable");
+    }
+  }
+
+  keepAliveTimer = setTimer(async () => {
     if (closed) {
       return;
     }
@@ -133,20 +267,40 @@ export async function startTranscriptStreamRuntime({
   }, keepAliveIntervalMs);
 
   return {
-    close: async () => {
+    close: async (reason = "server_close") => {
       if (closed) {
         return;
       }
 
       closed = true;
-      clearTimer(pollTimer);
-      clearTimer(keepAliveTimer);
+      if (pollTimer) {
+        clearTimer(pollTimer);
+      }
+      if (keepAliveTimer) {
+        clearTimer(keepAliveTimer);
+      }
+      if (unsubscribeMessages) {
+        try {
+          await unsubscribeMessages();
+        } catch {
+          // Realtime subscription already closed.
+        }
+      }
 
       try {
         await writer.close();
       } catch {
         // Stream already closed.
       }
+
+      logStreamEvent("info", {
+        event: "stream_disconnect",
+        session_id: sessionId,
+        visibility,
+        transport: activeTransport,
+        reason,
+        connection_duration_ms: Date.now() - connectedAtMs
+      });
     }
   };
 }

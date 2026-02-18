@@ -1,19 +1,26 @@
 import { ApiError } from "../../../../../src/server/api-error.js";
-import { listSessionMessages } from "../../../../../src/server/session-foundation-service.js";
+import {
+  createSessionMessageSubscription,
+  listSessionMessages
+} from "../../../../../src/server/session-foundation-service.js";
 import { resolveSessionViewerContext } from "../../../../../src/server/session-viewer-context.js";
 import { startTranscriptStreamRuntime } from "../../../../../src/server/transcript-stream-runtime.js";
+import { getServerStreamErrorDetails, logServerStreamTelemetry } from "../../../../../src/server/stream-telemetry.js";
 
 export { serializeSse } from "../../../../../src/server/transcript-stream-runtime.js";
 
 export function createStreamGetHandler(dependencies = {}) {
   const resolveViewerContext = dependencies.resolveSessionViewerContext ?? resolveSessionViewerContext;
   const listMessages = dependencies.listSessionMessages ?? listSessionMessages;
+  const subscribeMessages = dependencies.createSessionMessageSubscription ?? createSessionMessageSubscription;
   const setTimer = dependencies.setTimer ?? ((callback, interval) => setInterval(callback, interval));
   const clearTimer = dependencies.clearTimer ?? ((timerId) => clearInterval(timerId));
+  const logStreamEvent = dependencies.logStreamEvent ?? logServerStreamTelemetry;
 
   return async function GET(request, { params }) {
+    let sessionId = "unknown";
     try {
-      const { id: sessionId } = await params;
+      ({ id: sessionId } = await params);
       const url = new URL(request.url);
       const limit = Math.min(Math.max(Number.parseInt(url.searchParams.get("limit") || "150", 10), 1), 300);
 
@@ -27,11 +34,24 @@ export function createStreamGetHandler(dependencies = {}) {
         visibility: viewerContext.visibility,
         limit,
         listSessionMessages: listMessages,
+        createSessionMessageSubscription: subscribeMessages,
         setTimer,
-        clearTimer
+        clearTimer,
+        logStreamEvent,
+        streamTransportMode: dependencies.streamTransportMode ?? process.env.STREAM_TRANSPORT_MODE
       });
 
-      request.signal.addEventListener("abort", runtime.close);
+      logStreamEvent("info", {
+        event: "stream_connect",
+        session_id: sessionId,
+        viewer_role: viewerContext.role,
+        visibility: viewerContext.visibility,
+        limit
+      });
+
+      request.signal.addEventListener("abort", () => {
+        void runtime.close("client_abort");
+      });
 
       return new Response(stream.readable, {
         headers: {
@@ -44,6 +64,11 @@ export function createStreamGetHandler(dependencies = {}) {
       const status = error instanceof ApiError ? error.status : 500;
       const code = error instanceof ApiError ? error.code : "stream_failed";
       const message = error instanceof Error ? error.message : "Unknown stream failure";
+      logStreamEvent("error", {
+        event: "stream_connect_failed",
+        session_id: sessionId,
+        ...getServerStreamErrorDetails(error)
+      });
 
       return new Response(JSON.stringify({ error: code, message }), {
         status,

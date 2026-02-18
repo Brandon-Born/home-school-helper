@@ -149,6 +149,9 @@ Deletes a child profile for authenticated parent. Blocked if the child has an ac
 ## GET `/api/session/active`
 Lists all active sessions for the authenticated parent, enriched with child names.
 
+Rate limit:
+- Scoped per client address + parent id. Bursts above configured threshold return `429 rate_limited`.
+
 ### Response (200)
 ```json
 {
@@ -174,6 +177,9 @@ Lists all active sessions for the authenticated parent, enriched with child name
 
 ## POST `/api/session/:id/manage`
 Manages an active session. Supports two actions: ending a session or regenerating a join code.
+
+Rate limit:
+- Scoped per client address + parent id + session id. Bursts above configured threshold return `429 rate_limited`.
 
 ### Request — End Session
 ```json
@@ -404,6 +410,18 @@ Auth behavior:
 - `snapshot`: initial transcript payload.
 - `message_append`: newly appended transcript rows.
 - `error`: recoverable stream-side polling error.
+
+Telemetry:
+- Server logs structured stream events under `[stream-server]` (connect, disconnect, poll error/recovery, connect failures).
+- Client logs structured stream events under `[stream-client]` (connect attempts, reconnect scheduling, disconnect causes, parent auth refresh attempts/results).
+- Optional env toggles:
+  - `STREAM_TELEMETRY_DISABLED=1` disables server stream telemetry logs.
+  - `NEXT_PUBLIC_STREAM_TELEMETRY_DISABLED=1` disables client stream telemetry logs.
+
+Transport behavior:
+- Default `STREAM_TRANSPORT_MODE=auto` uses direct Supabase Realtime message subscriptions and falls back to polling if realtime is unavailable.
+- `STREAM_TRANSPORT_MODE=realtime` requires realtime subscription success (no polling fallback).
+- `STREAM_TRANSPORT_MODE=polling` forces the legacy polling path.
 
 ## POST `/api/session/:id/speech/transcribe`
 Transcribes child audio using Google Speech-to-Text V2.

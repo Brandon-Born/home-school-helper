@@ -4,6 +4,158 @@ Notes:
 - Compacted on 2026-02-18 to a rolling window.
 - Keep detailed entries for current context; older granular history is summarized below.
 
+## 2026-02-18T20:53:55Z - Codex
+
+### Scope Worked
+- Completed backlog item `6)` by replacing polling-first stream behavior with direct Supabase Realtime transport and safe fallback modes.
+- Updated stream runtime, route wiring, tests, and docs to reflect the new transport model.
+
+### Last Agent Accomplished
+- Added direct realtime message subscription helper:
+  - `createSessionMessageSubscription` in `src/server/session-foundation/message-service.js`.
+- Rewired stream runtime for transport modes:
+  - Default `auto`: realtime first, polling fallback on realtime failure.
+  - `realtime`: requires realtime success (no polling fallback).
+  - `polling`: forces legacy polling path.
+- Preserved visibility guarantees for child streams by filtering realtime rows to `child_and_parent`.
+- Updated stream route to inject realtime subscription dependency and transport mode into runtime.
+- Added realtime transport runtime regression coverage and kept polling telemetry/fallback coverage stable.
+- Updated backlog/docs/env guidance for the new transport behavior.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/src/server/session-foundation/message-service.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation-service.js`
+- `/Users/bborn/home-school-helper/src/server/transcript-stream-runtime.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/stream/route.js`
+- `/Users/bborn/home-school-helper/tests/stream-route.test.js`
+- `/Users/bborn/home-school-helper/tests/transcript-stream-runtime-telemetry.test.js`
+- `/Users/bborn/home-school-helper/tests/dynamic-route-params.test.js`
+- `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`
+- `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+- `/Users/bborn/home-school-helper/docs/IMPLEMENTATION_SPEC.md`
+- `/Users/bborn/home-school-helper/docs/START_HERE.md`
+- `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
+- `/Users/bborn/home-school-helper/.env.example`
+- `/Users/bborn/home-school-helper/README.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `node --test tests/stream-route.test.js tests/transcript-stream-runtime-telemetry.test.js tests/dynamic-route-params.test.js`
+- Result: pass (13 tests, 0 failures).
+- Command: `npm run test:unit`
+- Result: pass (100 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+
+### Open Risks / Issues
+- Realtime transport depends on Supabase Realtime availability and websocket support in the deployment runtime; `auto` mode now falls back to polling when unavailable.
+- Headed Playwright UAT was not run because this change was stream transport internals only.
+
+### Next Steps (Ordered)
+1. Execute backlog item `7)` hook-level tests for `useSessionStream`, `useParentConsole`, and `useChildConsole`.
+2. Execute backlog item `8)` voice observability + fallback-rate metrics.
+3. Continue down remaining open P1 backlog items.
+
+### Blocking Questions
+- None.
+
+## 2026-02-18T20:46:32Z - Codex
+
+### Scope Worked
+- Completed backlog item `5)` by adding structured stream disconnect/reconnect telemetry across client and server stream paths.
+- Added regression coverage for stream telemetry events and updated API/env documentation.
+
+### Last Agent Accomplished
+- Added client stream telemetry helper (`src/lib/stream-telemetry.js`) and wired connect/reconnect/disconnect metrics into `useSessionStream`.
+- Added parent auth-refresh-loop telemetry (attempt/success/failure) in `app/parent/hooks/useParentTranscriptStream.js`.
+- Added server stream telemetry helper (`src/server/stream-telemetry.js`) and wired stream connect/failure/disconnect + poll error/recovery telemetry in:
+  - `app/api/session/[id]/stream/route.js`
+  - `src/server/transcript-stream-runtime.js`
+- Added/updated tests for telemetry behavior:
+  - `tests/stream-route.test.js`
+  - `tests/transcript-stream-runtime-telemetry.test.js`
+  - `tests/stream-telemetry.test.js`
+  - `tests/dynamic-route-params.test.js` (logger injection to keep tests deterministic)
+- Updated docs/env references for stream telemetry toggles.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/src/lib/stream-telemetry.js`
+- `/Users/bborn/home-school-helper/src/server/stream-telemetry.js`
+- `/Users/bborn/home-school-helper/app/hooks/useSessionStream.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentTranscriptStream.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/stream/route.js`
+- `/Users/bborn/home-school-helper/src/server/transcript-stream-runtime.js`
+- `/Users/bborn/home-school-helper/tests/stream-route.test.js`
+- `/Users/bborn/home-school-helper/tests/transcript-stream-runtime-telemetry.test.js`
+- `/Users/bborn/home-school-helper/tests/stream-telemetry.test.js`
+- `/Users/bborn/home-school-helper/tests/dynamic-route-params.test.js`
+- `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+- `/Users/bborn/home-school-helper/.env.example`
+- `/Users/bborn/home-school-helper/README.md`
+- `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `node --test tests/stream-route.test.js tests/transcript-stream-runtime-telemetry.test.js tests/stream-telemetry.test.js tests/dynamic-route-params.test.js`
+- Result: pass (14 tests, 0 failures).
+- Command: `npm run test:unit`
+- Result: pass (99 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+
+### Open Risks / Issues
+- Stream telemetry currently emits to app logs only; dashboard aggregation/alerting is still pending and should be handled in follow-on observability work.
+- Headed Playwright UAT was not run because this change was stream telemetry instrumentation only (no direct UI behavior change).
+
+### Next Steps (Ordered)
+1. Execute backlog item `6)` replace polling-backed SSE with direct realtime transport.
+2. Add hook-level tests for reconnect/auth invalidation behavior (`7`) to tighten client-stream regression coverage.
+3. Add voice fallback-rate counters and dashboard schema (`8`) to complete observability baseline.
+
+### Blocking Questions
+- None.
+
+## 2026-02-18T20:39:14Z - Codex
+
+### Scope Worked
+- Completed backlog item `4)` by enforcing explicit rate limiting on parent session-management routes.
+- Added route-level regression tests and updated API/backlog documentation.
+
+### Last Agent Accomplished
+- Added `sessionActiveList` and `sessionManage` policies to the shared rate-limit policy registry.
+- Refactored `GET /api/session/active` and `POST /api/session/[id]/manage` into dependency-injected handlers and enforced limiter checks with parent/session-scoped keys.
+- Added `tests/session-management-routes.test.js` covering `429 rate_limited` behavior and happy paths for active session listing + manage actions.
+- Updated API contract and marked backlog item `4)` done with resolution notes.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/src/server/rate-limit-policies.js`
+- `/Users/bborn/home-school-helper/app/api/session/active/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/manage/route.js`
+- `/Users/bborn/home-school-helper/tests/session-management-routes.test.js`
+- `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+- `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `node --test tests/session-management-routes.test.js tests/session-routes.test.js tests/dynamic-route-params.test.js`
+- Result: pass (12 tests, 0 failures).
+- Command: `npm run test:unit`
+- Result: pass (95 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+
+### Open Risks / Issues
+- No functional regressions observed in unit/build validation.
+- Headed Playwright UAT was not run because this change was API-only (no UI behavior changes).
+
+### Next Steps (Ordered)
+1. Execute backlog item `5)` stream disconnect/reconnect telemetry.
+2. Add telemetry assertions to targeted tests once stream metrics are introduced.
+3. Continue down open P1 backlog items after P0 telemetry is complete.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-18T19:31:25Z - Codex
 
 ### Scope Worked

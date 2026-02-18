@@ -26,7 +26,8 @@ export {
 
 export {
   listSessionMessages,
-  persistSessionMessage
+  persistSessionMessage,
+  createSessionMessageSubscription
 } from "./session-foundation/message-service.js";
 
 export { setSessionDirectAnswerOverride } from "./session-foundation/override-service.js";

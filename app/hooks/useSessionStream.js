@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { openEventStream } from "../../src/lib/event-stream.js";
+import { getStreamErrorDetails, logClientStreamTelemetry } from "../../src/lib/stream-telemetry.js";
 
 export function useSessionStream({
   sessionId,
@@ -22,19 +23,38 @@ export function useSessionStream({
     let disposed = false;
     let reconnectTimer;
     let streamAbortController;
+    let connectAttempts = 0;
+    let reconnectSchedules = 0;
 
-    const scheduleReconnect = (delayMs) => {
+    const scheduleReconnect = (delayMs, reason) => {
       if (disposed) {
         return;
       }
 
+      reconnectSchedules += 1;
+      logClientStreamTelemetry("info", {
+        event: "stream_reconnect_scheduled",
+        session_id: sessionId,
+        delay_ms: delayMs,
+        reason: reason || "unknown",
+        reconnect_schedule_count: reconnectSchedules
+      });
+
       reconnectTimer = window.setTimeout(() => {
-        void connect();
+        void connect("scheduled_reconnect");
       }, delayMs);
     };
 
-    const connect = async () => {
+    const connect = async (trigger = "initial") => {
       streamAbortController = new AbortController();
+      connectAttempts += 1;
+      const connectedAtMs = Date.now();
+      logClientStreamTelemetry("info", {
+        event: "stream_connect_attempt",
+        session_id: sessionId,
+        trigger,
+        connect_attempt: connectAttempts
+      });
 
       try {
         await openEventStream({
@@ -62,8 +82,15 @@ export function useSessionStream({
           }
         });
 
+        logClientStreamTelemetry("info", {
+          event: "stream_disconnect",
+          session_id: sessionId,
+          disconnect_type: "clean_eof",
+          connection_duration_ms: Date.now() - connectedAtMs
+        });
+
         if (!disposed) {
-          scheduleReconnect(reconnectDelayMs);
+          scheduleReconnect(reconnectDelayMs, "stream_eof");
         }
       } catch (streamError) {
         if (disposed) {
@@ -71,16 +98,24 @@ export function useSessionStream({
         }
 
         const outcome = await onDisconnect(streamError);
+        logClientStreamTelemetry("warn", {
+          event: "stream_disconnect",
+          session_id: sessionId,
+          disconnect_type: "error",
+          reconnect_outcome: outcome || "reconnect",
+          connection_duration_ms: Date.now() - connectedAtMs,
+          ...getStreamErrorDetails(streamError)
+        });
         if (disposed || outcome === "stop") {
           return;
         }
 
         if (outcome === "reconnect_soon") {
-          scheduleReconnect(fastReconnectDelayMs);
+          scheduleReconnect(fastReconnectDelayMs, "reconnect_soon");
           return;
         }
 
-        scheduleReconnect(reconnectDelayMs);
+        scheduleReconnect(reconnectDelayMs, "reconnect");
       }
     };
 
@@ -88,6 +123,11 @@ export function useSessionStream({
 
     return () => {
       disposed = true;
+      logClientStreamTelemetry("info", {
+        event: "stream_disconnect",
+        session_id: sessionId,
+        disconnect_type: "client_dispose"
+      });
       if (reconnectTimer) {
         clearTimeout(reconnectTimer);
       }

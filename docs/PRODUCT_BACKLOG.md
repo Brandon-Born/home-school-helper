@@ -111,7 +111,7 @@ Resolution notes:
 - Added async limiter coverage for memory and distributed-store adapter paths (`tests/rate-limit.test.js`) and awaited rate-limit enforcement in all guarded session routes.
 
 ### 4) Close rate-limit coverage gaps on session management routes
-Status: Open
+Status: Done (2026-02-18)
 Problem:
 - `GET /api/session/active` and `POST /api/session/[id]/manage` currently bypass route-level throttling.
 Scope:
@@ -120,22 +120,31 @@ Scope:
 - Add route tests for `rate_limited` responses and success-path non-regression.
 Success metric:
 - All parent session lifecycle endpoints enforce explicit, tested rate limits.
+Resolution notes:
+- Added `sessionActiveList` and `sessionManage` policies in `src/server/rate-limit-policies.js`.
+- Enforced limiter checks in `GET /api/session/active` and `POST /api/session/[id]/manage` using parent/session-scoped key suffixes.
+- Added route coverage in `tests/session-management-routes.test.js` for both `429 rate_limited` behavior and success paths.
 
 ### 5) Stream disconnect/reconnect telemetry
-Status: Open
+Status: Done (2026-02-18)
 Problem:
 - Limited visibility into reconnect loops and stream churn.
 Scope:
 - Add structured client/server metrics for stream connect, clean close, reconnect attempts, and auth refresh loops.
 Success metric:
 - Can answer "how often are sessions reconnecting and why?" from logs/dashboard.
+Resolution notes:
+- Added server stream telemetry logger (`src/server/stream-telemetry.js`) and wired structured events through stream connect/failure/disconnect and poll error/recovery paths (`app/api/session/[id]/stream/route.js`, `src/server/transcript-stream-runtime.js`).
+- Added client stream telemetry logger (`src/lib/stream-telemetry.js`) and wired structured connect/reconnect/disconnect metrics in `app/hooks/useSessionStream.js`.
+- Added parent auth-refresh loop telemetry in `app/parent/hooks/useParentTranscriptStream.js` with attempt/success/failure signals.
+- Added regression coverage for stream telemetry wiring in `tests/stream-route.test.js` and helper coverage in `tests/stream-telemetry.test.js`.
 
 ---
 
 ## P1 (High Value)
 
 ### 6) Replace polling-backed SSE with direct realtime transport
-Status: Open
+Status: Done (2026-02-18)
 Problem:
 - Polling interval adds latency and extra DB reads.
 Scope:
@@ -143,6 +152,14 @@ Scope:
 - Preserve visibility filtering (`parent all` vs `child shared only`).
 Success metric:
 - Lower median transcript latency and lower polling load.
+Resolution notes:
+- Added direct stream transport using Supabase Realtime `messages` insert subscriptions in `src/server/session-foundation/message-service.js`.
+- Updated stream runtime/route wiring to use realtime transport by default with configurable mode (`STREAM_TRANSPORT_MODE=auto|realtime|polling`) and automatic fallback to polling when realtime is unavailable.
+- Preserved child visibility filtering in the runtime for realtime events (`child` streams only receive `child_and_parent` rows).
+- Added regression coverage for realtime transport behavior and fallback paths in:
+  - `tests/stream-route.test.js`
+  - `tests/transcript-stream-runtime-telemetry.test.js`
+  - `tests/dynamic-route-params.test.js`
 
 ### 7) Hook-level tests for client orchestration
 Status: Open
@@ -206,6 +223,28 @@ Scope:
 - Keep UI smoke checks while moving protocol-level assertions to API responses where appropriate.
 Success metric:
 - Playwright suite remains stable at scale/repeated runs without flake from stale data or selector ambiguity.
+
+### 16) Realtime channel lifecycle hardening
+Status: Open
+Problem:
+- Stream runtime now supports multiple transport paths (`auto`, `realtime`, `polling`) and relies on channel subscribe/unsubscribe behavior that can be hard to reason about under reconnect churn.
+Scope:
+- Add defensive guards and explicit telemetry for channel subscribe/unsubscribe counts and close reasons across reconnect loops.
+- Add integration coverage for repeated connect/disconnect cycles to catch channel leaks or duplicate handlers.
+- Document operational runbook checks for realtime channel health in staging/production.
+Success metric:
+- No channel leak growth across repeated reconnects; reconnect behavior remains bounded and observable.
+
+### 17) Transport-mode e2e coverage (realtime vs polling fallback)
+Status: Open
+Problem:
+- Current automated browser tests validate transcript UX, but do not explicitly assert which stream transport mode was selected in runtime (`realtime` vs fallback `polling`).
+Scope:
+- Add Playwright scenarios that run with `STREAM_TRANSPORT_MODE=realtime` and `STREAM_TRANSPORT_MODE=polling`.
+- Assert stream continuity and no duplicate transcript append behavior in both modes.
+- Capture mode-specific telemetry assertions where practical.
+Success metric:
+- CI can catch regressions in either transport mode before merge.
 
 ---
 

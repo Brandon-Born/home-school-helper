@@ -28,8 +28,10 @@ test("dynamic route handlers accept promised params for messages and stream rout
   const streamHandler = createStreamGetHandler({
     resolveSessionViewerContext: async (_request, sessionId) => ({ role: "parent", visibility: sessionId }),
     listSessionMessages: async () => [],
+    createSessionMessageSubscription: async () => async () => {},
     setTimer: () => ({ timer: true }),
-    clearTimer: () => {}
+    clearTimer: () => {},
+    logStreamEvent: () => {}
   });
 
   const streamResponse = await streamHandler(new Request("https://example.test/api/session/s2/stream"), {

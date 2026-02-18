@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { isParentAuthFailure } from "../../../src/lib/auth-failures.js";
+import { getStreamErrorDetails, logClientStreamTelemetry } from "../../../src/lib/stream-telemetry.js";
 import { useSessionStream } from "../../hooks/useSessionStream.js";
 
 export function useParentTranscriptStream({
@@ -16,12 +17,28 @@ export function useParentTranscriptStream({
   const handleDisconnect = useCallback(
     async (streamError) => {
       if (isParentAuthFailure(streamError)) {
+        logClientStreamTelemetry("info", {
+          event: "stream_auth_refresh",
+          session_id: activeSessionId,
+          status: "attempt",
+          ...getStreamErrorDetails(streamError)
+        });
         const refreshedSession = await refreshParentSession();
         if (refreshedSession?.access_token) {
+          logClientStreamTelemetry("info", {
+            event: "stream_auth_refresh",
+            session_id: activeSessionId,
+            status: "success"
+          });
           setError("Refreshing parent session...");
           return "reconnect_soon";
         }
 
+        logClientStreamTelemetry("warn", {
+          event: "stream_auth_refresh",
+          session_id: activeSessionId,
+          status: "failed"
+        });
         await invalidateParentSession("Parent session expired while streaming. Please sign in again.");
         return "stop";
       }
@@ -29,7 +46,7 @@ export function useParentTranscriptStream({
       setError(streamError instanceof Error ? streamError.message : "Stream disconnected.");
       return "reconnect";
     },
-    [invalidateParentSession, refreshParentSession, setError]
+    [activeSessionId, invalidateParentSession, refreshParentSession, setError]
   );
 
   const handleSnapshot = useCallback(

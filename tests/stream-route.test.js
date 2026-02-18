@@ -24,8 +24,10 @@ test("createStreamGetHandler uses child visibility when viewer is child", async 
       listCalls.push(args);
       return [];
     },
+    createSessionMessageSubscription: async () => async () => {},
     setTimer: () => ({ timer: true }),
-    clearTimer: () => {}
+    clearTimer: () => {},
+    logStreamEvent: () => {}
   });
 
   const response = await handler(new Request("https://example.test/api/session/s1/stream?limit=20"), {
@@ -52,8 +54,10 @@ test("createStreamGetHandler uses full visibility when viewer is parent", async 
       listCalls.push(args);
       return [];
     },
+    createSessionMessageSubscription: async () => async () => {},
     setTimer: () => ({ timer: true }),
-    clearTimer: () => {}
+    clearTimer: () => {},
+    logStreamEvent: () => {}
   });
 
   const response = await handler(new Request("https://example.test/api/session/s1/stream"), {
@@ -74,7 +78,9 @@ test("createStreamGetHandler returns JSON error response for viewer resolution f
   const handler = createStreamGetHandler({
     resolveSessionViewerContext: async () => {
       throw new ApiError(403, "session_forbidden", "Forbidden");
-    }
+    },
+    createSessionMessageSubscription: async () => async () => {},
+    logStreamEvent: () => {}
   });
 
   const response = await handler(new Request("https://example.test/api/session/s1/stream"), {
@@ -133,13 +139,16 @@ test("createStreamGetHandler emits snapshot then ordered message_append events",
       listCallCount += 1;
       return seededRows[index];
     },
+    createSessionMessageSubscription: async () => async () => {},
+    streamTransportMode: "polling",
     setTimer: (callback, interval) => {
       if (interval === 1800) {
         pollCallbacks.push(callback);
       }
       return { interval };
     },
-    clearTimer: () => {}
+    clearTimer: () => {},
+    logStreamEvent: () => {}
   });
 
   const abortController = new AbortController();
@@ -232,13 +241,16 @@ test("createStreamGetHandler cursor advances with created_at and id", async () =
       listCallCount += 1;
       return seededRows[index];
     },
+    createSessionMessageSubscription: async () => async () => {},
+    streamTransportMode: "polling",
     setTimer: (callback, interval) => {
       if (interval === 1800) {
         pollCallbacks.push(callback);
       }
       return { interval };
     },
-    clearTimer: () => {}
+    clearTimer: () => {},
+    logStreamEvent: () => {}
   });
 
   const abortController = new AbortController();
@@ -274,4 +286,53 @@ test("createStreamGetHandler cursor advances with created_at and id", async () =
 
   abortController.abort();
   await reader.cancel();
+});
+
+test("createStreamGetHandler emits structured telemetry for connect and abort close", async () => {
+  const telemetryEvents = [];
+
+  const handler = createStreamGetHandler({
+    resolveSessionViewerContext: async () => ({ role: "parent", visibility: "all", parent_id: "p1" }),
+    listSessionMessages: async () => [],
+    createSessionMessageSubscription: async () => async () => {},
+    setTimer: () => ({ timer: true }),
+    clearTimer: () => {},
+    logStreamEvent: (_level, payload) => {
+      telemetryEvents.push(payload);
+    }
+  });
+
+  const abortController = new AbortController();
+  const response = await handler(
+    new Request("https://example.test/api/session/s1/stream?limit=25", {
+      signal: abortController.signal
+    }),
+    { params: { id: "s1" } }
+  );
+  assert.equal(response.status, 200);
+
+  const reader = response.body.getReader();
+  await reader.read();
+
+  abortController.abort();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await reader.cancel();
+
+  assert.equal(
+    telemetryEvents.some(
+      (event) =>
+        event.event === "stream_connect" &&
+        event.session_id === "s1" &&
+        event.viewer_role === "parent" &&
+        event.visibility === "all"
+    ),
+    true
+  );
+  assert.equal(
+    telemetryEvents.some(
+      (event) =>
+        event.event === "stream_disconnect" && event.session_id === "s1" && event.reason === "client_abort"
+    ),
+    true
+  );
 });

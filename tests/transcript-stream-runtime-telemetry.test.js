@@ -1,0 +1,150 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import { parseSseEvents } from "./helpers/route-test-helpers.js";
+import { startTranscriptStreamRuntime } from "../src/server/transcript-stream-runtime.js";
+
+test("startTranscriptStreamRuntime emits poll error and recovery telemetry", async () => {
+  const pollCallbacks = [];
+  const telemetryEvents = [];
+  const writer = {
+    write: async () => {},
+    close: async () => {}
+  };
+  let listCalls = 0;
+
+  const runtime = await startTranscriptStreamRuntime({
+    writer,
+    sessionId: "s_runtime",
+    visibility: "child",
+    limit: 20,
+    listSessionMessages: async () => {
+      listCalls += 1;
+      if (listCalls === 1) {
+        return [];
+      }
+      if (listCalls === 2) {
+        throw new Error("poll failed");
+      }
+      return [];
+    },
+    setTimer: (callback, interval) => {
+      if (interval === 1800) {
+        pollCallbacks.push(callback);
+      }
+      return { interval };
+    },
+    clearTimer: () => {},
+    logStreamEvent: (_level, payload) => {
+      telemetryEvents.push(payload);
+    }
+  });
+
+  await pollCallbacks[0]();
+  await pollCallbacks[0]();
+  await runtime.close("test_close");
+
+  assert.equal(
+    telemetryEvents.some(
+      (event) =>
+        event.event === "stream_poll_error" &&
+        event.session_id === "s_runtime" &&
+        event.visibility === "child" &&
+        event.error_message === "poll failed"
+    ),
+    true
+  );
+  assert.equal(
+    telemetryEvents.some(
+      (event) =>
+        event.event === "stream_poll_recovered" &&
+        event.session_id === "s_runtime" &&
+        event.visibility === "child"
+    ),
+    true
+  );
+  assert.equal(
+    telemetryEvents.some(
+      (event) =>
+        event.event === "stream_disconnect" && event.session_id === "s_runtime" && event.reason === "test_close"
+    ),
+    true
+  );
+});
+
+test("startTranscriptStreamRuntime streams realtime inserts without polling fallback", async () => {
+  const pollCallbacks = [];
+  const chunks = [];
+  let realtimeOnMessage = null;
+  let unsubscribed = false;
+
+  const runtime = await startTranscriptStreamRuntime({
+    writer: {
+      write: async (chunk) => {
+        chunks.push(new TextDecoder().decode(chunk));
+      },
+      close: async () => {}
+    },
+    sessionId: "s_realtime",
+    visibility: "child",
+    limit: 20,
+    listSessionMessages: async () => [
+      {
+        id: "m1",
+        actor_type: "child",
+        visibility_scope: "child_and_parent",
+        content: "first",
+        created_at: "2026-02-17T00:00:00.000Z",
+        policy_flags: []
+      }
+    ],
+    createSessionMessageSubscription: async ({ onMessage }) => {
+      realtimeOnMessage = onMessage;
+      return async () => {
+        unsubscribed = true;
+      };
+    },
+    setTimer: (callback, interval) => {
+      if (interval === 1800) {
+        pollCallbacks.push(callback);
+      }
+      return { interval };
+    },
+    clearTimer: () => {}
+  });
+
+  assert.equal(typeof realtimeOnMessage, "function");
+  assert.equal(pollCallbacks.length, 0);
+
+  await realtimeOnMessage({
+    id: "m2",
+    actor_type: "assistant",
+    visibility_scope: "child_and_parent",
+    content: "second",
+    created_at: "2026-02-17T00:00:01.000Z",
+    policy_flags: []
+  });
+  await realtimeOnMessage({
+    id: "m3",
+    actor_type: "parent",
+    visibility_scope: "parent_only",
+    content: "hidden",
+    created_at: "2026-02-17T00:00:02.000Z",
+    policy_flags: []
+  });
+
+  await runtime.close("test_close");
+  assert.equal(unsubscribed, true);
+
+  const events = parseSseEvents(chunks.join(""));
+  assert.equal(events[0].event, "snapshot");
+  assert.deepEqual(
+    events[0].data.messages.map((message) => message.id),
+    ["m1"]
+  );
+  assert.equal(events[1].event, "message_append");
+  assert.deepEqual(
+    events[1].data.messages.map((message) => message.id),
+    ["m2"]
+  );
+});

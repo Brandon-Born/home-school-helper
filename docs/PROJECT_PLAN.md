@@ -148,4 +148,4 @@ Required internal config module behavior:
 1. Execute the highest-priority open item in `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`.
 2. Validate Google Speech STT/TTS configuration in local/Vercel and run end-to-end child voice tests.
 3. Verify transcript retention migration (`20260217193000`) is applied in each deployed Supabase environment.
-4. Evaluate migrating SSE transcript stream to direct Supabase Realtime channels.
+4. Expand hook-level stream orchestration tests (`useSessionStream`, parent/child console reconnect/auth flows).

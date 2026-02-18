@@ -41,7 +41,7 @@ This spec covers the first production-capable version of the Homeschool Sidekick
 - Realtime transcript updates use SSE subscription endpoint:
   - `GET /api/session/:id/stream`
 - Parent and child surfaces share a single stream runtime hook and merge incremental `message_append` events.
-- Stream polling uses a compound cursor (`created_at`, `id`) to avoid dropping messages with identical timestamps.
+- Stream transport uses direct Supabase Realtime message subscriptions by default, with compound-cursor polling fallback (`created_at`, `id`) available for degraded environments.
 
 ## Server Modules
 - `src/server/config.js`: typed env parsing/validation.

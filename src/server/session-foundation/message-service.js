@@ -61,3 +61,92 @@ export async function listSessionMessages(
 
   return data ?? [];
 }
+
+function normalizeRealtimeMessageRow(row) {
+  if (!row || typeof row !== "object") {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    actor_type: row.actor_type,
+    visibility_scope: row.visibility_scope,
+    content: row.content,
+    policy_flags: Array.isArray(row.policy_flags) ? row.policy_flags : [],
+    created_at: row.created_at
+  };
+}
+
+export async function createSessionMessageSubscription(
+  { sessionId, onMessage, onError },
+  options = {}
+) {
+  const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
+  const channelName = `session-messages:${sessionId}:${Math.random().toString(36).slice(2, 10)}`;
+  const channel = serviceClient.channel(channelName);
+
+  let subscribed = false;
+
+  await new Promise((resolve, reject) => {
+    const resolveOnce = () => {
+      if (subscribed) {
+        return;
+      }
+      subscribed = true;
+      resolve();
+    };
+
+    const rejectOnce = (error) => {
+      if (subscribed) {
+        return;
+      }
+      subscribed = true;
+      reject(error);
+    };
+
+    channel
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `session_id=eq.${sessionId}`
+        },
+        (payload) => {
+          const message = normalizeRealtimeMessageRow(payload?.new);
+          if (!message) {
+            return;
+          }
+
+          Promise.resolve(onMessage?.(message)).catch((error) => {
+            Promise.resolve(onError?.(error)).catch(() => {});
+          });
+        }
+      )
+      .subscribe((status, error) => {
+        if (status === "SUBSCRIBED") {
+          resolveOnce();
+          return;
+        }
+
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          const failure = error instanceof Error ? error : new Error(`Realtime subscribe failed: ${status}`);
+          if (!subscribed) {
+            rejectOnce(failure);
+          } else {
+            Promise.resolve(onError?.(failure)).catch(() => {});
+          }
+          return;
+        }
+
+        if (status === "CLOSED" && subscribed) {
+          Promise.resolve(onError?.(new Error("Realtime channel closed."))).catch(() => {});
+        }
+      });
+  });
+
+  return async function unsubscribe() {
+    await serviceClient.removeChannel(channel);
+  };
+}
