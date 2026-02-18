@@ -74,6 +74,24 @@ test("createStreamGetHandler uses full visibility when viewer is parent", async 
   });
 });
 
+test("createStreamGetHandler surfaces selected stream transport mode on response headers", async () => {
+  const handler = createStreamGetHandler({
+    resolveSessionViewerContext: async () => ({ role: "parent", visibility: "all", parent_id: "p1" }),
+    listSessionMessages: async () => [],
+    streamTransportMode: "polling",
+    setTimer: () => ({ timer: true }),
+    clearTimer: () => {},
+    logStreamEvent: () => {}
+  });
+
+  const response = await handler(new Request("https://example.test/api/session/s1/stream"), {
+    params: { id: "s1" }
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("x-stream-transport-mode"), "polling");
+});
+
 test("createStreamGetHandler returns JSON error response for viewer resolution failures", async () => {
   const handler = createStreamGetHandler({
     resolveSessionViewerContext: async () => {

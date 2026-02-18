@@ -4,6 +4,69 @@ Notes:
 - Compacted on 2026-02-18 to a rolling window.
 - Keep detailed entries for current context; older granular history is summarized below.
 
+## 2026-02-18T23:19:09Z - Codex
+
+### Scope Worked
+- Completed backlog item `17)` by adding transport-mode stream e2e coverage and runtime-mode surfacing for deterministic assertions.
+
+### Last Agent Accomplished
+- Added runtime stream transport mode response header on stream connect:
+  - `x-stream-transport-mode` in `app/api/session/[id]/stream/route.js`
+  - value sourced from runtime-selected mode in `src/server/transcript-stream-runtime.js`
+- Extended runtime return metadata to expose selected/configured transport mode.
+- Hardened realtime append cursor handling for same-timestamp message rows so unseen realtime inserts are not dropped.
+- Added regression coverage for same-timestamp realtime inserts:
+  - `tests/transcript-stream-runtime-telemetry.test.js`
+- Added route-level coverage for stream transport header:
+  - `tests/stream-route.test.js`
+- Added transport-specific Playwright scenario:
+  - `tests/playwright/transport-mode-stream.spec.js` (tagged `@transport-mode`)
+  - validates snapshot continuity and append de-duplication assertions
+  - validates selected transport mode against expected matrix mode
+- Updated Playwright runner matrix in `scripts/run-playwright.mjs`:
+  - default suite excluding `@transport-mode`
+  - dedicated transport run with `STREAM_TRANSPORT_MODE=realtime`
+  - dedicated transport run with `STREAM_TRANSPORT_MODE=polling`
+- Updated stream API contract docs with response-header behavior in `docs/API_CONTRACT.md`.
+- Removed completed backlog item `17)` from `docs/PRODUCT_BACKLOG.md`.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/src/server/transcript-stream-runtime.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/stream/route.js`
+- `/Users/bborn/home-school-helper/tests/transcript-stream-runtime-telemetry.test.js`
+- `/Users/bborn/home-school-helper/tests/stream-route.test.js`
+- `/Users/bborn/home-school-helper/tests/playwright/transport-mode-stream.spec.js`
+- `/Users/bborn/home-school-helper/scripts/run-playwright.mjs`
+- `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+- `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `node --test tests/stream-route.test.js tests/transcript-stream-runtime-telemetry.test.js`
+- Result: pass.
+- Command: `STREAM_TRANSPORT_MODE=realtime PLAYWRIGHT_EXPECTED_TRANSPORT_MODE=realtime node scripts/run-playwright.mjs tests/playwright/transport-mode-stream.spec.js`
+- Result: pass.
+- Command: `STREAM_TRANSPORT_MODE=polling PLAYWRIGHT_EXPECTED_TRANSPORT_MODE=polling node scripts/run-playwright.mjs tests/playwright/transport-mode-stream.spec.js`
+- Result: pass.
+- Command: `npm run test:e2e`
+- Result: pass (default suite + transport matrix).
+- Command: `npm run test:unit`
+- Result: pass (120 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+
+### Open Risks / Issues
+- Realtime append delivery may vary by environment; transport-mode e2e falls back to reconnect snapshot continuity assertions when realtime append events are not observed within the realtime assertion window.
+- Existing non-functional warnings remain (`react-test-renderer` deprecation; Playwright `NO_COLOR` vs `FORCE_COLOR`).
+
+### Next Steps (Ordered)
+1. Execute backlog item `18)` decompose parent console orchestration hook.
+2. Execute backlog item `19)` split child voice capture by transport strategy.
+3. Execute backlog item `20)` consolidate async action status boilerplate.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-18T23:06:33Z - Codex
 
 ### Scope Worked

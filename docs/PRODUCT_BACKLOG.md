@@ -21,17 +21,6 @@ How to use:
 
 ## P1 (High Value)
 
-### 17) Transport-mode e2e coverage (realtime vs polling fallback)
-Status: Open
-Problem:
-- Current automated browser tests validate transcript UX, but do not explicitly assert which stream transport mode was selected in runtime (`realtime` vs fallback `polling`).
-Scope:
-- Add Playwright scenarios that run with `STREAM_TRANSPORT_MODE=realtime` and `STREAM_TRANSPORT_MODE=polling`.
-- Assert stream continuity and no duplicate transcript append behavior in both modes.
-- Capture mode-specific telemetry assertions where practical.
-Success metric:
-- CI can catch regressions in either transport mode before merge.
-
 ### 18) Decompose parent console orchestration hook
 Status: Open
 Problem:

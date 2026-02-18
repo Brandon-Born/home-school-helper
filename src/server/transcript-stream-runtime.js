@@ -30,12 +30,19 @@ function compareCursorValues(leftCursor, rightCursor) {
   return leftCursor.id > rightCursor.id ? 1 : -1;
 }
 
-function isAfterCursor(message, cursor) {
-  if (!cursor) {
-    return true;
+function compareCursorTimestamps(leftCursor, rightCursor) {
+  const leftTime = Date.parse(leftCursor.createdAt);
+  const rightTime = Date.parse(rightCursor.createdAt);
+
+  if (!Number.isNaN(leftTime) && !Number.isNaN(rightTime) && leftTime !== rightTime) {
+    return leftTime - rightTime;
   }
 
-  return compareCursorValues(toCursor(message), cursor) > 0;
+  if (leftCursor.createdAt === rightCursor.createdAt) {
+    return 0;
+  }
+
+  return leftCursor.createdAt > rightCursor.createdAt ? 1 : -1;
 }
 
 function normalizeTransportMode(rawValue) {
@@ -108,7 +115,7 @@ export async function startTranscriptStreamRuntime({
       // Ignore early backpressure/teardown races before reader attaches.
     });
 
-  const appendFreshMessages = async (messages) => {
+  const appendFreshMessages = async (messages, { allowSameTimestampBackfill = false } = {}) => {
     if (closed || !Array.isArray(messages) || messages.length === 0) {
       return;
     }
@@ -116,7 +123,27 @@ export async function startTranscriptStreamRuntime({
     const fresh = filterByVisibility(messages, visibility)
       .filter((message) => message?.id)
       .sort((left, right) => compareCursorValues(toCursor(left), toCursor(right)))
-      .filter((message) => isAfterCursor(message, lastSeenCursor) && !seenIds.has(message.id));
+      .filter((message) => {
+        if (seenIds.has(message.id)) {
+          return false;
+        }
+
+        if (!lastSeenCursor) {
+          return true;
+        }
+
+        const messageCursor = toCursor(message);
+        const cursorComparison = compareCursorValues(messageCursor, lastSeenCursor);
+        if (cursorComparison > 0) {
+          return true;
+        }
+
+        if (!allowSameTimestampBackfill) {
+          return false;
+        }
+
+        return compareCursorTimestamps(messageCursor, lastSeenCursor) === 0;
+      });
 
     if (fresh.length === 0) {
       return;
@@ -217,7 +244,9 @@ export async function startTranscriptStreamRuntime({
     unsubscribeMessages = await createSessionMessageSubscription({
       sessionId,
       onMessage: async (message) => {
-        await appendFreshMessages([message]);
+        await appendFreshMessages([message], {
+          allowSameTimestampBackfill: true
+        });
       },
       onError: async (error) => {
         if (closed) {
@@ -310,6 +339,8 @@ export async function startTranscriptStreamRuntime({
   }, keepAliveIntervalMs);
 
   return {
+    transportMode: activeTransport,
+    configuredTransportMode: desiredTransportMode,
     close: async (reason = "server_close") => {
       if (closed) {
         return;

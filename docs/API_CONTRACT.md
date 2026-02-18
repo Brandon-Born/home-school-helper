@@ -406,6 +406,9 @@ Auth behavior:
 - Parent bearer token: receives all visibility scopes.
 - Child session token: receives only `child_and_parent` rows.
 
+Response headers:
+- `x-stream-transport-mode`: selected runtime transport for this stream connection (`realtime` or `polling`).
+
 ### Stream events
 - `snapshot`: initial transcript payload.
 - `message_append`: newly appended transcript rows.

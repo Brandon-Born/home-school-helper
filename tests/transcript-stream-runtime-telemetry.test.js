@@ -196,3 +196,53 @@ test("startTranscriptStreamRuntime keeps realtime subscribe/unsubscribe balanced
     4
   );
 });
+
+test("startTranscriptStreamRuntime does not drop realtime rows that share a created_at timestamp", async () => {
+  const chunks = [];
+  let realtimeOnMessage = null;
+
+  const runtime = await startTranscriptStreamRuntime({
+    writer: {
+      write: async (chunk) => {
+        chunks.push(new TextDecoder().decode(chunk));
+      },
+      close: async () => {}
+    },
+    sessionId: "s_same_timestamp",
+    visibility: "child",
+    limit: 20,
+    listSessionMessages: async () => [],
+    createSessionMessageSubscription: async ({ onMessage }) => {
+      realtimeOnMessage = onMessage;
+      return async () => {};
+    },
+    setTimer: () => ({ timer: true }),
+    clearTimer: () => {}
+  });
+
+  await realtimeOnMessage({
+    id: "z-row",
+    actor_type: "child",
+    visibility_scope: "child_and_parent",
+    content: "first",
+    created_at: "2026-02-18T12:00:00.000Z",
+    policy_flags: []
+  });
+  await realtimeOnMessage({
+    id: "a-row",
+    actor_type: "assistant",
+    visibility_scope: "child_and_parent",
+    content: "second",
+    created_at: "2026-02-18T12:00:00.000Z",
+    policy_flags: []
+  });
+
+  await runtime.close("test_close");
+
+  const events = parseSseEvents(chunks.join(""));
+  const appendedIds = events
+    .filter((event) => event.event === "message_append")
+    .flatMap((event) => event.data.messages.map((message) => message.id));
+
+  assert.deepEqual(appendedIds, ["z-row", "a-row"]);
+});

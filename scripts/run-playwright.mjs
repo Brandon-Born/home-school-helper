@@ -51,22 +51,57 @@ function loadDotEnvFiles() {
   loadEnvFile(path.join(root, ".env.local"));
 }
 
-function runPlaywright() {
-  const args = process.argv.slice(2);
+function runPlaywright(args = [], envOverrides = {}) {
   const command = process.platform === "win32" ? "npx.cmd" : "npx";
   const child = spawn(command, ["playwright", "test", ...args], {
     stdio: "inherit",
-    env: process.env
+    env: {
+      ...process.env,
+      ...envOverrides
+    }
   });
 
-  child.on("exit", (code, signal) => {
-    if (signal) {
-      process.kill(process.pid, signal);
-      return;
-    }
-    process.exit(code ?? 1);
+  return new Promise((resolve, reject) => {
+    child.on("error", reject);
+    child.on("exit", (code, signal) => {
+      if (signal) {
+        process.kill(process.pid, signal);
+        return;
+      }
+      resolve(code ?? 1);
+    });
   });
 }
 
+async function runDefaultAndTransportMatrix() {
+  const defaultCode = await runPlaywright(["--grep-invert", "@transport-mode"]);
+  if (defaultCode !== 0) {
+    return defaultCode;
+  }
+
+  const transportSpec = "tests/playwright/transport-mode-stream.spec.js";
+  const realtimeCode = await runPlaywright([transportSpec], {
+    STREAM_TRANSPORT_MODE: "realtime",
+    PLAYWRIGHT_EXPECTED_TRANSPORT_MODE: "realtime"
+  });
+  if (realtimeCode !== 0) {
+    return realtimeCode;
+  }
+
+  const pollingCode = await runPlaywright([transportSpec], {
+    STREAM_TRANSPORT_MODE: "polling",
+    PLAYWRIGHT_EXPECTED_TRANSPORT_MODE: "polling"
+  });
+  return pollingCode;
+}
+
 loadDotEnvFiles();
-runPlaywright();
+const args = process.argv.slice(2);
+
+if (args.length > 0) {
+  const code = await runPlaywright(args);
+  process.exit(code);
+} else {
+  const code = await runDefaultAndTransportMatrix();
+  process.exit(code);
+}

@@ -77,7 +77,8 @@ export function createStreamGetHandler(dependencies = {}) {
           headers: {
             "content-type": "text/event-stream; charset=utf-8",
             "cache-control": "no-cache, no-transform",
-            connection: "keep-alive"
+            connection: "keep-alive",
+            "x-stream-transport-mode": runtime.transportMode ?? "none"
           }
         });
       }
