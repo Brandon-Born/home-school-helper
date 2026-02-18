@@ -1,7 +1,7 @@
 "use client";
 
 import { AuthPanel } from "./components/AuthPanel.js";
-import { ChildProfilePanel } from "./components/ChildProfilePanel.js";
+import { ChildListPanel } from "./components/ChildListPanel.js";
 import { SessionControlPanel } from "./components/SessionControlPanel.js";
 import { TranscriptPanel } from "./components/TranscriptPanel.js";
 import { useParentConsole } from "./hooks/useParentConsole.js";
@@ -9,6 +9,8 @@ import { AppShell } from "../components/layout/AppShell.js";
 
 export default function ParentPage() {
   const { state, actions } = useParentConsole();
+
+  const selectedChild = state.children.find((c) => c.id === state.selectedChildId) ?? null;
 
   return (
     <AppShell
@@ -18,34 +20,35 @@ export default function ParentPage() {
     >
       {state.error ? <div className="alert alert--error">{state.error}</div> : null}
 
-      <div className="console-grid console-grid--parent">
-        <div className="stack">
-          <AuthPanel
-            session={state.session}
-            needsReauth={state.needsReauth}
-            parentProfile={state.parentProfile}
-            loading={state.loading}
-            onRefresh={actions.refreshParentData}
-            onSignOut={actions.signOut}
-            onSignIn={actions.signInWithGoogle}
-          />
+      <AuthPanel
+        session={state.session}
+        needsReauth={state.needsReauth}
+        parentProfile={state.parentProfile}
+        loading={state.loading}
+        onRefresh={actions.refreshParentData}
+        onSignOut={actions.signOut}
+        onSignIn={actions.signInWithGoogle}
+      />
 
-          {state.session ? (
-            <ChildProfilePanel
-              childForm={state.childForm}
-              setChildForm={actions.setChildForm}
-              onSubmit={actions.createChild}
-              loading={state.loading}
-            />
-          ) : null}
-        </div>
-
-        <div className="stack">
-          {state.session ? (
-            <SessionControlPanel
+      {state.session ? (
+        <div className="console-grid console-grid--parent">
+          <div className="stack">
+            <ChildListPanel
               children={state.children}
               selectedChildId={state.selectedChildId}
               setSelectedChildId={actions.setSelectedChildId}
+              childForm={state.childForm}
+              setChildForm={actions.setChildForm}
+              onCreateChild={actions.createChild}
+              onUpdateChild={actions.updateChild}
+              onDeleteChild={actions.deleteChild}
+              loading={state.loading}
+            />
+          </div>
+
+          <div className="stack">
+            <SessionControlPanel
+              selectedChild={selectedChild}
               sessionForm={state.sessionForm}
               setSessionForm={actions.setSessionForm}
               onStartSession={actions.startSession}
@@ -54,9 +57,7 @@ export default function ParentPage() {
               onEnableOverride={() => actions.setOverride(true)}
               onDisableOverride={() => actions.setOverride(false)}
             />
-          ) : null}
 
-          {state.session ? (
             <TranscriptPanel
               activeSession={state.activeSession}
               nudgeText={state.nudgeText}
@@ -66,9 +67,9 @@ export default function ParentPage() {
               nudgeResponse={state.nudgeResponse}
               messages={state.messages}
             />
-          ) : null}
+          </div>
         </div>
-      </div>
+      ) : null}
     </AppShell>
   );
 }

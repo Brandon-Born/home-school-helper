@@ -1,11 +1,9 @@
 "use client";
 import { TextAreaField, TextField } from "../../components/forms/FormFields.js";
 
-export function ChildProfilePanel({ childForm, loading, onSubmit, setChildForm }) {
+export function ChildProfilePanel({ childForm, loading, onSubmit, onCancel, setChildForm }) {
   return (
-    <section className="card">
-      <h2 className="section-title">Add your child</h2>
-      <p className="section-muted">A few details help the tutor match your child's pace and level.</p>
+    <div className="child-form-inline">
       <form onSubmit={onSubmit} className="form-grid">
         <TextField
           id="child-name"
@@ -14,23 +12,25 @@ export function ChildProfilePanel({ childForm, loading, onSubmit, setChildForm }
           value={childForm.child_name}
           onChange={(event) => setChildForm((prev) => ({ ...prev, child_name: event.target.value }))}
         />
-        <TextField
-          id="child-age"
-          label="Age"
-          type="number"
-          min="4"
-          max="21"
-          placeholder="10"
-          value={childForm.age}
-          onChange={(event) => setChildForm((prev) => ({ ...prev, age: event.target.value }))}
-        />
-        <TextField
-          id="child-grade"
-          label="Grade"
-          placeholder="5th"
-          value={childForm.grade}
-          onChange={(event) => setChildForm((prev) => ({ ...prev, grade: event.target.value }))}
-        />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <TextField
+            id="child-age"
+            label="Age"
+            type="number"
+            min="4"
+            max="21"
+            placeholder="10"
+            value={childForm.age}
+            onChange={(event) => setChildForm((prev) => ({ ...prev, age: event.target.value }))}
+          />
+          <TextField
+            id="child-grade"
+            label="Grade"
+            placeholder="5th"
+            value={childForm.grade}
+            onChange={(event) => setChildForm((prev) => ({ ...prev, grade: event.target.value }))}
+          />
+        </div>
         <TextField
           id="child-subjects"
           label="Subjects"
@@ -55,11 +55,16 @@ export function ChildProfilePanel({ childForm, loading, onSubmit, setChildForm }
           onChange={(event) => setChildForm((prev) => ({ ...prev, special_needs: event.target.value }))}
         />
         <div className="btn-row">
-          <button type="submit" disabled={loading} className="btn btn--primary">
-            Save profile
+          <button type="submit" disabled={loading || !childForm.child_name.trim()} className="btn btn--primary">
+            Save
           </button>
+          {onCancel ? (
+            <button type="button" onClick={onCancel} className="btn btn--ghost">
+              Cancel
+            </button>
+          ) : null}
         </div>
       </form>
-    </section>
+    </div>
   );
 }

@@ -1,70 +1,138 @@
 # Home School Helper
 
-Web-first homeschool tutoring assistant with parent steering and scaffold-first guardrails.
+A web-based tutoring assistant for homeschool students. Parents set up lessons and steer the AI tutor in real time — children interact through a simple chat (with optional voice). The tutor defaults to **scaffold-first guidance**, giving hints and questions before answers.
 
-## Core Documentation
-- Full docs index: `/Users/bborn/home-school-helper/docs/README.md`
-- Start Here (new agent onboarding): `/Users/bborn/home-school-helper/docs/START_HERE.md`
-- Project Plan: `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
-- Agent Operating Contract: `/Users/bborn/home-school-helper/AGENT.md`
-- Handoff Log: `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
-- Implementation Spec: `/Users/bborn/home-school-helper/docs/IMPLEMENTATION_SPEC.md`
-- API Contract: `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
-- DB Schema + RLS: `/Users/bborn/home-school-helper/docs/DB_SCHEMA_AND_RLS.md`
-- Security + Compliance: `/Users/bborn/home-school-helper/docs/SECURITY_AND_COMPLIANCE.md`
-- Deployment: `/Users/bborn/home-school-helper/docs/DEPLOYMENT.md`
+## How It Works
 
-## Required Environment Variables
-- `ANTHROPIC_API_KEY`
-- `ANTHROPIC_MODEL`
+```
+Parent                         Server                        Child
+──────                         ──────                        ─────
+Sign in (Google) ──────────▸ Create session
+                              Generate join code ──────────▸ Enter code
+                                                            Ask a question
+                              Anthropic API call ◂─────────
+                              Guardrail check
+                              ──────────────────────────────▸ Tutor response
+Send private nudge ──────▸ Adjust tutor behavior
+                              (child never sees nudge)
+```
 
-## Optional Environment Variables
-- `ANTHROPIC_MAX_TOKENS` (default: `512`)
-- `ANTHROPIC_TEMPERATURE` (default: `0.3`)
-- `TUTOR_SYSTEM_PROMPT_VERSION` (default: `v1`)
-- Google Speech (enables cloud STT/TTS for child voice loop):
-  - `SPEECH_PROVIDER` (default: `google`)
-  - `GOOGLE_CLOUD_PROJECT_ID`
-  - `GOOGLE_SERVICE_ACCOUNT_JSON`
-  - `GOOGLE_CLOUD_LOCATION` (default: `global`)
-  - `GOOGLE_STT_RECOGNIZER` (default: `_`)
-  - `GOOGLE_STT_LANGUAGE_CODE` (default: `en-US`)
-  - `GOOGLE_STT_MODEL` (default: `latest_short`)
-  - `GOOGLE_TTS_LANGUAGE_CODE` (default: `en-US`)
-  - `GOOGLE_TTS_VOICE_NAME` (default: `en-US-Chirp3-HD-Achernar`)
-  - `GOOGLE_TTS_AUDIO_ENCODING` (default: `MP3`)
-  - `GOOGLE_TTS_SPEAKING_RATE` (default: `0.92`)
-  - `SPEECH_REQUEST_TIMEOUT_MS` (default: `12000`)
-  - `SPEECH_MAX_RETRIES` (default: `1`)
-  - `SPEECH_RETRY_BASE_DELAY_MS` (default: `250`)
+**Key idea:** Parents guide from the sidelines. The child sees a friendly tutor. The parent sees everything and can nudge the tutor's behavior without the child knowing.
+
+## Quick Start
+
+```bash
+cp .env.example .env       # Fill in required keys (see below)
+npm install
+npm run dev                # http://localhost:3000
+```
+
+### Required Environment Variables
+
+| Variable | Purpose |
+|----------|---------|
+| `ANTHROPIC_API_KEY` | Tutoring model API key |
+| `ANTHROPIC_MODEL` | Model to use (e.g. `claude-sonnet-4-5-20250929`) |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-only) |
+
+Optional variables for Anthropic tuning (`ANTHROPIC_MAX_TOKENS`, `ANTHROPIC_TEMPERATURE`, `TUTOR_SYSTEM_PROMPT_VERSION`) and Google Speech integration are documented in `.env.example`.
+
+## Project Structure
+
+```
+app/
+├── page.js                    Landing page
+├── parent/                    Parent console (auth, child management, sessions)
+├── child/                     Child join + tutor chat
+├── auth/callback/             OAuth callback
+├── api/                       API routes (see below)
+├── components/                Shared UI (AppShell, forms, transcript, theme)
+└── styles/                    Design system (tokens, base, layout, components, motion)
+
+src/server/                    Server-side logic
+├── session-foundation/        Core services (children, sessions, messages, policies)
+├── tutor/                     Anthropic integration + prompt assembly
+├── speech/                    Google STT/TTS integration
+└── *.js                       Auth, rate limiting, error handling
+
+docs/                          Architecture, API contract, DB schema, security
+tests/                         Unit tests
+```
 
 ## API Routes
-- `GET /api/parent/me` (parent bearer token required)
-- `GET /api/children` (parent bearer token required)
-- `POST /api/children` (parent bearer token required)
-- `POST /api/session/start` (parent bearer token required)
-- `POST /api/session/join` (one-time code redemption)
-- `POST /api/session/:id/child-turn`
-- `POST /api/session/:id/parent-nudge`
-- `GET /api/session/:id/messages`
-- `GET /api/session/:id/stream` (SSE subscription)
-- `POST /api/session/:id/override`
-- `POST /api/session/:id/speech/transcribe` (child bearer token required)
-- `POST /api/session/:id/speech/synthesize` (child bearer token required)
+
+### Auth & Profiles
+| Method | Route | Auth | Purpose |
+|--------|-------|------|---------|
+| GET | `/api/parent/me` | Parent | Get/sync parent profile |
+| GET | `/api/children` | Parent | List children |
+| POST | `/api/children` | Parent | Create child profile |
+| PUT | `/api/children/:id` | Parent | Update child profile |
+| DELETE | `/api/children/:id` | Parent | Delete child (blocked if active session) |
+
+### Sessions
+| Method | Route | Auth | Purpose |
+|--------|-------|------|---------|
+| POST | `/api/session/start` | Parent | Start session, get join code |
+| POST | `/api/session/join` | Code | Redeem join code, get child token |
+| POST | `/api/session/:id/child-turn` | Child | Submit tutoring turn |
+| POST | `/api/session/:id/parent-nudge` | Parent | Send hidden guidance to tutor |
+| GET | `/api/session/:id/messages` | Both | Fetch transcript |
+| GET | `/api/session/:id/stream` | Both | SSE transcript stream |
+| POST | `/api/session/:id/override` | Parent | Toggle direct-answer mode |
+
+### Speech (optional, requires Google Cloud config)
+| Method | Route | Auth | Purpose |
+|--------|-------|------|---------|
+| POST | `/api/session/:id/speech/transcribe` | Child | Speech-to-text |
+| POST | `/api/session/:id/speech/synthesize` | Child | Text-to-speech |
+
+Full request/response shapes: [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md)
 
 ## UI Routes
-- `/parent` parent onboarding/session console
-- `/child` child join + tutor chat
-- `/auth/callback` OAuth callback completion
 
-## UX + Theming
-- Consumer-oriented visual system with shared warm styling across all routes.
-- System-aware dark/light mode with persistent user override (`System`, `Light`, `Dark`).
-- Theme preference stored in browser local storage key `hsh_theme_mode`.
+| Route | Who | What |
+|-------|-----|------|
+| `/` | Everyone | Landing page with parent/child entry points |
+| `/parent` | Parents | Command center — manage children, start sessions, monitor and nudge |
+| `/child` | Children | Enter join code → chat with tutor |
+| `/auth/callback` | System | OAuth completion redirect |
+
+## Safety & Design Principles
+
+- **Scaffold-first tutoring** — hints and guiding questions before direct answers
+- **Parent steering is invisible** — children never see nudges or parent context
+- **Secrets stay server-side** — no API keys in browser code, ever
+- **Guardrails always on** — unsafe content blocked even when direct-answer mode is enabled
+- **Anthropic-only** — single LLM provider in v1 for auditability
+
+Full security docs: [`docs/SECURITY_AND_COMPLIANCE.md`](docs/SECURITY_AND_COMPLIANCE.md)
 
 ## Commands
-- `npm run dev`
-- `npm run build`
-- `npm run check:env`
-- `npm run check:handoff`
-- `npm test`
+
+```bash
+npm run dev           # Start dev server
+npm run build         # Production build
+npm test              # Run unit tests (68 tests)
+npm run check:env     # Validate environment variables
+npm run check:handoff # Validate handoff log
+```
+
+## Documentation Index
+
+| Doc | What it covers |
+|-----|----------------|
+| [`docs/START_HERE.md`](docs/START_HERE.md) | Onboarding — read order and current priorities |
+| [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) | Roadmap and phase breakdown |
+| [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) | Full API request/response specs |
+| [`docs/DB_SCHEMA_AND_RLS.md`](docs/DB_SCHEMA_AND_RLS.md) | Database tables and row-level security |
+| [`docs/IMPLEMENTATION_SPEC.md`](docs/IMPLEMENTATION_SPEC.md) | Architecture decisions |
+| [`docs/SECURITY_AND_COMPLIANCE.md`](docs/SECURITY_AND_COMPLIANCE.md) | Safety, privacy, compliance |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Vercel deployment guide |
+| [`AGENT.md`](AGENT.md) | Agent operating contract and guardrail policy |
+
+## Theme
+
+System-aware dark/light mode with user override (`System` / `Light` / `Dark`). Preference persists in `localStorage` under `hsh_theme_mode`. Design uses Inter (body) + Outfit (display) with an indigo/purple palette and teal/coral role accents.

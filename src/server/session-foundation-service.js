@@ -6,7 +6,9 @@ export {
 
 export {
   createChildForParent,
-  listChildrenForParent
+  listChildrenForParent,
+  updateChildForParent,
+  deleteChildForParent
 } from "./session-foundation/children-service.js";
 
 export {

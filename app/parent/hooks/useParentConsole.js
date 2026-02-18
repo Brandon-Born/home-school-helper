@@ -147,6 +147,55 @@ export function useParentConsole() {
     [childForm, fetchParentData, parentRequest]
   );
 
+  const updateChild = useCallback(
+    async (childId, updatedForm) => {
+      setLoading(true);
+      setError("");
+
+      try {
+        await parentRequest(`/api/children/${childId}`, {
+          method: "PUT",
+          body: {
+            ...updatedForm,
+            age: Number.parseInt(updatedForm.age, 10),
+            subjects: toList(updatedForm.subjects)
+          }
+        });
+
+        await fetchParentData();
+      } catch (requestError) {
+        setError(requestError instanceof Error ? requestError.message : "We couldn't update that child profile. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchParentData, parentRequest]
+  );
+
+  const deleteChild = useCallback(
+    async (childId) => {
+      setLoading(true);
+      setError("");
+
+      try {
+        await parentRequest(`/api/children/${childId}`, {
+          method: "DELETE"
+        });
+
+        if (selectedChildId === childId) {
+          setSelectedChildId("");
+        }
+
+        await fetchParentData();
+      } catch (requestError) {
+        setError(requestError instanceof Error ? requestError.message : "We couldn't delete that child profile. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchParentData, parentRequest, selectedChildId]
+  );
+
   const startSession = useCallback(
     async (event) => {
       event.preventDefault();
@@ -253,6 +302,8 @@ export function useParentConsole() {
       signInWithGoogle,
       signOut,
       createChild,
+      updateChild,
+      deleteChild,
       startSession,
       sendNudge,
       setOverride,

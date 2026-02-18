@@ -97,6 +97,54 @@ Creates a child profile for authenticated parent.
 }
 ```
 
+## PUT `/api/children/:id`
+Updates a child profile for authenticated parent. Parent must own the child.
+
+### Request
+```json
+{
+  "child_name": "Ava",
+  "age": 11,
+  "grade": "6",
+  "subjects": ["Math", "Science"],
+  "personality_description": "Curious and energetic",
+  "special_needs": "Needs short instructions"
+}
+```
+
+### Response (200)
+```json
+{
+  "child": {
+    "id": "uuid",
+    "first_name": "Ava",
+    "age": 11,
+    "grade": "6",
+    "subjects": ["Math", "Science"],
+    "profile_notes": "Curious and energetic",
+    "special_needs": "Needs short instructions",
+    "created_at": "timestamp"
+  }
+}
+```
+
+### Errors
+- `404 child_not_found`: Child does not exist or is not owned by this parent.
+
+## DELETE `/api/children/:id`
+Deletes a child profile for authenticated parent. Blocked if the child has an active session.
+
+### Response (200)
+```json
+{
+  "deleted": true
+}
+```
+
+### Errors
+- `404 child_not_found`: Child does not exist or is not owned by this parent.
+- `409 active_session_exists`: Child has an active session. End it first.
+
 ## POST `/api/session/start`
 Starts a session for a parent-owned child and issues one-time 10-minute join code.
 
