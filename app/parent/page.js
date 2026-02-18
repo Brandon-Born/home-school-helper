@@ -44,6 +44,7 @@ export default function ParentPage() {
               onUpdateChild={actions.updateChild}
               onDeleteChild={actions.deleteChild}
               loading={state.loading.childMutation}
+              actionAlert={state.actionAlerts.childMutation}
             />
 
             <ActiveSessionsPanel
@@ -52,6 +53,7 @@ export default function ParentPage() {
               onEnd={actions.endSession}
               onRegenerateCode={actions.regenerateCode}
               loading={state.loading.sessionManage}
+              actionAlert={state.actionAlerts.sessionManage}
             />
           </div>
 
@@ -65,6 +67,8 @@ export default function ParentPage() {
               loading={state.loading.sessionStart || state.loading.override || state.loading.sessionManage}
               onEnableOverride={() => actions.setOverride(true)}
               onDisableOverride={() => actions.setOverride(false)}
+              sessionStartAlert={state.actionAlerts.sessionStart}
+              overrideAlert={state.actionAlerts.override}
             />
 
             <TranscriptPanel
@@ -73,7 +77,7 @@ export default function ParentPage() {
               setNudgeText={actions.setNudgeText}
               onSendNudge={actions.sendNudge}
               loading={state.loading.nudge}
-              nudgeResponse={state.nudgeResponse}
+              nudgeAlert={state.actionAlerts.nudge}
               messages={state.messages}
             />
           </div>

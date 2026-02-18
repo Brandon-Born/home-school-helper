@@ -132,6 +132,67 @@ test("useParentConsole regenerateCode updates active session data and loading st
   assert.equal(hookValue.state.loading.sessionManage, false);
   assert.equal(hookValue.state.activeSession.join_code, "NEWCODE9");
   assert.equal(hookValue.state.activeSessions[0].join_code, "NEWCODE9");
+  assert.equal(hookValue.state.actionAlerts.sessionManage.tone, "success");
+  assert.equal(hookValue.state.actionAlerts.sessionManage.message, "Join code refreshed.");
+
+  await renderer.unmount();
+});
+
+test("useParentConsole exposes child mutation error feedback for inline panel messaging", async () => {
+  const parentRequest = async (path, options = {}) => {
+    if (path === "/api/parent/me") {
+      return { parent: { id: "parent_1" } };
+    }
+    if (path === "/api/children" && !options.method) {
+      return { children: [{ id: "child_1", first_name: "Ava" }] };
+    }
+    if (path === "/api/session/active") {
+      return { sessions: [] };
+    }
+    if (path === "/api/children" && options.method === "POST") {
+      throw new Error("Child save failed.");
+    }
+    throw new Error(`Unexpected request: ${path}`);
+  };
+  const parentSessionValue = {
+    session: { access_token: "parent-token" },
+    needsReauth: false,
+    parentRequest,
+    refreshParentSession: async () => null,
+    invalidateParentSession: async () => {},
+    signInWithGoogle: async () => {},
+    signOut: async () => {}
+  };
+
+  const useParentConsoleHook = createUseParentConsole({
+    useParentSessionHook: () => parentSessionValue,
+    useParentTranscriptStreamHook: () => {}
+  });
+
+  const renderer = await createHookRenderer(() => useParentConsoleHook());
+  await flushEffects();
+
+  await act(async () => {
+    renderer.getCurrent().actions.setChildForm((previous) => ({
+      ...previous,
+      child_name: "Ava",
+      age: "9",
+      subjects: "math"
+    }));
+  });
+
+  let saved = null;
+  await act(async () => {
+    saved = await renderer.getCurrent().actions.createChild({
+      preventDefault() {}
+    });
+  });
+
+  const hookValue = renderer.getCurrent();
+  assert.equal(saved, false);
+  assert.equal(hookValue.state.loading.childMutation, false);
+  assert.equal(hookValue.state.actionAlerts.childMutation.tone, "error");
+  assert.equal(hookValue.state.actionAlerts.childMutation.message, "Child save failed.");
 
   await renderer.unmount();
 });

@@ -202,7 +202,7 @@ Resolution notes:
 - Added telemetry regression coverage in `tests/voice-telemetry.test.js` and extended provider telemetry assertions in `tests/speech-provider.test.js`.
 
 ### 9) Parent action UX hardening
-Status: Open
+Status: Done (2026-02-18)
 Problem:
 - Some async failures are shown only as generic alerts; action-level feedback can be clearer.
 Scope:
@@ -210,6 +210,16 @@ Scope:
 - Preserve non-blocking behavior with per-action loading.
 Success metric:
 - Fewer ambiguous "buggy" reports from parents during rapid action sequences.
+Resolution notes:
+- Added per-action feedback state in `app/parent/hooks/useParentConsole.js` (`actionAlerts`) so child CRUD, session start/manage, override, and nudge outcomes render scoped inline messages.
+- Kept action-level non-blocking loading behavior and added explicit success/error messages by action category.
+- Updated parent panels to render inline action alerts in context:
+  - `app/parent/components/ChildListPanel.js`
+  - `app/parent/components/ActiveSessionsPanel.js`
+  - `app/parent/components/SessionControlPanel.js`
+  - `app/parent/components/TranscriptPanel.js`
+- Child add/edit/delete panel behavior now preserves form state on failure (instead of closing immediately) and only closes after successful mutation.
+- Added hook regression coverage for action-scoped messaging in `tests/use-parent-console-hook.test.js`.
 
 ### 10) Decompose child voice capture/transcription runtime
 Status: Open

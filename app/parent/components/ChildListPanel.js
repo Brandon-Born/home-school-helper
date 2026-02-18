@@ -23,7 +23,8 @@ export function ChildListPanel({
     onCreateChild,
     onUpdateChild,
     onDeleteChild,
-    loading
+    loading,
+    actionAlert
 }) {
     const [showAddForm, setShowAddForm] = useState(false);
     const [editingChildId, setEditingChildId] = useState(null);
@@ -31,8 +32,10 @@ export function ChildListPanel({
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
     const handleSaveNew = async (event) => {
-        await onCreateChild(event);
-        setShowAddForm(false);
+        const saved = await onCreateChild(event);
+        if (saved) {
+            setShowAddForm(false);
+        }
     };
 
     const handleStartEdit = (child) => {
@@ -43,9 +46,11 @@ export function ChildListPanel({
 
     const handleSaveEdit = async (event) => {
         event.preventDefault();
-        await onUpdateChild(editingChildId, editForm);
-        setEditingChildId(null);
-        setEditForm(null);
+        const updated = await onUpdateChild(editingChildId, editForm);
+        if (updated) {
+            setEditingChildId(null);
+            setEditForm(null);
+        }
     };
 
     const handleCancelEdit = () => {
@@ -54,13 +59,20 @@ export function ChildListPanel({
     };
 
     const handleConfirmDelete = async (childId) => {
-        await onDeleteChild(childId);
-        setConfirmDeleteId(null);
+        const deleted = await onDeleteChild(childId);
+        if (deleted) {
+            setConfirmDeleteId(null);
+        }
     };
 
     return (
         <section className="card">
             <h2 className="section-title">Your children</h2>
+            {actionAlert ? (
+                <div className={`alert alert--${actionAlert.tone}`} style={{ marginBottom: 10 }}>
+                    {actionAlert.message}
+                </div>
+            ) : null}
 
             {children.length === 0 && !showAddForm ? (
                 <p className="section-muted">No children added yet — add one to get started.</p>

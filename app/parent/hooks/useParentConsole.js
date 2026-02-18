@@ -64,6 +64,14 @@ const initialLoadingState = {
   sessionManage: false
 };
 
+const initialActionAlerts = {
+  childMutation: null,
+  sessionStart: null,
+  nudge: null,
+  override: null,
+  sessionManage: null
+};
+
 export function createUseParentConsole({
   useParentSessionHook = useParentSession,
   useParentTranscriptStreamHook = useParentTranscriptStream
@@ -77,7 +85,7 @@ export function createUseParentConsole({
   const [messages, setMessages] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(initialLoadingState);
-  const [nudgeResponse, setNudgeResponse] = useState("");
+  const [actionAlerts, setActionAlerts] = useState(initialActionAlerts);
   const [childForm, setChildForm] = useState(initialChildForm);
   const [sessionForm, setSessionForm] = useState(initialSessionForm);
   const [nudgeText, setNudgeText] = useState("");
@@ -89,6 +97,23 @@ export function createUseParentConsole({
     }));
   }, []);
 
+  const clearActionAlert = useCallback((key) => {
+    setActionAlerts((previous) => ({
+      ...previous,
+      [key]: null
+    }));
+  }, []);
+
+  const setActionAlert = useCallback((key, tone, message) => {
+    setActionAlerts((previous) => ({
+      ...previous,
+      [key]: {
+        tone,
+        message
+      }
+    }));
+  }, []);
+
   const clearParentData = useCallback(() => {
     setParentProfile(null);
     setChildren([]);
@@ -96,8 +121,8 @@ export function createUseParentConsole({
     setActiveSession(null);
     setActiveSessions([]);
     setMessages([]);
-    setNudgeResponse("");
     setLoading(initialLoadingState);
+    setActionAlerts(initialActionAlerts);
   }, []);
 
   const {
@@ -205,6 +230,7 @@ export function createUseParentConsole({
       event.preventDefault();
       setLoadingState("childMutation", true);
       setError("");
+      clearActionAlert("childMutation");
 
       try {
         await parentRequest("/api/children", {
@@ -218,19 +244,27 @@ export function createUseParentConsole({
 
         setChildForm(initialChildForm);
         await fetchParentData();
+        setActionAlert("childMutation", "success", "Child profile saved.");
+        return true;
       } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : "We couldn't save that child profile. Please try again.");
+        setActionAlert(
+          "childMutation",
+          "error",
+          requestError instanceof Error ? requestError.message : "We couldn't save that child profile. Please try again."
+        );
+        return false;
       } finally {
         setLoadingState("childMutation", false);
       }
     },
-    [childForm, fetchParentData, parentRequest, setLoadingState]
+    [childForm, clearActionAlert, fetchParentData, parentRequest, setActionAlert, setLoadingState]
   );
 
   const updateChild = useCallback(
     async (childId, updatedForm) => {
       setLoadingState("childMutation", true);
       setError("");
+      clearActionAlert("childMutation");
 
       try {
         await parentRequest(`/api/children/${childId}`, {
@@ -243,19 +277,27 @@ export function createUseParentConsole({
         });
 
         await fetchParentData();
+        setActionAlert("childMutation", "success", "Child profile updated.");
+        return true;
       } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : "We couldn't update that child profile. Please try again.");
+        setActionAlert(
+          "childMutation",
+          "error",
+          requestError instanceof Error ? requestError.message : "We couldn't update that child profile. Please try again."
+        );
+        return false;
       } finally {
         setLoadingState("childMutation", false);
       }
     },
-    [fetchParentData, parentRequest, setLoadingState]
+    [clearActionAlert, fetchParentData, parentRequest, setActionAlert, setLoadingState]
   );
 
   const deleteChild = useCallback(
     async (childId) => {
       setLoadingState("childMutation", true);
       setError("");
+      clearActionAlert("childMutation");
 
       try {
         await parentRequest(`/api/children/${childId}`, {
@@ -267,13 +309,20 @@ export function createUseParentConsole({
         }
 
         await fetchParentData();
+        setActionAlert("childMutation", "success", "Child profile removed.");
+        return true;
       } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : "We couldn't delete that child profile. Please try again.");
+        setActionAlert(
+          "childMutation",
+          "error",
+          requestError instanceof Error ? requestError.message : "We couldn't delete that child profile. Please try again."
+        );
+        return false;
       } finally {
         setLoadingState("childMutation", false);
       }
     },
-    [fetchParentData, parentRequest, selectedChildId, setLoadingState]
+    [clearActionAlert, fetchParentData, parentRequest, selectedChildId, setActionAlert, setLoadingState]
   );
 
   const startSession = useCallback(
@@ -281,6 +330,7 @@ export function createUseParentConsole({
       event.preventDefault();
       setLoadingState("sessionStart", true);
       setError("");
+      clearActionAlert("sessionStart");
 
       try {
         const payload = await parentRequest("/api/session/start", {
@@ -301,14 +351,18 @@ export function createUseParentConsole({
           return [nextSession, ...rest];
         });
         setMessages([]);
-        setNudgeResponse("");
+        setActionAlert("sessionStart", "success", "Join code is ready to share.");
       } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : "We couldn't start the session. Please try again.");
+        setActionAlert(
+          "sessionStart",
+          "error",
+          requestError instanceof Error ? requestError.message : "We couldn't start the session. Please try again."
+        );
       } finally {
         setLoadingState("sessionStart", false);
       }
     },
-    [children, parentRequest, selectedChildId, sessionForm, setLoadingState]
+    [children, clearActionAlert, parentRequest, selectedChildId, sessionForm, setActionAlert, setLoadingState]
   );
 
   const sendNudge = useCallback(
@@ -320,6 +374,7 @@ export function createUseParentConsole({
 
       setLoadingState("nudge", true);
       setError("");
+      clearActionAlert("nudge");
 
       try {
         const payload = await parentRequest(`/api/session/${activeSession.session_id}/parent-nudge`, {
@@ -330,15 +385,19 @@ export function createUseParentConsole({
           }
         });
 
-        setNudgeResponse(payload.assistant_text || "Nudge sent.");
+        setActionAlert("nudge", "success", payload.assistant_text || "Private note sent.");
         setNudgeText("");
       } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : "We couldn't send that private note. Please try again.");
+        setActionAlert(
+          "nudge",
+          "error",
+          requestError instanceof Error ? requestError.message : "We couldn't send that private note. Please try again."
+        );
       } finally {
         setLoadingState("nudge", false);
       }
     },
-    [activeSession?.session_id, nudgeText, parentRequest, setLoadingState]
+    [activeSession?.session_id, clearActionAlert, nudgeText, parentRequest, setActionAlert, setLoadingState]
   );
 
   const setOverride = useCallback(
@@ -349,6 +408,7 @@ export function createUseParentConsole({
 
       setLoadingState("override", true);
       setError("");
+      clearActionAlert("override");
 
       try {
         await parentRequest(`/api/session/${activeSession.session_id}/override`, {
@@ -358,13 +418,22 @@ export function createUseParentConsole({
             duration_minutes: 15
           }
         });
+        setActionAlert(
+          "override",
+          "success",
+          enabled ? "Direct-answer mode enabled for 15 minutes." : "Back to guided mode."
+        );
       } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : "We couldn't update direct-answer mode. Please try again.");
+        setActionAlert(
+          "override",
+          "error",
+          requestError instanceof Error ? requestError.message : "We couldn't update direct-answer mode. Please try again."
+        );
       } finally {
         setLoadingState("override", false);
       }
     },
-    [activeSession?.session_id, parentRequest, setLoadingState]
+    [activeSession?.session_id, clearActionAlert, parentRequest, setActionAlert, setLoadingState]
   );
 
   const rejoinSession = useCallback(
@@ -378,15 +447,16 @@ export function createUseParentConsole({
       );
       setSelectedChildId(sessionData.child_id);
       setMessages([]);
-      setNudgeResponse("");
+      clearActionAlert("nudge");
     },
-    [children]
+    [children, clearActionAlert]
   );
 
   const endSession = useCallback(
     async (sessionId) => {
       setLoadingState("sessionManage", true);
       setError("");
+      clearActionAlert("sessionManage");
 
       try {
         await parentRequest(`/api/session/${sessionId}/manage`, {
@@ -397,23 +467,28 @@ export function createUseParentConsole({
         if (activeSession?.session_id === sessionId) {
           setActiveSession(null);
           setMessages([]);
-          setNudgeResponse("");
         }
 
         setActiveSessions((prev) => prev.filter((s) => s.session_id !== sessionId));
+        setActionAlert("sessionManage", "success", "Session ended.");
       } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : "We couldn't end that session. Please try again.");
+        setActionAlert(
+          "sessionManage",
+          "error",
+          requestError instanceof Error ? requestError.message : "We couldn't end that session. Please try again."
+        );
       } finally {
         setLoadingState("sessionManage", false);
       }
     },
-    [activeSession?.session_id, parentRequest, setLoadingState]
+    [activeSession?.session_id, clearActionAlert, parentRequest, setActionAlert, setLoadingState]
   );
 
   const regenerateCode = useCallback(
     async (sessionId) => {
       setLoadingState("sessionManage", true);
       setError("");
+      clearActionAlert("sessionManage");
 
       try {
         const result = await parentRequest(`/api/session/${sessionId}/manage`, {
@@ -455,17 +530,22 @@ export function createUseParentConsole({
               );
             })
           );
+          setActionAlert("sessionManage", "success", "Join code refreshed.");
         }
 
         return result;
       } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : "We couldn't regenerate the join code. Please try again.");
+        setActionAlert(
+          "sessionManage",
+          "error",
+          requestError instanceof Error ? requestError.message : "We couldn't regenerate the join code. Please try again."
+        );
         return null;
       } finally {
         setLoadingState("sessionManage", false);
       }
     },
-    [children, parentRequest, setLoadingState]
+    [children, clearActionAlert, parentRequest, setActionAlert, setLoadingState]
   );
 
     return {
@@ -480,8 +560,8 @@ export function createUseParentConsole({
       messages,
       error,
       loading,
+      actionAlerts,
       busy: Object.values(loading).some(Boolean),
-      nudgeResponse,
       childForm,
       sessionForm,
       nudgeText

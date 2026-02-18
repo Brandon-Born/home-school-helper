@@ -34,7 +34,8 @@ export function ActiveSessionsPanel({
     onRejoin,
     onEnd,
     onRegenerateCode,
-    loading
+    loading,
+    actionAlert
 }) {
     const [confirmEndId, setConfirmEndId] = useState(null);
 
@@ -54,6 +55,11 @@ export function ActiveSessionsPanel({
     return (
         <section className="card">
             <h2 className="section-title">Active sessions</h2>
+            {actionAlert ? (
+                <div className={`alert alert--${actionAlert.tone}`} style={{ marginBottom: 10 }}>
+                    {actionAlert.message}
+                </div>
+            ) : null}
 
             <div className="active-sessions-list">
                 {activeSessions.map((s) => {

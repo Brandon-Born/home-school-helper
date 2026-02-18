@@ -4,6 +4,62 @@ Notes:
 - Compacted on 2026-02-18 to a rolling window.
 - Keep detailed entries for current context; older granular history is summarized below.
 
+## 2026-02-18T22:08:01Z - Codex
+
+### Scope Worked
+- Completed backlog item `9)` by hardening parent action UX with scoped inline feedback for async actions (child CRUD, session start/manage, override, nudge).
+
+### Last Agent Accomplished
+- Added action-scoped feedback state in `app/parent/hooks/useParentConsole.js`:
+  - `actionAlerts.childMutation`
+  - `actionAlerts.sessionStart`
+  - `actionAlerts.nudge`
+  - `actionAlerts.override`
+  - `actionAlerts.sessionManage`
+- Wired explicit success/error action messages without removing per-action loading controls.
+- Updated child mutation actions (`createChild`, `updateChild`, `deleteChild`) to return success booleans so panel forms only close on success.
+- Updated parent panels to render action-local alerts:
+  - Child management panel (`ChildListPanel`)
+  - Active sessions panel (`ActiveSessionsPanel`)
+  - Session control panel (`SessionControlPanel`)
+  - Transcript nudge panel (`TranscriptPanel`)
+- Updated parent page wiring to pass scoped action alert props to each panel.
+- Added hook regression coverage for action-scoped feedback in `tests/use-parent-console-hook.test.js`.
+- Marked backlog item `9)` done in `docs/PRODUCT_BACKLOG.md`.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js`
+- `/Users/bborn/home-school-helper/app/parent/page.js`
+- `/Users/bborn/home-school-helper/app/parent/components/ChildListPanel.js`
+- `/Users/bborn/home-school-helper/app/parent/components/ActiveSessionsPanel.js`
+- `/Users/bborn/home-school-helper/app/parent/components/SessionControlPanel.js`
+- `/Users/bborn/home-school-helper/app/parent/components/TranscriptPanel.js`
+- `/Users/bborn/home-school-helper/tests/use-parent-console-hook.test.js`
+- `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `node --test tests/use-parent-console-hook.test.js tests/use-child-console-hook.test.js tests/use-session-stream.test.js`
+- Result: pass (7 tests, 0 failures).
+- Command: `npm run test:unit`
+- Result: pass (112 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+- Command: `npm run test:e2e`
+- Result: pass (3 Playwright tests, 0 failures).
+
+### Open Risks / Issues
+- Legacy global `state.error` alerts are still present for auth/bootstrap/stream-wide failures; action-level failures now additionally surface in scoped inline messages.
+- Playwright startup still emits non-functional `NO_COLOR` vs `FORCE_COLOR` warnings.
+
+### Next Steps (Ordered)
+1. Execute backlog item `10)` decompose child voice capture/transcription runtime.
+2. Execute backlog item `14)` consolidate dynamic route handler boilerplate.
+3. Execute backlog item `15)` e2e fixture isolation and deterministic selectors.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-18T22:03:03Z - Codex
 
 ### Scope Worked

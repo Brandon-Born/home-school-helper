@@ -1,7 +1,7 @@
 "use client";
 import { TranscriptFeed } from "../../components/transcript/TranscriptFeed.js";
 
-export function TranscriptPanel({ activeSession, nudgeText, setNudgeText, onSendNudge, loading, nudgeResponse, messages }) {
+export function TranscriptPanel({ activeSession, nudgeText, setNudgeText, onSendNudge, loading, nudgeAlert, messages }) {
   if (!activeSession) {
     return null;
   }
@@ -23,8 +23,10 @@ export function TranscriptPanel({ activeSession, nudgeText, setNudgeText, onSend
         </button>
       </form>
 
-      {nudgeResponse ? (
-        <div className="alert alert--success" style={{ marginTop: 10 }}>✅ {nudgeResponse}</div>
+      {nudgeAlert ? (
+        <div className={`alert alert--${nudgeAlert.tone}`} style={{ marginTop: 10 }}>
+          {nudgeAlert.message}
+        </div>
       ) : null}
 
       <TranscriptFeed messages={messages} showVisibilityScope />

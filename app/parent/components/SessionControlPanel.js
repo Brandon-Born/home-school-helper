@@ -9,7 +9,9 @@ export function SessionControlPanel({
   activeSession,
   loading,
   onEnableOverride,
-  onDisableOverride
+  onDisableOverride,
+  sessionStartAlert,
+  overrideAlert
 }) {
   if (!selectedChild) {
     return (
@@ -25,6 +27,11 @@ export function SessionControlPanel({
       <h2 className="section-title">
         Lesson for {selectedChild.first_name}
       </h2>
+      {sessionStartAlert ? (
+        <div className={`alert alert--${sessionStartAlert.tone}`} style={{ marginBottom: 10 }}>
+          {sessionStartAlert.message}
+        </div>
+      ) : null}
 
       {activeSession && activeSession.child_id === selectedChild.id ? (
         <div className="card card--accent">
@@ -44,6 +51,11 @@ export function SessionControlPanel({
               Back to guided mode
             </button>
           </div>
+          {overrideAlert ? (
+            <div className={`alert alert--${overrideAlert.tone}`} style={{ marginTop: 10 }}>
+              {overrideAlert.message}
+            </div>
+          ) : null}
         </div>
       ) : (
         <form onSubmit={onStartSession} className="form-grid">
