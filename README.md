@@ -130,6 +130,7 @@ npm run check:handoff # Validate handoff log
 |-----|----------------|
 | [`docs/START_HERE.md`](docs/START_HERE.md) | Onboarding — read order and current priorities |
 | [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md) | Roadmap and phase breakdown |
+| [`docs/PRODUCT_BACKLOG.md`](docs/PRODUCT_BACKLOG.md) | Prioritized future improvements and TODO queue |
 | [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) | Full API request/response specs |
 | [`docs/DB_SCHEMA_AND_RLS.md`](docs/DB_SCHEMA_AND_RLS.md) | Database tables and row-level security |
 | [`docs/IMPLEMENTATION_SPEC.md`](docs/IMPLEMENTATION_SPEC.md) | Architecture decisions |

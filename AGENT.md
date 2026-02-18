@@ -49,10 +49,11 @@ Build a web-based tutoring assistant for homeschool students that is voice-frien
 ## How To Continue Work
 0. Read `docs/START_HERE.md` first for read order and immediate priorities.
 1. Read the project plan at `docs/PROJECT_PLAN.md` to align with roadmap and priorities.
-2. Read the latest entry in `docs/handoffs/HANDOFF_LOG.md` before changing code.
-3. Execute listed next steps in order unless blocked by new constraints.
-4. If blocked, document the blocker and fallback attempt.
-5. Before ending work, append a new handoff entry using `docs/handoffs/HANDOFF_TEMPLATE.md`.
+2. Read `docs/PRODUCT_BACKLOG.md` and pick the highest-priority open item unless user directs otherwise.
+3. Read the latest entry in `docs/handoffs/HANDOFF_LOG.md` before changing code.
+4. Execute listed next steps in order unless blocked by new constraints.
+5. If blocked, document the blocker and fallback attempt.
+6. Before ending work, append a new handoff entry using `docs/handoffs/HANDOFF_TEMPLATE.md`.
 
 ## Definition Of Done
 A task is complete only when all items below are true:

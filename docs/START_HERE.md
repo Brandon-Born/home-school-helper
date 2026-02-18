@@ -3,9 +3,10 @@
 ## Fast Read Order (10-15 minutes)
 1. `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
 2. `/Users/bborn/home-school-helper/AGENT.md`
-3. `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md` (latest entry first)
-4. `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
-5. `/Users/bborn/home-school-helper/docs/DB_SCHEMA_AND_RLS.md`
+3. `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md` (pick highest-priority open item)
+4. `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md` (latest entry first)
+5. `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+6. `/Users/bborn/home-school-helper/docs/DB_SCHEMA_AND_RLS.md`
 
 ## Current Goal
 Stabilize cloud voice UX (Google STT V2 + Chirp 3), auth robustness, and launch-critical testing.
@@ -33,10 +34,10 @@ Stabilize cloud voice UX (Google STT V2 + Chirp 3), auth robustness, and launch-
 - Realtime transcript updates now stream through `GET /api/session/:id/stream` (SSE).
 
 ## First Tasks To Execute
-1. Verify transcript retention migration (`20260217193000_transcript_retention.sql`) is applied in each Supabase environment and cron job exists.
-2. Verify Google Speech env config in each environment (local/Vercel) and run child cloud voice flow end-to-end.
-3. Consider migrating SSE transcript stream to direct Supabase Realtime channels if lower-latency fan-out is needed.
-4. Add E2E critical-path tests for parent/child launch flow.
+1. Pull the top open P0 item from `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`.
+2. Verify transcript retention migration (`20260217193000_transcript_retention.sql`) is applied in each Supabase environment and cron job exists.
+3. Verify Google Speech env config in each environment (local/Vercel) and run child cloud voice flow end-to-end.
+4. Consider migrating SSE transcript stream to direct Supabase Realtime channels if lower-latency fan-out is needed.
 
 ## Hard Rules
 - Never expose `ANTHROPIC_API_KEY` in client code.

@@ -145,7 +145,7 @@ Required internal config module behavior:
 - Update this plan when priorities, constraints, or sequencing materially change.
 
 ## 9. Immediate Next Steps
-1. Validate Google Speech STT/TTS configuration in local/Vercel and run end-to-end child voice tests.
-2. Verify transcript retention migration (`20260217193000`) is applied in each deployed Supabase environment.
-3. Evaluate migrating SSE transcript stream to direct Supabase Realtime channels.
-4. Add E2E critical-path coverage for parent onboarding -> start session -> child join -> tutoring flow.
+1. Execute the highest-priority open item in `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`.
+2. Validate Google Speech STT/TTS configuration in local/Vercel and run end-to-end child voice tests.
+3. Verify transcript retention migration (`20260217193000`) is applied in each deployed Supabase environment.
+4. Evaluate migrating SSE transcript stream to direct Supabase Realtime channels.
