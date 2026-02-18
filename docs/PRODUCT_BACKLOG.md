@@ -1,243 +1,25 @@
-# Product Backlog (Living)
+# Product Backlog (Rolling Open Items)
 
 Last updated: 2026-02-18
 
 Purpose:
 - Capture high-impact product and engineering improvements beyond the current "working" baseline.
-- Give future agents a prioritized queue to pull from without rediscovery.
+- Keep a single rolling queue of open items only.
 
 How to use:
 1. Start with the highest-priority open item.
 2. If you change behavior, update `docs/API_CONTRACT.md` and related docs in the same PR.
-3. Mark items as done in this file and summarize in `docs/handoffs/HANDOFF_LOG.md`.
+3. When an item is done, remove it from this file and summarize completion in `docs/handoffs/HANDOFF_LOG.md`.
 
 ---
 
 ## P0 (Highest Impact)
 
-### UAT-BUG-1) Parent session metadata desync on start/rejoin (Highest)
-Status: Done (2026-02-18)
-Problem:
-- In parent console, starting a new session can render the active-session card with missing child name and `Started NaNd ago` until a manual refresh.
-- Rejoining/regenerating can leave the lesson panel without join code/expiry (`Share this code...` with blank code and `Expires at` with no timestamp).
-Evidence (2026-02-18 UAT):
-- Reproduced on `/parent` after `Create join code`, `📺 Rejoin`, and `🔄 New code`.
-Scope:
-- Ensure `activeSessions` entries are normalized with `child_name` and `started_at` immediately after start/rejoin/manage actions.
-- Ensure `activeSession` always has current `join_code` and `expires_at` after rejoin/regenerate (no blank code state).
-Success metric:
-- Parent sees valid child name/time metadata immediately after session start.
-- Rejoin/new-code flows always show the current join code and expiry in both active-session list and lesson panel without refresh.
-Resolution notes:
-- Covered by automated e2e lifecycle regression (`tests/playwright/parent-session-lifecycle.spec.js`) validating create -> regenerate -> rejoin -> end flow without metadata drift.
-
-### UAT-BUG-2) Child cloud TTS synth returns 503 during normal tutoring turns (Highest)
-Status: Done (2026-02-18)
-Problem:
-- Child flow repeatedly hits `POST /api/session/:id/speech/synthesize` with `503 Service Unavailable` after successful tutor replies.
-- Console logs accumulate 503 errors during otherwise normal tutoring turns.
-Evidence (2026-02-18 UAT):
-- Observed on sessions `5c89baa6-0762-458d-bc58-f36e2d7cbb3e` and `b3f8f106-2f2c-43a8-a342-0b43f0126ddc` in browser console/network logs.
-Scope:
-- Verify and harden cloud TTS dependency checks/config loading for UAT/dev environments.
-- Ensure reliable fallback path (browser TTS or silent mode) is explicit and does not emit repeated console-level resource errors for expected degradation.
-- Add structured telemetry for synth failures by route/session.
-Success metric:
-- Configured environments return successful synth responses during normal turns, or fallback cleanly without repeated 503 console noise.
-Resolution notes:
-- Added cloud TTS cooldown policy (`app/child/hooks/voice/cloud-tts-policy.js`) and client-side circuit breaker in `useVoicePlayback` so repeated provider failures fall back to browser TTS without retrying cloud synth every assistant message.
-- Added structured speech route failure telemetry including `session_id` in synth/transcribe routes.
-
-### UAT-BUG-3) Next.js 15 dynamic route params are accessed synchronously (Highest)
-Status: Done (2026-02-18)
-Problem:
-- Multiple dynamic API routes log runtime errors: `params should be awaited before using its properties`.
-- This currently logs noisy runtime errors on hot paths and risks breakage with stricter Next.js behavior.
-Evidence (2026-02-18 UAT):
-- Observed repeatedly in dev server logs while exercising `/api/session/[id]/stream`, `/api/session/[id]/parent-nudge`, and `/api/session/[id]/speech/synthesize`.
-Evidence (2026-02-18 automated Playwright):
-- Reproduced during `npm run test:e2e` and `npm test` runs while child/parent session tests hit `GET /api/session/[id]/stream`.
-- Runtime logs show synchronous access in `app/api/session/[id]/stream/route.js` (`params.id` used before awaiting `params`).
-Scope:
-- Update dynamic route handlers to await `params` per Next.js 15 dynamic API requirements.
-- Add route-level regression tests for dynamic `params` access patterns in touched endpoints.
-Success metric:
-- No `params should be awaited` runtime errors during parent/child UAT flows.
-Resolution notes:
-- Updated dynamic routes to await `params` before using `id` (`stream`, `messages`, `child-turn`, `parent-nudge`, `override`, `speech/transcribe`, `speech/synthesize`).
-- Added regression coverage in `tests/dynamic-route-params.test.js` using promised `params` objects.
-
-### 1) Enforce TTS-safe assistant output end-to-end
-Status: Done (2026-02-18)
-Problem:
-- Tutor outputs can include markdown-like formatting, symbols, and emoji that read poorly in TTS.
-Scope:
-- Add explicit plain-spoken style constraints in tutor prompt policy.
-- Add server-side normalization for `speak_payload.text` (strip markdown markers/emojis where appropriate).
-- Keep transcript readability while optimizing spoken output.
-Success metric:
-- Cloud/browser TTS outputs are consistently natural and free from markdown artifacts.
-Resolution notes:
-- Added explicit plain-spoken TTS instruction to tutor system prompt policy (`src/server/guardrails.js`).
-- Added shared speech text normalizer (`src/server/tts-text.js`) and applied it in tutor turn `speak_payload` generation plus speech synth request validation.
-- Added regression tests for prompt instruction and normalization behavior (`tests/guardrails.test.js`, `tests/security.test.js`, `tests/speech-route-validators.test.js`, `tests/tts-text.test.js`).
-
-### 2) Parent active session rejoin/code coherence
-Status: Done (2026-02-18)
-Problem:
-- Parent rejoin/regenerate code UX can drift from latest session metadata.
-Scope:
-- Ensure active session payload always has current join code/expiry context (or fetch on rejoin).
-- Keep `activeSession` and `activeSessions` synchronized after manage/start actions.
-Success metric:
-- Rejoin and "new code" flows always display current code and expiry without manual refresh.
-Resolution notes:
-- Added persisted `sessions.active_join_code` and `sessions.active_join_code_expires_at` metadata so `/api/session/active` can return current code context across refresh/rejoin.
-- Session lifecycle now keeps metadata synchronized on start/regenerate/redeem/end in `src/server/session-foundation/session-service.js`.
-- Added service-level regression tests for list/regenerate/redeem coherence in `tests/session-auth-integration.test.js`.
-
-### 3) Distributed rate limiting backend
-Status: Done (2026-02-18)
-Problem:
-- Current limiter is process-local; scaling can reduce effectiveness.
-Scope:
-- Move rate-limit counters to shared backing store (Redis/Upstash/Supabase strategy).
-- Preserve existing policy keys/scopes.
-Success metric:
-- Rate limits remain consistent across multi-instance deployment.
-Resolution notes:
-- Added shared Supabase-backed limiter backend with atomic RPC (`public.acquire_rate_limit_slot`) and bucket table migration (`supabase/migrations/20260218132000_backlog_top3.sql`).
-- Updated `src/server/rate-limit.js` to support distributed mode with memory fallback and configurable backend selection (`RATE_LIMIT_BACKEND`).
-- Added async limiter coverage for memory and distributed-store adapter paths (`tests/rate-limit.test.js`) and awaited rate-limit enforcement in all guarded session routes.
-
-### 4) Close rate-limit coverage gaps on session management routes
-Status: Done (2026-02-18)
-Problem:
-- `GET /api/session/active` and `POST /api/session/[id]/manage` currently bypass route-level throttling.
-Scope:
-- Add dedicated policies in `src/server/rate-limit-policies.js` for active-session listing and manage actions.
-- Enforce limits in both routes with stable parent/session-scoped keys.
-- Add route tests for `rate_limited` responses and success-path non-regression.
-Success metric:
-- All parent session lifecycle endpoints enforce explicit, tested rate limits.
-Resolution notes:
-- Added `sessionActiveList` and `sessionManage` policies in `src/server/rate-limit-policies.js`.
-- Enforced limiter checks in `GET /api/session/active` and `POST /api/session/[id]/manage` using parent/session-scoped key suffixes.
-- Added route coverage in `tests/session-management-routes.test.js` for both `429 rate_limited` behavior and success paths.
-
-### 5) Stream disconnect/reconnect telemetry
-Status: Done (2026-02-18)
-Problem:
-- Limited visibility into reconnect loops and stream churn.
-Scope:
-- Add structured client/server metrics for stream connect, clean close, reconnect attempts, and auth refresh loops.
-Success metric:
-- Can answer "how often are sessions reconnecting and why?" from logs/dashboard.
-Resolution notes:
-- Added server stream telemetry logger (`src/server/stream-telemetry.js`) and wired structured events through stream connect/failure/disconnect and poll error/recovery paths (`app/api/session/[id]/stream/route.js`, `src/server/transcript-stream-runtime.js`).
-- Added client stream telemetry logger (`src/lib/stream-telemetry.js`) and wired structured connect/reconnect/disconnect metrics in `app/hooks/useSessionStream.js`.
-- Added parent auth-refresh loop telemetry in `app/parent/hooks/useParentTranscriptStream.js` with attempt/success/failure signals.
-- Added regression coverage for stream telemetry wiring in `tests/stream-route.test.js` and helper coverage in `tests/stream-telemetry.test.js`.
+- None currently open.
 
 ---
 
 ## P1 (High Value)
-
-### 6) Replace polling-backed SSE with direct realtime transport
-Status: Done (2026-02-18)
-Problem:
-- Polling interval adds latency and extra DB reads.
-Scope:
-- Evaluate migration path to Supabase Realtime or equivalent event push model.
-- Preserve visibility filtering (`parent all` vs `child shared only`).
-Success metric:
-- Lower median transcript latency and lower polling load.
-Resolution notes:
-- Added direct stream transport using Supabase Realtime `messages` insert subscriptions in `src/server/session-foundation/message-service.js`.
-- Updated stream runtime/route wiring to use realtime transport by default with configurable mode (`STREAM_TRANSPORT_MODE=auto|realtime|polling`) and automatic fallback to polling when realtime is unavailable.
-- Preserved child visibility filtering in the runtime for realtime events (`child` streams only receive `child_and_parent` rows).
-- Added regression coverage for realtime transport behavior and fallback paths in:
-  - `tests/stream-route.test.js`
-  - `tests/transcript-stream-runtime-telemetry.test.js`
-  - `tests/dynamic-route-params.test.js`
-
-### 7) Hook-level tests for client orchestration
-Status: Done (2026-02-18)
-Problem:
-- Parent/child console hooks contain critical state machines with limited direct test coverage.
-Scope:
-- Add tests for `useSessionStream`, `useParentConsole`, and `useChildConsole` action/loading behavior.
-- Cover reconnect, auth invalidation, and optimistic message merge paths.
-Success metric:
-- Regressions in session UX are caught before merge.
-Resolution notes:
-- Added stream controller tests for reconnect scheduling and disposal behavior in `tests/use-session-stream.test.js`.
-- Added parent hook coverage for stream message merge behavior and session-manage optimistic updates in `tests/use-parent-console-hook.test.js`.
-- Added child hook coverage for join/send loading states, optimistic message merge, and stream-auth invalidation handling in `tests/use-child-console-hook.test.js`.
-- Introduced testable hook factories for dependency injection in:
-  - `app/hooks/useSessionStream.js`
-  - `app/parent/hooks/useParentConsole.js`
-  - `app/child/hooks/useChildConsole.js`
-
-### 8) Voice observability and fallback-rate metrics
-Status: Done (2026-02-18)
-Problem:
-- Limited visibility into cloud TTS/STT failures, timeout fallback rate, and playback errors.
-Scope:
-- Emit counters for timeout/retry/fallback/permission-denied/autoplay failures.
-- Add dashboard-friendly log schema.
-Success metric:
-- Voice slowdown/failure complaints can be traced to concrete metrics quickly.
-Resolution notes:
-- Added shared voice telemetry utilities with structured error extraction and metric logging in:
-  - `src/lib/voice-telemetry.js` (client)
-  - `src/server/voice-telemetry.js` (server)
-- Instrumented child voice capture/playback lifecycle to emit counter metrics for:
-  - cloud STT success/failure,
-  - cloud TTS fallback usage,
-  - microphone permission denied,
-  - autoplay and browser playback failures.
-- Upgraded speech provider reliability telemetry to emit server-side timeout/retry/success metrics with provider/operation dimensions.
-- Added speech route outcome metrics (`success`, `failed`, `rate_limited`, `auth_failed`) with duration/session dimensions.
-- Added telemetry regression coverage in `tests/voice-telemetry.test.js` and extended provider telemetry assertions in `tests/speech-provider.test.js`.
-
-### 9) Parent action UX hardening
-Status: Done (2026-02-18)
-Problem:
-- Some async failures are shown only as generic alerts; action-level feedback can be clearer.
-Scope:
-- Add targeted inline status for child CRUD, override, nudge, and session management outcomes.
-- Preserve non-blocking behavior with per-action loading.
-Success metric:
-- Fewer ambiguous "buggy" reports from parents during rapid action sequences.
-Resolution notes:
-- Added per-action feedback state in `app/parent/hooks/useParentConsole.js` (`actionAlerts`) so child CRUD, session start/manage, override, and nudge outcomes render scoped inline messages.
-- Kept action-level non-blocking loading behavior and added explicit success/error messages by action category.
-- Updated parent panels to render inline action alerts in context:
-  - `app/parent/components/ChildListPanel.js`
-  - `app/parent/components/ActiveSessionsPanel.js`
-  - `app/parent/components/SessionControlPanel.js`
-  - `app/parent/components/TranscriptPanel.js`
-- Child add/edit/delete panel behavior now preserves form state on failure (instead of closing immediately) and only closes after successful mutation.
-- Added hook regression coverage for action-scoped messaging in `tests/use-parent-console-hook.test.js`.
-
-### 10) Decompose child voice capture/transcription runtime
-Status: Done (2026-02-18)
-Problem:
-- `app/child/hooks/useChildVoiceRuntime.js` is still large and mixes capture/transcription state with orchestration.
-Scope:
-- Extract capture/transcription lifecycle into a focused hook/module (for example `useChildVoiceCapture`).
-- Keep `useChildVoiceRuntime` as an orchestration layer with stable outward API.
-- Add targeted tests for extracted capture state transitions and failure handling.
-Success metric:
-- Smaller hooks, clearer ownership boundaries, and easier regression testing for voice behavior.
-Resolution notes:
-- Extracted capture/transcription lifecycle into dedicated hook `app/child/hooks/voice/useChildVoiceCapture.js` with dependency-injection seams for browser/media APIs.
-- Kept `useChildVoiceRuntime` as orchestration for playback, pending-turn behavior, and externally consumed state/actions without breaking outward API.
-- Added targeted capture-state regression coverage in `tests/use-child-voice-capture.test.js` for:
-  - cloud STT start/stop/transcription state transitions,
-  - microphone permission-denied handling,
-  - child-session invalidation during transcription.
 
 ### 14) Consolidate dynamic route handler boilerplate
 Status: Open
@@ -261,23 +43,6 @@ Scope:
 Success metric:
 - Playwright suite remains stable at scale/repeated runs without flake from stale data or selector ambiguity.
 
-### 16) Realtime channel lifecycle hardening
-Status: Done (2026-02-18)
-Problem:
-- Stream runtime now supports multiple transport paths (`auto`, `realtime`, `polling`) and relies on channel subscribe/unsubscribe behavior that can be hard to reason about under reconnect churn.
-Scope:
-- Add defensive guards and explicit telemetry for channel subscribe/unsubscribe counts and close reasons across reconnect loops.
-- Add integration coverage for repeated connect/disconnect cycles to catch channel leaks or duplicate handlers.
-- Document operational runbook checks for realtime channel health in staging/production.
-Success metric:
-- No channel leak growth across repeated reconnects; reconnect behavior remains bounded and observable.
-Resolution notes:
-- Hardened realtime subscription lifecycle in `src/server/session-foundation/message-service.js` with closed-state guards and safe cleanup on subscribe failures.
-- Added explicit realtime subscribe/unsubscribe counters and telemetry payload fields in `src/server/transcript-stream-runtime.js` (including disconnect summaries).
-- Added runtime-level reconnect-cycle lifecycle coverage ensuring balanced subscribe/unsubscribe counts in `tests/transcript-stream-runtime-telemetry.test.js`.
-- Kept automatic fallback to polling when realtime transport fails in `auto` mode, with explicit fallback reason telemetry.
-- Documented realtime channel operational checks/runbook guidance for staging/production in `docs/API_CONTRACT.md` under stream transport behavior.
-
 ### 17) Transport-mode e2e coverage (realtime vs polling fallback)
 Status: Open
 Problem:
@@ -288,6 +53,28 @@ Scope:
 - Capture mode-specific telemetry assertions where practical.
 Success metric:
 - CI can catch regressions in either transport mode before merge.
+
+### 18) Decompose parent console orchestration hook
+Status: Open
+Problem:
+- `app/parent/hooks/useParentConsole.js` now carries auth/session refresh, child CRUD, session lifecycle, nudge/override actions, and UI-alert orchestration in one module.
+Scope:
+- Split `useParentConsole` into focused domain hooks (for example `useParentChildren`, `useParentSessions`, `useParentGuidanceActions`).
+- Keep existing outward page API stable while extracting ownership boundaries.
+- Add targeted tests around extracted domain hooks.
+Success metric:
+- Smaller modules with clear responsibilities and lower change risk when adjusting parent workflows.
+
+### 19) Split child voice capture by transport strategy
+Status: Open
+Problem:
+- `app/child/hooks/voice/useChildVoiceCapture.js` still mixes cloud STT recorder flow and browser speech-recognition flow in one state machine.
+Scope:
+- Extract cloud and browser capture flows into strategy-specific hooks/modules.
+- Keep `useChildVoiceCapture` as a thin chooser/orchestrator over those strategies.
+- Add focused tests per strategy for transitions and failures.
+Success metric:
+- Voice capture code paths become easier to reason about, debug, and evolve independently.
 
 ---
 
@@ -310,6 +97,27 @@ Status: Open
 Scope:
 - Add privacy-safe funnel events (session start, child join success/fail, turn send, nudge send, voice usage).
 - Define baseline activation and retention metrics for iteration.
+
+### 20) Consolidate async action status boilerplate
+Status: Open
+Problem:
+- Parent action handlers repeat loading toggles, try/catch wrappers, and scoped success/error alert updates, which increases drift risk.
+Scope:
+- Introduce a shared helper/reducer pattern for async action lifecycle (`pending`, `success`, `error`) with message support.
+- Apply pattern across parent child/session/nudge/override actions.
+- Add focused tests for helper behavior.
+Success metric:
+- Less duplicated status code and more consistent UX behavior across parent actions.
+
+### 21) Migrate hook tests off `react-test-renderer`
+Status: Open
+Problem:
+- Hook tests currently rely on `react-test-renderer`, which emits React 19 deprecation warnings and raises maintenance risk.
+Scope:
+- Migrate hook tests to a supported test harness while preserving current coverage depth.
+- Remove deprecated renderer dependency from dev tooling.
+Success metric:
+- Hook test suite runs without deprecation noise and remains stable on future React upgrades.
 
 ---
 
