@@ -36,7 +36,6 @@ export function ActiveSessionsPanel({
     onRegenerateCode,
     loading
 }) {
-    const [codeMap, setCodeMap] = useState({});
     const [confirmEndId, setConfirmEndId] = useState(null);
 
     if (!activeSessions || activeSessions.length === 0) {
@@ -44,23 +43,12 @@ export function ActiveSessionsPanel({
     }
 
     const handleRegenerate = async (sessionId) => {
-        const result = await onRegenerateCode(sessionId);
-        if (result?.join_code) {
-            setCodeMap((prev) => ({
-                ...prev,
-                [sessionId]: { code: result.join_code, expires_at: result.expires_at }
-            }));
-        }
+        await onRegenerateCode(sessionId);
     };
 
     const handleConfirmEnd = async (sessionId) => {
         await onEnd(sessionId);
         setConfirmEndId(null);
-        setCodeMap((prev) => {
-            const next = { ...prev };
-            delete next[sessionId];
-            return next;
-        });
     };
 
     return (
@@ -69,9 +57,8 @@ export function ActiveSessionsPanel({
 
             <div className="active-sessions-list">
                 {activeSessions.map((s) => {
-                    const newCode = codeMap[s.session_id];
-                    const joinCode = newCode?.code ?? s.join_code;
-                    const joinCodeExpiry = newCode?.expires_at ?? s.expires_at;
+                    const joinCode = s.join_code;
+                    const joinCodeExpiry = s.expires_at;
                     const subjects = s.daily_context?.daily_subjects;
 
                     return (

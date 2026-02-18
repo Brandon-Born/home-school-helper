@@ -97,3 +97,18 @@ test("parseSpeechSynthesizeInput requires text and clamps speaking rate", async 
   );
   assert.equal(slow.speakingRate, 0.8);
 });
+
+test("parseSpeechSynthesizeInput normalizes markdown-style text for speech", async () => {
+  const parsed = await parseSpeechSynthesizeInput(
+    new Request("https://example.test/synthesize", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: "## Hi 🙂\n- Use `fractions` first." })
+    })
+  );
+
+  assert.equal(parsed.text.includes("##"), false);
+  assert.equal(parsed.text.includes("🙂"), false);
+  assert.equal(parsed.text.includes("`"), false);
+  assert.equal(parsed.text, "Hi Use fractions first.");
+});

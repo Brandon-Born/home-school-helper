@@ -17,6 +17,7 @@
     "message": "Too many requests. Please try again shortly."
   }
   ```
+  - Enforcement uses a shared backend store in production so limits remain consistent across instances.
 
 ## Authentication Headers
 - Parent routes require Supabase access token:
@@ -163,7 +164,9 @@ Lists all active sessions for the authenticated parent, enriched with child name
         "goal_notes": null,
         "additional_context": null
       },
-      "started_at": "timestamp"
+      "started_at": "timestamp",
+      "join_code": "AB12CD34",
+      "expires_at": "timestamp"
     }
   ]
 }
@@ -315,6 +318,9 @@ Rate limit:
   "model_used": "claude-sonnet-4-5-20250929"
 }
 ```
+
+Notes:
+- `speak_payload.text` is server-normalized for read-aloud delivery (markdown/emoji/style markers removed when needed) while `assistant_text` remains transcript-accurate.
 
 Notes:
 - `input_message` and `assistant_message` are persisted transcript rows returned inline so the client can render and speak immediately without waiting for stream polling.

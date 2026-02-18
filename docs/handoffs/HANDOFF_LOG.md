@@ -4,6 +4,72 @@ Notes:
 - Compacted on 2026-02-18 to a rolling window.
 - Keep detailed entries for current context; older granular history is summarized below.
 
+## 2026-02-18T19:31:25Z - Codex
+
+### Scope Worked
+- Executed and completed top 3 open P0 backlog items (`1`, `2`, `3`) end-to-end.
+- Added regression coverage, docs updates, migration for shared rate-limit/session metadata, and compatibility fallbacks for pre-migration environments.
+
+### Last Agent Accomplished
+- Item 1 (TTS-safe output):
+  - Added plain-spoken tutor prompt instruction (`src/server/guardrails.js`).
+  - Added `src/server/tts-text.js` normalizer and applied it in tutor `speak_payload` generation and speech synth request parsing.
+  - Added normalization-focused tests in `tests/tts-text.test.js`, `tests/security.test.js`, `tests/speech-route-validators.test.js`, and `tests/guardrails.test.js`.
+- Item 2 (parent rejoin/code coherence):
+  - Added persisted active join-code metadata on sessions (`active_join_code`, `active_join_code_expires_at`) and synchronized it across start/regenerate/redeem/end flows in `src/server/session-foundation/session-service.js`.
+  - Updated parent active session card behavior to rely on server state (removed local `codeMap` drift path) in `app/parent/components/ActiveSessionsPanel.js`.
+  - Added service-level tests for list/regenerate/redeem coherence in `tests/session-auth-integration.test.js`.
+- Item 3 (distributed rate limiting backend):
+  - Added Supabase-backed bucket table + atomic RPC function (`acquire_rate_limit_slot`) in `supabase/migrations/20260218132000_backlog_top3.sql`.
+  - Refactored limiter to support async distributed enforcement with configurable backend and memory fallback (`src/server/rate-limit.js`), and awaited limiter calls in all guarded routes.
+  - Added distributed-adapter coverage in `tests/rate-limit.test.js`.
+- Added compatibility fallbacks for environments where new session metadata columns are not yet migrated, avoiding route breakage during rollout.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/src/server/tts-text.js`
+- `/Users/bborn/home-school-helper/src/server/tutor-service.js`
+- `/Users/bborn/home-school-helper/src/server/speech-route-validators.js`
+- `/Users/bborn/home-school-helper/src/server/guardrails.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation/session-service.js`
+- `/Users/bborn/home-school-helper/src/server/rate-limit.js`
+- `/Users/bborn/home-school-helper/app/parent/components/ActiveSessionsPanel.js`
+- `/Users/bborn/home-school-helper/app/api/session/join/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/start/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/child-turn/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/parent-nudge/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/speech/synthesize/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/speech/transcribe/route.js`
+- `/Users/bborn/home-school-helper/supabase/migrations/20260218132000_backlog_top3.sql`
+- `/Users/bborn/home-school-helper/tests/tts-text.test.js`
+- `/Users/bborn/home-school-helper/tests/guardrails.test.js`
+- `/Users/bborn/home-school-helper/tests/security.test.js`
+- `/Users/bborn/home-school-helper/tests/speech-route-validators.test.js`
+- `/Users/bborn/home-school-helper/tests/session-auth-integration.test.js`
+- `/Users/bborn/home-school-helper/tests/rate-limit.test.js`
+- `/Users/bborn/home-school-helper/tests/helpers/fake-service-client.js`
+- `/Users/bborn/home-school-helper/.env.example`
+- `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+- `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm run test:unit`
+- Result: pass (90 tests, 0 failures).
+- Command: `npm run test:e2e -- tests/playwright/parent-session-lifecycle.spec.js tests/playwright/child-join-code-redemption.spec.js`
+- Result: pass (2 tests, 0 failures).
+- Command: `npm test`
+- Result: pass (unit + e2e, 0 failures).
+
+### Open Risks / Issues
+- Shared Supabase rate limiting is implemented and migration-backed, but environments without `acquire_rate_limit_slot` currently fall back to in-memory limiter (logged once per process).
+
+### Next Steps (Ordered)
+1. Apply `supabase/migrations/20260218132000_backlog_top3.sql` in each deployed Supabase environment to enable shared limiter + persisted active join-code metadata everywhere.
+2. After migration rollout, optionally set `RATE_LIMIT_BACKEND=supabase` to enforce hard dependency on shared limiter.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-18T14:26:31Z - Codex
 
 ### Scope Worked

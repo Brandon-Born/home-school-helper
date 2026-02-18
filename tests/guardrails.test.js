@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyTutorGuardrails } from "../src/server/guardrails.js";
+import { applyTutorGuardrails, buildTutorSystemPrompt } from "../src/server/guardrails.js";
 
 test("scaffold-first rewrites direct answers when override is disabled", () => {
   const result = applyTutorGuardrails({
@@ -36,4 +36,15 @@ test("guardrails redact verbatim parent guidance from child-visible output", () 
 
   assert.equal(result.assistantText.includes("Student is frustrated"), false);
   assert.ok(result.policyApplied.includes("parent_guidance_redacted"));
+});
+
+test("buildTutorSystemPrompt includes TTS plain-speech instruction", () => {
+  const prompt = buildTutorSystemPrompt({
+    promptVersion: "v1",
+    profile: { first_name: "Ava" },
+    dailyContext: { daily_subjects: ["Math"] },
+    allowDirectAnswer: false
+  });
+
+  assert.match(prompt, /plain spoken sentences suitable for read-aloud TTS/i);
 });

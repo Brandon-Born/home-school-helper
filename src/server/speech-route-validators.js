@@ -1,4 +1,5 @@
 import { ApiError } from "./api-error.js";
+import { normalizeTextForSpeech } from "./tts-text.js";
 
 function clampSpeakingRate(rawValue) {
   const parsed = Number.parseFloat(String(rawValue ?? ""));
@@ -31,7 +32,7 @@ export async function parseSpeechTranscribeInput(request) {
 
 export async function parseSpeechSynthesizeInput(request) {
   const payload = await request.json();
-  const text = String(payload?.text || "").trim();
+  const text = normalizeTextForSpeech(payload?.text);
   if (!text) {
     throw new ApiError(400, "validation_error", "text is required.");
   }

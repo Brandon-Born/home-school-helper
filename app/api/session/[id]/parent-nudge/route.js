@@ -19,7 +19,7 @@ export function createParentNudgePostHandler(dependencies = {}) {
   return async function POST(request, { params }) {
     try {
       const { id: sessionId } = await params;
-      applyRateLimit(request, buildRateLimitPolicy("parentNudge", sessionId));
+      await applyRateLimit(request, buildRateLimitPolicy("parentNudge", sessionId));
 
       const payload = await request.json();
       const { parent } = await requireParent(request);

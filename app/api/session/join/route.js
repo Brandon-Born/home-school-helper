@@ -10,7 +10,7 @@ export function createSessionJoinPostHandler(dependencies = {}) {
 
   return async function POST(request) {
     try {
-      applyRateLimit(request, buildRateLimitPolicy("sessionJoin"));
+      await applyRateLimit(request, buildRateLimitPolicy("sessionJoin"));
 
       const payload = await request.json();
       const sessionAccess = await redeemCode(payload);

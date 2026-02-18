@@ -47,6 +47,11 @@ class FakeQuery {
     return this;
   }
 
+  in(field, values) {
+    this.filters.push({ type: "in", field, values: Array.isArray(values) ? values : [] });
+    return this;
+  }
+
   gt(field, value) {
     this.filters.push({ type: "gt", field, value });
     return this;
@@ -233,6 +238,10 @@ class FakeQuery {
           }
 
           return left > right;
+        }
+
+        if (filter.type === "in") {
+          return filter.values.includes(row[filter.field]);
         }
 
         return true;

@@ -5,7 +5,9 @@ import { ApiError } from "../src/server/api-error.js";
 import { requireChildSessionContext, requireParentContext } from "../src/server/auth.js";
 import {
   ensureParentOwnsSession,
+  listActiveSessionsForParent,
   listSessionMessages,
+  regenerateJoinCodeForSession,
   redeemSessionCode,
   startSessionForParent
 } from "../src/server/session-foundation-service.js";
@@ -262,4 +264,94 @@ test("requireParentContext validates bearer token and upserts parent record", as
 
   await requireParentContext(validRequest, { anonClient, serviceClient });
   assert.equal(serviceClient.tables.parents.length, 1);
+});
+
+test("listActiveSessionsForParent returns active join code metadata", async () => {
+  const serviceClient = createFakeServiceClient({
+    children: [
+      {
+        id: "child_1",
+        parent_id: "parent_1",
+        first_name: "Ava"
+      }
+    ]
+  });
+
+  const started = await startSessionForParent(
+    "parent_1",
+    {
+      child_id: "child_1",
+      daily_subjects: ["Math"]
+    },
+    { serviceClient }
+  );
+
+  const sessions = await listActiveSessionsForParent("parent_1", { serviceClient });
+  assert.equal(sessions.length, 1);
+  assert.equal(sessions[0].join_code, started.join_code);
+  assert.equal(typeof sessions[0].expires_at, "string");
+});
+
+test("regenerateJoinCodeForSession refreshes session metadata and expires prior code", async () => {
+  const serviceClient = createFakeServiceClient({
+    children: [
+      {
+        id: "child_1",
+        parent_id: "parent_1",
+        first_name: "Ava"
+      }
+    ]
+  });
+
+  const started = await startSessionForParent(
+    "parent_1",
+    {
+      child_id: "child_1",
+      daily_subjects: ["Math"]
+    },
+    { serviceClient }
+  );
+  const startedHash = hashOpaqueToken(started.join_code);
+
+  const regenerated = await regenerateJoinCodeForSession("parent_1", started.session_id, { serviceClient });
+  assert.notEqual(regenerated.join_code, started.join_code);
+
+  const sessionRow = serviceClient.tables.sessions.find((row) => row.id === started.session_id);
+  assert.equal(sessionRow.active_join_code, regenerated.join_code);
+  assert.equal(sessionRow.active_join_code_expires_at, regenerated.expires_at);
+
+  const previousCodeRow = serviceClient.tables.session_codes.find((row) => row.code_hash === startedHash);
+  assert.ok(previousCodeRow);
+  assert.equal(new Date(previousCodeRow.expires_at).getTime() <= Date.now(), true);
+
+  const sessions = await listActiveSessionsForParent("parent_1", { serviceClient });
+  assert.equal(sessions[0].join_code, regenerated.join_code);
+});
+
+test("redeemSessionCode clears active join-code metadata from session list", async () => {
+  const serviceClient = createFakeServiceClient({
+    children: [
+      {
+        id: "child_1",
+        parent_id: "parent_1",
+        first_name: "Ava"
+      }
+    ]
+  });
+
+  const started = await startSessionForParent(
+    "parent_1",
+    {
+      child_id: "child_1",
+      daily_subjects: ["Reading"]
+    },
+    { serviceClient }
+  );
+
+  await redeemSessionCode({ code: started.join_code }, { serviceClient });
+  const sessions = await listActiveSessionsForParent("parent_1", { serviceClient });
+
+  assert.equal(sessions.length, 1);
+  assert.equal(sessions[0].join_code, null);
+  assert.equal(sessions[0].expires_at, null);
 });

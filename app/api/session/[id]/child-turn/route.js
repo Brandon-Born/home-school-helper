@@ -17,7 +17,7 @@ export function createChildTurnPostHandler(dependencies = {}) {
   return async function POST(request, { params }) {
     try {
       const { id: sessionId } = await params;
-      applyRateLimit(request, buildRateLimitPolicy("childTurn", sessionId));
+      await applyRateLimit(request, buildRateLimitPolicy("childTurn", sessionId));
 
       const payload = await request.json();
       const childContext = await requireChild(request, sessionId);

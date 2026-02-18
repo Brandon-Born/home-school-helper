@@ -36,3 +36,28 @@ test("tutor API result does not leak api key", async () => {
   assert.equal("speak_payload" in result, true);
   assert.equal("policy_applied" in result, true);
 });
+
+test("generateTutorTurn normalizes markdown-heavy output for speak_payload", async () => {
+  const result = await generateTutorTurn({
+    sessionId: "session_1",
+    source: "child-turn",
+    studentInput: "What should I do first?",
+    allowDirectAnswer: false,
+    configOverride: {
+      apiKey: "fake",
+      model: "claude-test",
+      maxTokens: 128,
+      temperature: 0.2,
+      promptVersion: "test"
+    },
+    modelCaller: async () => ({
+      text: "## Let’s try this 🙂\n- Start with `common denominator`.\n- Then simplify."
+    })
+  });
+
+  assert.equal(result.assistant_text.includes("##"), true);
+  assert.equal(result.speak_payload.text.includes("##"), false);
+  assert.equal(result.speak_payload.text.includes("🙂"), false);
+  assert.equal(result.speak_payload.text.includes("`"), false);
+  assert.match(result.speak_payload.text, /Start with common denominator\./);
+});

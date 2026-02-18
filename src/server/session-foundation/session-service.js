@@ -13,9 +13,17 @@ import {
 const JOIN_CODE_TTL_MINUTES = 10;
 const CHILD_SESSION_TTL_HOURS = 12;
 
+function hasMissingActiveJoinCodeColumns(error) {
+  const message = String(error?.message || "").toLowerCase();
+  return message.includes("active_join_code");
+}
+
 export async function startSessionForParent(parentId, payload, options = {}) {
   const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
   const normalized = normalizeSessionStartPayload(payload);
+  const joinCode = generateJoinCode(8);
+  const codeHash = hashOpaqueToken(joinCode);
+  const expiresAt = new Date(Date.now() + JOIN_CODE_TTL_MINUTES * 60 * 1000).toISOString();
 
   const { data: child, error: childError } = await serviceClient
     .from("children")
@@ -54,24 +62,38 @@ export async function startSessionForParent(parentId, payload, options = {}) {
     additional_context: normalized.additional_context
   };
 
-  const { data: session, error: sessionError } = await serviceClient
+  let session;
+  let sessionError;
+
+  ({ data: session, error: sessionError } = await serviceClient
     .from("sessions")
     .insert({
       child_id: normalized.child_id,
       parent_id: parentId,
       status: "active",
-      daily_context: dailyContext
+      daily_context: dailyContext,
+      active_join_code: joinCode,
+      active_join_code_expires_at: expiresAt
     })
-    .select("id, child_id, parent_id, status, daily_context, started_at")
-    .single();
+    .select("id, child_id, parent_id, status, daily_context, started_at, active_join_code, active_join_code_expires_at")
+    .single());
+
+  if (sessionError && hasMissingActiveJoinCodeColumns(sessionError)) {
+    ({ data: session, error: sessionError } = await serviceClient
+      .from("sessions")
+      .insert({
+        child_id: normalized.child_id,
+        parent_id: parentId,
+        status: "active",
+        daily_context: dailyContext
+      })
+      .select("id, child_id, parent_id, status, daily_context, started_at")
+      .single());
+  }
 
   if (sessionError || !session) {
     throw new ApiError(500, "session_create_failed", "Unable to start session.");
   }
-
-  const joinCode = generateJoinCode(8);
-  const codeHash = hashOpaqueToken(joinCode);
-  const expiresAt = new Date(Date.now() + JOIN_CODE_TTL_MINUTES * 60 * 1000).toISOString();
 
   const { error: codeError } = await serviceClient.from("session_codes").insert({
     session_id: session.id,
@@ -89,8 +111,8 @@ export async function startSessionForParent(parentId, payload, options = {}) {
     child_name: child.first_name ?? "Unknown",
     status: session.status,
     started_at: session.started_at ?? new Date().toISOString(),
-    join_code: joinCode,
-    expires_at: expiresAt,
+    join_code: session.active_join_code ?? joinCode,
+    expires_at: session.active_join_code_expires_at ?? expiresAt,
     daily_context: session.daily_context
   };
 }
@@ -156,6 +178,19 @@ export async function redeemSessionCode(payload, options = {}) {
     throw new ApiError(409, "session_code_used", "Session code has already been redeemed.");
   }
 
+  const { error: clearActiveCodeError } = await serviceClient
+    .from("sessions")
+    .update({
+      active_join_code: null,
+      active_join_code_expires_at: null
+    })
+    .eq("id", sessionRow.id)
+    .eq("status", "active");
+
+  if (clearActiveCodeError && !hasMissingActiveJoinCodeColumns(clearActiveCodeError)) {
+    throw new ApiError(500, "session_update_failed", "Unable to update session join-code state.");
+  }
+
   const childSessionToken = createChildSessionToken();
   const childSessionTokenHash = hashOpaqueToken(childSessionToken);
   const childTokenExpiresAt = new Date(Date.now() + CHILD_SESSION_TTL_HOURS * 60 * 60 * 1000).toISOString();
@@ -182,12 +217,24 @@ export async function redeemSessionCode(payload, options = {}) {
 export async function listActiveSessionsForParent(parentId, options = {}) {
   const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
 
-  const { data: sessions, error } = await serviceClient
+  let sessions;
+  let error;
+
+  ({ data: sessions, error } = await serviceClient
     .from("sessions")
-    .select("id, child_id, status, daily_context, started_at")
+    .select("id, child_id, status, daily_context, started_at, active_join_code, active_join_code_expires_at")
     .eq("parent_id", parentId)
     .eq("status", "active")
-    .order("started_at", { ascending: false });
+    .order("started_at", { ascending: false }));
+
+  if (error && hasMissingActiveJoinCodeColumns(error)) {
+    ({ data: sessions, error } = await serviceClient
+      .from("sessions")
+      .select("id, child_id, status, daily_context, started_at")
+      .eq("parent_id", parentId)
+      .eq("status", "active")
+      .order("started_at", { ascending: false }));
+  }
 
   if (error) {
     throw new ApiError(500, "sessions_fetch_failed", "Unable to fetch active sessions.");
@@ -216,21 +263,45 @@ export async function listActiveSessionsForParent(parentId, options = {}) {
     child_name: childMap.get(s.child_id) ?? "Unknown",
     status: s.status,
     daily_context: s.daily_context,
-    started_at: s.started_at
+    started_at: s.started_at,
+    join_code: s.active_join_code,
+    expires_at: s.active_join_code_expires_at
   }));
 }
 
 export async function endSessionForParent(parentId, sessionId, options = {}) {
   const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
 
-  const { data, error } = await serviceClient
+  let data;
+  let error;
+
+  ({ data, error } = await serviceClient
     .from("sessions")
-    .update({ status: "ended" })
+    .update({
+      status: "ended",
+      ended_at: new Date().toISOString(),
+      active_join_code: null,
+      active_join_code_expires_at: null
+    })
     .eq("id", sessionId)
     .eq("parent_id", parentId)
     .eq("status", "active")
     .select("id, status")
-    .maybeSingle();
+    .maybeSingle());
+
+  if (error && hasMissingActiveJoinCodeColumns(error)) {
+    ({ data, error } = await serviceClient
+      .from("sessions")
+      .update({
+        status: "ended",
+        ended_at: new Date().toISOString()
+      })
+      .eq("id", sessionId)
+      .eq("parent_id", parentId)
+      .eq("status", "active")
+      .select("id, status")
+      .maybeSingle());
+  }
 
   if (error) {
     throw new ApiError(500, "session_end_failed", "Unable to end session.");
@@ -269,6 +340,18 @@ export async function regenerateJoinCodeForSession(parentId, sessionId, options 
   const joinCode = generateJoinCode(8);
   const codeHash = hashOpaqueToken(joinCode);
   const expiresAt = new Date(Date.now() + JOIN_CODE_TTL_MINUTES * 60 * 1000).toISOString();
+  const nowIso = new Date().toISOString();
+
+  const { error: expireError } = await serviceClient
+    .from("session_codes")
+    .update({ expires_at: nowIso })
+    .eq("session_id", session.id)
+    .is("redeemed_at", null)
+    .gt("expires_at", nowIso);
+
+  if (expireError) {
+    throw new ApiError(500, "session_code_expire_failed", "Unable to expire previous join codes.");
+  }
 
   const { error: codeError } = await serviceClient.from("session_codes").insert({
     session_id: session.id,
@@ -278,6 +361,19 @@ export async function regenerateJoinCodeForSession(parentId, sessionId, options 
 
   if (codeError) {
     throw new ApiError(500, "session_code_create_failed", "Unable to create new join code.");
+  }
+
+  const { error: sessionUpdateError } = await serviceClient
+    .from("sessions")
+    .update({
+      active_join_code: joinCode,
+      active_join_code_expires_at: expiresAt
+    })
+    .eq("id", session.id)
+    .eq("status", "active");
+
+  if (sessionUpdateError && !hasMissingActiveJoinCodeColumns(sessionUpdateError)) {
+    throw new ApiError(500, "session_update_failed", "Unable to update session join-code metadata.");
   }
 
   return {

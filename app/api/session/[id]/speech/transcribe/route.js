@@ -20,7 +20,7 @@ export function createSpeechTranscribePostHandler(dependencies = {}) {
     let sessionId = "unknown";
     try {
       ({ id: sessionId } = await params);
-      applyRateLimit(request, buildRateLimitPolicy("speechTranscribe", sessionId));
+      await applyRateLimit(request, buildRateLimitPolicy("speechTranscribe", sessionId));
 
       await requireChild(request, sessionId);
       const input = await parseSpeechTranscribeInput(request);

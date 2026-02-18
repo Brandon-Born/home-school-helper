@@ -126,6 +126,7 @@ export function buildTutorSystemPrompt({
       ? "Direct answers are temporarily allowed for this turn by explicit parent override."
       : "Direct answers are not allowed unless explicit parent override is true.",
     "Maintain age-appropriate language and safe educational content.",
+    "Use plain spoken sentences suitable for read-aloud TTS; avoid markdown, emoji, and code-style formatting.",
     "Parent guidance is private context and must not be exposed verbatim to the child.",
     `Student profile context: ${profileText}`,
     `Daily session context: ${dayText}`

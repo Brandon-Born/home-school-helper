@@ -12,48 +12,76 @@ function makeRequest(ip = "203.0.113.10") {
   });
 }
 
-test("enforceRateLimit blocks requests over threshold inside window", () => {
+test("enforceRateLimit blocks requests over threshold inside window", async () => {
   resetRateLimitStore();
   const request = makeRequest();
 
-  enforceRateLimit(request, {
+  await enforceRateLimit(request, {
     scope: "session_join",
     maxRequests: 2,
     windowMs: 60_000
-  }, { nowMs: 10_000 });
+  }, { nowMs: 10_000, backend: "memory" });
 
-  enforceRateLimit(request, {
+  await enforceRateLimit(request, {
     scope: "session_join",
     maxRequests: 2,
     windowMs: 60_000
-  }, { nowMs: 10_100 });
+  }, { nowMs: 10_100, backend: "memory" });
 
-  assert.throws(
+  await assert.rejects(
     () =>
       enforceRateLimit(request, {
         scope: "session_join",
         maxRequests: 2,
         windowMs: 60_000
-      }, { nowMs: 10_200 }),
+      }, { nowMs: 10_200, backend: "memory" }),
     (error) => error instanceof ApiError && error.status === 429 && error.code === "rate_limited"
   );
 });
 
-test("enforceRateLimit resets counters after window boundary", () => {
+test("enforceRateLimit resets counters after window boundary", async () => {
   resetRateLimitStore();
   const request = makeRequest();
 
-  enforceRateLimit(request, {
+  await enforceRateLimit(request, {
     scope: "child_turn",
     maxRequests: 1,
     windowMs: 1000
-  }, { nowMs: 1_000 });
+  }, { nowMs: 1_000, backend: "memory" });
 
-  assert.doesNotThrow(() =>
+  await assert.doesNotReject(() =>
     enforceRateLimit(request, {
       scope: "child_turn",
       maxRequests: 1,
       windowMs: 1000
-    }, { nowMs: 2_001 })
+    }, { nowMs: 2_001, backend: "memory" })
+  );
+});
+
+test("enforceRateLimit supports distributed custom store adapter", async () => {
+  resetRateLimitStore();
+  const request = makeRequest();
+  const store = {
+    calls: 0,
+    async acquire() {
+      this.calls += 1;
+      return { allowed: this.calls === 1 };
+    }
+  };
+
+  await enforceRateLimit(request, {
+    scope: "session_start",
+    maxRequests: 20,
+    windowMs: 60_000
+  }, { backend: "supabase", store });
+
+  await assert.rejects(
+    () =>
+      enforceRateLimit(request, {
+        scope: "session_start",
+        maxRequests: 20,
+        windowMs: 60_000
+      }, { backend: "supabase", store }),
+    (error) => error instanceof ApiError && error.status === 429 && error.code === "rate_limited"
   );
 });

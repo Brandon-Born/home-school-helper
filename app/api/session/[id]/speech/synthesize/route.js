@@ -20,7 +20,7 @@ export function createSpeechSynthesizePostHandler(dependencies = {}) {
     let sessionId = "unknown";
     try {
       ({ id: sessionId } = await params);
-      applyRateLimit(request, buildRateLimitPolicy("speechSynthesize", sessionId));
+      await applyRateLimit(request, buildRateLimitPolicy("speechSynthesize", sessionId));
 
       await requireChild(request, sessionId);
       const input = await parseSpeechSynthesizeInput(request);

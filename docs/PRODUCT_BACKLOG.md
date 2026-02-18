@@ -68,7 +68,7 @@ Resolution notes:
 - Added regression coverage in `tests/dynamic-route-params.test.js` using promised `params` objects.
 
 ### 1) Enforce TTS-safe assistant output end-to-end
-Status: Open
+Status: Done (2026-02-18)
 Problem:
 - Tutor outputs can include markdown-like formatting, symbols, and emoji that read poorly in TTS.
 Scope:
@@ -77,9 +77,13 @@ Scope:
 - Keep transcript readability while optimizing spoken output.
 Success metric:
 - Cloud/browser TTS outputs are consistently natural and free from markdown artifacts.
+Resolution notes:
+- Added explicit plain-spoken TTS instruction to tutor system prompt policy (`src/server/guardrails.js`).
+- Added shared speech text normalizer (`src/server/tts-text.js`) and applied it in tutor turn `speak_payload` generation plus speech synth request validation.
+- Added regression tests for prompt instruction and normalization behavior (`tests/guardrails.test.js`, `tests/security.test.js`, `tests/speech-route-validators.test.js`, `tests/tts-text.test.js`).
 
 ### 2) Parent active session rejoin/code coherence
-Status: Open
+Status: Done (2026-02-18)
 Problem:
 - Parent rejoin/regenerate code UX can drift from latest session metadata.
 Scope:
@@ -87,9 +91,13 @@ Scope:
 - Keep `activeSession` and `activeSessions` synchronized after manage/start actions.
 Success metric:
 - Rejoin and "new code" flows always display current code and expiry without manual refresh.
+Resolution notes:
+- Added persisted `sessions.active_join_code` and `sessions.active_join_code_expires_at` metadata so `/api/session/active` can return current code context across refresh/rejoin.
+- Session lifecycle now keeps metadata synchronized on start/regenerate/redeem/end in `src/server/session-foundation/session-service.js`.
+- Added service-level regression tests for list/regenerate/redeem coherence in `tests/session-auth-integration.test.js`.
 
 ### 3) Distributed rate limiting backend
-Status: Open
+Status: Done (2026-02-18)
 Problem:
 - Current limiter is process-local; scaling can reduce effectiveness.
 Scope:
@@ -97,6 +105,10 @@ Scope:
 - Preserve existing policy keys/scopes.
 Success metric:
 - Rate limits remain consistent across multi-instance deployment.
+Resolution notes:
+- Added shared Supabase-backed limiter backend with atomic RPC (`public.acquire_rate_limit_slot`) and bucket table migration (`supabase/migrations/20260218132000_backlog_top3.sql`).
+- Updated `src/server/rate-limit.js` to support distributed mode with memory fallback and configurable backend selection (`RATE_LIMIT_BACKEND`).
+- Added async limiter coverage for memory and distributed-store adapter paths (`tests/rate-limit.test.js`) and awaited rate-limit enforcement in all guarded session routes.
 
 ### 4) Close rate-limit coverage gaps on session management routes
 Status: Open

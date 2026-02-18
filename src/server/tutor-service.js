@@ -4,6 +4,7 @@ import {
   applyTutorGuardrails,
   buildTutorSystemPrompt
 } from "./guardrails.js";
+import { normalizeTextForSpeech } from "./tts-text.js";
 
 function buildUserPrompt({ source, studentInput, parentGuidance }) {
   const inputText = studentInput?.trim() || "";
@@ -62,7 +63,7 @@ export async function generateTutorTurn({
   return {
     assistant_text: guarded.assistantText,
     speak_payload: {
-      text: guarded.assistantText,
+      text: normalizeTextForSpeech(guarded.assistantText),
       voice: "default",
       mode: "hybrid_tts"
     },
