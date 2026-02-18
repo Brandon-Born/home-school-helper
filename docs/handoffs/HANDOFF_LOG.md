@@ -4,6 +4,53 @@ Notes:
 - Compacted on 2026-02-18 to a rolling window.
 - Keep detailed entries for current context; older granular history is summarized below.
 
+## 2026-02-18T22:12:47Z - Codex
+
+### Scope Worked
+- Completed backlog item `10)` by decomposing child voice capture/transcription into a focused hook while preserving `useChildVoiceRuntime` as orchestration.
+
+### Last Agent Accomplished
+- Extracted capture/transcription logic from `useChildVoiceRuntime` into:
+  - `app/child/hooks/voice/useChildVoiceCapture.js`
+- Added DI seams (`createUseChildVoiceCapture`) for media/browser API dependencies to make capture flow testable.
+- Kept `useChildVoiceRuntime` outward API stable while delegating capture lifecycle state/actions to the new hook.
+- Maintained playback orchestration and assistant message speaking flow in runtime.
+- Added targeted tests for extracted capture transitions and failure handling:
+  - `tests/use-child-voice-capture.test.js`
+    - cloud STT start/stop/transcribe transition behavior
+    - microphone permission-denied handling
+    - child-session invalidation during transcription
+- Marked backlog item `10)` done in `docs/PRODUCT_BACKLOG.md`.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/child/hooks/voice/useChildVoiceCapture.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/useChildVoiceRuntime.js`
+- `/Users/bborn/home-school-helper/tests/use-child-voice-capture.test.js`
+- `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `node --test tests/use-child-voice-capture.test.js tests/use-child-console-hook.test.js`
+- Result: pass (3 tests, 0 failures).
+- Command: `npm run test:unit`
+- Result: pass (114 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+- Command: `npm run test:e2e`
+- Result: pass (3 Playwright tests, 0 failures).
+
+### Open Risks / Issues
+- `react-test-renderer` deprecation warnings continue during hook tests (non-blocking).
+- Playwright startup still emits non-functional `NO_COLOR` vs `FORCE_COLOR` warnings.
+
+### Next Steps (Ordered)
+1. Execute backlog item `14)` consolidate dynamic route handler boilerplate.
+2. Execute backlog item `15)` e2e fixture isolation and deterministic selectors.
+3. Execute backlog item `17)` transport-mode e2e coverage.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-18T22:08:01Z - Codex
 
 ### Scope Worked

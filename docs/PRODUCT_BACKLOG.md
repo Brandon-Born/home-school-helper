@@ -222,7 +222,7 @@ Resolution notes:
 - Added hook regression coverage for action-scoped messaging in `tests/use-parent-console-hook.test.js`.
 
 ### 10) Decompose child voice capture/transcription runtime
-Status: Open
+Status: Done (2026-02-18)
 Problem:
 - `app/child/hooks/useChildVoiceRuntime.js` is still large and mixes capture/transcription state with orchestration.
 Scope:
@@ -231,6 +231,13 @@ Scope:
 - Add targeted tests for extracted capture state transitions and failure handling.
 Success metric:
 - Smaller hooks, clearer ownership boundaries, and easier regression testing for voice behavior.
+Resolution notes:
+- Extracted capture/transcription lifecycle into dedicated hook `app/child/hooks/voice/useChildVoiceCapture.js` with dependency-injection seams for browser/media APIs.
+- Kept `useChildVoiceRuntime` as orchestration for playback, pending-turn behavior, and externally consumed state/actions without breaking outward API.
+- Added targeted capture-state regression coverage in `tests/use-child-voice-capture.test.js` for:
+  - cloud STT start/stop/transcription state transitions,
+  - microphone permission-denied handling,
+  - child-session invalidation during transcription.
 
 ### 14) Consolidate dynamic route handler boilerplate
 Status: Open
