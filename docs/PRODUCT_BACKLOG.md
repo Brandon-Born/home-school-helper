@@ -21,17 +21,6 @@ How to use:
 
 ## P1 (High Value)
 
-### 14) Consolidate dynamic route handler boilerplate
-Status: Open
-Problem:
-- Dynamic session routes repeat the same cross-cutting steps (await `params`, auth resolution, rate limiting, error wrapping), which increases regression risk and made Next.js 15 `params` sync issues easy to reintroduce.
-Scope:
-- Introduce shared route utility helpers for dynamic `sessionId` extraction and standardized handler composition.
-- Migrate touched session routes to the helper pattern incrementally.
-- Add one focused utility test suite to lock behavior.
-Success metric:
-- Dynamic routes share a single tested pattern for `params` extraction/error handling, reducing duplicate logic and preventing sync-param regressions.
-
 ### 15) E2E fixture isolation and deterministic selectors
 Status: Open
 Problem:

@@ -6,6 +6,7 @@ import {
 import { handleRouteError } from "../../../../../src/server/route-errors.js";
 import { enforceRateLimit } from "../../../../../src/server/rate-limit.js";
 import { buildRateLimitPolicy } from "../../../../../src/server/rate-limit-policies.js";
+import { runSessionRoute } from "../../../../../src/server/session-route-helpers.js";
 
 export function createSessionManagePostHandler(dependencies = {}) {
   const applyRateLimit = dependencies.enforceRateLimit ?? enforceRateLimit;
@@ -15,8 +16,12 @@ export function createSessionManagePostHandler(dependencies = {}) {
   const onError = dependencies.handleRouteError ?? handleRouteError;
 
   return async function POST(request, { params }) {
-    try {
-      const { id: sessionId } = await params;
+    return runSessionRoute({
+      request,
+      params,
+      fallbackCode: "session_manage_failed",
+      onError,
+      run: async ({ sessionId }) => {
       const { parent } = await requireParent(request);
       await applyRateLimit(
         request,
@@ -38,9 +43,8 @@ export function createSessionManagePostHandler(dependencies = {}) {
         { error: "invalid_action", message: "Action must be 'end' or 'regenerate_code'." },
         { status: 400 }
       );
-    } catch (error) {
-      return onError(error, "session_manage_failed");
-    }
+      }
+    });
   };
 }
 

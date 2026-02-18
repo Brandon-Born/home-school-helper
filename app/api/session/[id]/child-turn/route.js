@@ -5,6 +5,7 @@ import {
 import { handleRouteError } from "../../../../../src/server/route-errors.js";
 import { enforceRateLimit } from "../../../../../src/server/rate-limit.js";
 import { buildRateLimitPolicy } from "../../../../../src/server/rate-limit-policies.js";
+import { runSessionRoute } from "../../../../../src/server/session-route-helpers.js";
 import { runSessionTutorTurn } from "../../../../../src/server/session-turn-orchestrator.js";
 
 export function createChildTurnPostHandler(dependencies = {}) {
@@ -15,8 +16,12 @@ export function createChildTurnPostHandler(dependencies = {}) {
   const onError = dependencies.handleRouteError ?? handleRouteError;
 
   return async function POST(request, { params }) {
-    try {
-      const { id: sessionId } = await params;
+    return runSessionRoute({
+      request,
+      params,
+      fallbackCode: "child_turn_failed",
+      onError,
+      run: async ({ sessionId }) => {
       await applyRateLimit(request, buildRateLimitPolicy("childTurn", sessionId));
 
       const payload = await request.json();
@@ -39,9 +44,8 @@ export function createChildTurnPostHandler(dependencies = {}) {
       });
 
       return Response.json(result);
-    } catch (error) {
-      return onError(error, "child_turn_failed");
-    }
+      }
+    });
   };
 }
 

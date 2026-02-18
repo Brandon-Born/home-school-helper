@@ -1,5 +1,6 @@
 import { requireParentContext } from "../../../../../src/server/auth.js";
 import { handleRouteError } from "../../../../../src/server/route-errors.js";
+import { runSessionRoute } from "../../../../../src/server/session-route-helpers.js";
 import { setSessionDirectAnswerOverride } from "../../../../../src/server/session-foundation-service.js";
 
 export function createOverridePostHandler(dependencies = {}) {
@@ -8,8 +9,12 @@ export function createOverridePostHandler(dependencies = {}) {
   const onError = dependencies.handleRouteError ?? handleRouteError;
 
   return async function POST(request, { params }) {
-    try {
-      const { id: sessionId } = await params;
+    return runSessionRoute({
+      request,
+      params,
+      fallbackCode: "override_update_failed",
+      onError,
+      run: async ({ sessionId }) => {
       const payload = await request.json();
       const { parent } = await requireParent(request);
 
@@ -21,9 +26,8 @@ export function createOverridePostHandler(dependencies = {}) {
       });
 
       return Response.json({ override: result });
-    } catch (error) {
-      return onError(error, "override_update_failed");
-    }
+      }
+    });
   };
 }
 

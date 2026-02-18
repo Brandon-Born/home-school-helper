@@ -1,4 +1,5 @@
 import { handleRouteError } from "../../../../../src/server/route-errors.js";
+import { runSessionRoute } from "../../../../../src/server/session-route-helpers.js";
 import { listSessionMessages } from "../../../../../src/server/session-foundation-service.js";
 import { resolveSessionViewerContext } from "../../../../../src/server/session-viewer-context.js";
 
@@ -8,8 +9,12 @@ export function createMessagesGetHandler(dependencies = {}) {
   const onError = dependencies.handleRouteError ?? handleRouteError;
 
   return async function GET(request, { params }) {
-    try {
-      const { id: sessionId } = await params;
+    return runSessionRoute({
+      request,
+      params,
+      fallbackCode: "messages_fetch_failed",
+      onError,
+      run: async ({ sessionId }) => {
       const url = new URL(request.url);
       const limit = Number.parseInt(url.searchParams.get("limit") || "100", 10);
 
@@ -24,9 +29,8 @@ export function createMessagesGetHandler(dependencies = {}) {
         messages,
         visibility: viewerContext.visibility
       });
-    } catch (error) {
-      return onError(error, "messages_fetch_failed");
-    }
+      }
+    });
   };
 }
 

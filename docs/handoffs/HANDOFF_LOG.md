@@ -4,6 +4,64 @@ Notes:
 - Compacted on 2026-02-18 to a rolling window.
 - Keep detailed entries for current context; older granular history is summarized below.
 
+## 2026-02-18T22:52:52Z - Codex
+
+### Scope Worked
+- Completed backlog item `14)` by introducing shared dynamic-session route helpers and migrating `[id]` session routes to the helper pattern.
+
+### Last Agent Accomplished
+- Added shared route utilities in `src/server/session-route-helpers.js`:
+  - `readSessionIdParam(params)` for normalized/validated dynamic `sessionId` extraction.
+  - `runSessionRoute(...)` for standardized dynamic route execution/error wrapping.
+- Migrated dynamic session routes to the helper pattern:
+  - `app/api/session/[id]/messages/route.js`
+  - `app/api/session/[id]/stream/route.js`
+  - `app/api/session/[id]/child-turn/route.js`
+  - `app/api/session/[id]/parent-nudge/route.js`
+  - `app/api/session/[id]/override/route.js`
+  - `app/api/session/[id]/manage/route.js`
+  - `app/api/session/[id]/speech/transcribe/route.js`
+  - `app/api/session/[id]/speech/synthesize/route.js`
+- Preserved route-specific behavior (rate limiting, auth checks, telemetry logging, stream response behavior) while removing repeated params/error boilerplate.
+- Added focused helper regression coverage in `tests/session-route-helpers.test.js`.
+- Removed completed item `14)` from rolling backlog in `docs/PRODUCT_BACKLOG.md`.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/src/server/session-route-helpers.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/messages/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/stream/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/child-turn/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/parent-nudge/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/override/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/manage/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/speech/transcribe/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/speech/synthesize/route.js`
+- `/Users/bborn/home-school-helper/tests/session-route-helpers.test.js`
+- `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `node --test tests/session-route-helpers.test.js tests/messages-route.test.js tests/stream-route.test.js tests/dynamic-route-params.test.js tests/speech-routes.test.js tests/session-management-routes.test.js`
+- Result: pass (26 tests, 0 failures).
+- Command: `npm run test:unit`
+- Result: pass (118 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+- Command: `npm run test:e2e`
+- Result: pass (3 Playwright tests, 0 failures).
+
+### Open Risks / Issues
+- Helper now enforces a validated non-empty dynamic `sessionId` and returns `invalid_session_id` (400) when absent/blank; no regressions observed in route tests/e2e flows.
+- Existing non-functional warnings remain (`react-test-renderer` deprecation and Playwright `NO_COLOR` vs `FORCE_COLOR` warnings).
+
+### Next Steps (Ordered)
+1. Execute backlog item `15)` e2e fixture isolation and deterministic selectors.
+2. Execute backlog item `17)` transport-mode e2e coverage.
+3. Continue remaining open refactor/quality backlog items.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-18T22:12:47Z - Codex
 
 ### Scope Worked

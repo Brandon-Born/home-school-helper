@@ -5,6 +5,7 @@ import {
 } from "../../../../../src/server/session-foundation-service.js";
 import { resolveSessionViewerContext } from "../../../../../src/server/session-viewer-context.js";
 import { startTranscriptStreamRuntime } from "../../../../../src/server/transcript-stream-runtime.js";
+import { runSessionRoute } from "../../../../../src/server/session-route-helpers.js";
 import { getServerStreamErrorDetails, logServerStreamTelemetry } from "../../../../../src/server/stream-telemetry.js";
 
 export { serializeSse } from "../../../../../src/server/transcript-stream-runtime.js";
@@ -18,65 +19,69 @@ export function createStreamGetHandler(dependencies = {}) {
   const logStreamEvent = dependencies.logStreamEvent ?? logServerStreamTelemetry;
 
   return async function GET(request, { params }) {
-    let sessionId = "unknown";
-    try {
-      ({ id: sessionId } = await params);
-      const url = new URL(request.url);
-      const limit = Math.min(Math.max(Number.parseInt(url.searchParams.get("limit") || "150", 10), 1), 300);
+    return runSessionRoute({
+      request,
+      params,
+      fallbackCode: "stream_failed",
+      onError: (error, _fallbackCode, context = {}) => {
+        const status = error instanceof ApiError ? error.status : 500;
+        const code = error instanceof ApiError ? error.code : "stream_failed";
+        const message = error instanceof Error ? error.message : "Unknown stream failure";
+        logStreamEvent("error", {
+          event: "stream_connect_failed",
+          session_id: context.sessionId ?? "unknown",
+          ...getServerStreamErrorDetails(error)
+        });
 
-      const viewerContext = await resolveViewerContext(request, sessionId);
+        return new Response(JSON.stringify({ error: code, message }), {
+          status,
+          headers: {
+            "content-type": "application/json"
+          }
+        });
+      },
+      run: async ({ sessionId }) => {
+        const url = new URL(request.url);
+        const limit = Math.min(Math.max(Number.parseInt(url.searchParams.get("limit") || "150", 10), 1), 300);
 
-      const stream = new TransformStream();
-      const writer = stream.writable.getWriter();
-      const runtime = await startTranscriptStreamRuntime({
-        writer,
-        sessionId,
-        visibility: viewerContext.visibility,
-        limit,
-        listSessionMessages: listMessages,
-        createSessionMessageSubscription: subscribeMessages,
-        setTimer,
-        clearTimer,
-        logStreamEvent,
-        streamTransportMode: dependencies.streamTransportMode ?? process.env.STREAM_TRANSPORT_MODE
-      });
+        const viewerContext = await resolveViewerContext(request, sessionId);
 
-      logStreamEvent("info", {
-        event: "stream_connect",
-        session_id: sessionId,
-        viewer_role: viewerContext.role,
-        visibility: viewerContext.visibility,
-        limit
-      });
+        const stream = new TransformStream();
+        const writer = stream.writable.getWriter();
+        const runtime = await startTranscriptStreamRuntime({
+          writer,
+          sessionId,
+          visibility: viewerContext.visibility,
+          limit,
+          listSessionMessages: listMessages,
+          createSessionMessageSubscription: subscribeMessages,
+          setTimer,
+          clearTimer,
+          logStreamEvent,
+          streamTransportMode: dependencies.streamTransportMode ?? process.env.STREAM_TRANSPORT_MODE
+        });
 
-      request.signal.addEventListener("abort", () => {
-        void runtime.close("client_abort");
-      });
+        logStreamEvent("info", {
+          event: "stream_connect",
+          session_id: sessionId,
+          viewer_role: viewerContext.role,
+          visibility: viewerContext.visibility,
+          limit
+        });
 
-      return new Response(stream.readable, {
-        headers: {
-          "content-type": "text/event-stream; charset=utf-8",
-          "cache-control": "no-cache, no-transform",
-          connection: "keep-alive"
-        }
-      });
-    } catch (error) {
-      const status = error instanceof ApiError ? error.status : 500;
-      const code = error instanceof ApiError ? error.code : "stream_failed";
-      const message = error instanceof Error ? error.message : "Unknown stream failure";
-      logStreamEvent("error", {
-        event: "stream_connect_failed",
-        session_id: sessionId,
-        ...getServerStreamErrorDetails(error)
-      });
+        request.signal.addEventListener("abort", () => {
+          void runtime.close("client_abort");
+        });
 
-      return new Response(JSON.stringify({ error: code, message }), {
-        status,
-        headers: {
-          "content-type": "application/json"
-        }
-      });
-    }
+        return new Response(stream.readable, {
+          headers: {
+            "content-type": "text/event-stream; charset=utf-8",
+            "cache-control": "no-cache, no-transform",
+            connection: "keep-alive"
+          }
+        });
+      }
+    });
   };
 }
 
