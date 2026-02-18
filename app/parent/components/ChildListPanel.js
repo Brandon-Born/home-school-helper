@@ -95,6 +95,7 @@ export function ChildListPanel({
                             ) : (
                                 <div
                                     className={`child-card${selectedChildId === child.id ? " is-selected" : ""}`}
+                                    data-testid={`child-card-${child.id}`}
                                     onClick={() => setSelectedChildId(child.id)}
                                     role="button"
                                     tabIndex={0}
@@ -168,6 +169,7 @@ export function ChildListPanel({
                 <button
                     type="button"
                     className="btn btn--secondary"
+                    data-testid="child-add-button"
                     onClick={() => setShowAddForm(true)}
                     style={{ marginTop: children.length > 0 ? 12 : 0 }}
                 >

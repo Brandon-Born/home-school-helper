@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 import {
+  cleanupFixtureData,
   createChildProfile,
   createUniqueChildName,
-  endSessionFromActiveCard,
   openParentConsole,
   startSessionForChild
 } from "./helpers/parent-console.js";
@@ -10,11 +10,18 @@ import {
 test("join code can be redeemed once and second redemption is rejected", async ({ page, browser }) => {
   test.setTimeout(60_000);
   const childName = createUniqueChildName("PWChildJoin");
+  const fixture = {
+    childName,
+    childId: null,
+    sessionId: null
+  };
   let joinCode = "";
 
   await openParentConsole(page);
-  await createChildProfile(page, { childName, subjects: "Reading, Science" });
+  const created = await createChildProfile(page, { childName, subjects: "Reading, Science" });
+  fixture.childId = created.childId;
   const started = await startSessionForChild(page, { childName, dailySubject: "Reading" });
+  fixture.sessionId = started.sessionId;
   joinCode = started.joinCode;
 
   const baseUrl = new URL(page.url()).origin;
@@ -41,8 +48,6 @@ test("join code can be redeemed once and second redemption is rejected", async (
     expect(secondJoinPayload.error).toBe("session_code_used");
   } finally {
     await childContext.close().catch(() => {});
-    if (!page.isClosed()) {
-      await endSessionFromActiveCard(page, { childName }).catch(() => {});
-    }
+    await cleanupFixtureData(page, fixture).catch(() => {});
   }
 });

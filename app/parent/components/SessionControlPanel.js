@@ -34,9 +34,9 @@ export function SessionControlPanel({
       ) : null}
 
       {activeSession && activeSession.child_id === selectedChild.id ? (
-        <div className="card card--accent">
+        <div className="card card--accent" data-testid="session-lesson-share-panel">
           <p className="section-muted">Share this code with {selectedChild.first_name}:</p>
-          <div className="join-code">{activeSession.join_code}</div>
+          <div className="join-code" data-testid="session-lesson-join-code">{activeSession.join_code}</div>
           <p className="section-muted" style={{ marginTop: 8, fontSize: "0.88rem" }}>
             Expires at {activeSession.expires_at}
           </p>
@@ -88,7 +88,7 @@ export function SessionControlPanel({
             onChange={(event) => setSessionForm((prev) => ({ ...prev, additional_context: event.target.value }))}
           />
           <div className="btn-row">
-            <button type="submit" disabled={loading} className="btn btn--primary">
+            <button type="submit" disabled={loading} className="btn btn--primary" data-testid="session-start-submit">
               Create join code
             </button>
           </div>

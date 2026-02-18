@@ -53,7 +53,7 @@ export function ActiveSessionsPanel({
     };
 
     return (
-        <section className="card">
+        <section className="card" data-testid="active-sessions-panel">
             <h2 className="section-title">Active sessions</h2>
             {actionAlert ? (
                 <div className={`alert alert--${actionAlert.tone}`} style={{ marginBottom: 10 }}>
@@ -68,7 +68,11 @@ export function ActiveSessionsPanel({
                     const subjects = s.daily_context?.daily_subjects;
 
                     return (
-                        <div key={s.session_id} className="active-session-card">
+                        <div
+                            key={s.session_id}
+                            className="active-session-card"
+                            data-testid={`active-session-card-${s.session_id}`}
+                        >
                             <div className="active-session-card__header">
                                 <span className="active-session-card__name">{s.child_name}</span>
                                 <span className="active-session-card__time">
@@ -84,7 +88,9 @@ export function ActiveSessionsPanel({
 
                             {joinCode ? (
                                 <div className="active-session-card__code">
-                                    <span className="join-code">{joinCode}</span>
+                                    <span className="join-code" data-testid={`active-session-code-${s.session_id}`}>
+                                        {joinCode}
+                                    </span>
                                     <span className="section-muted" style={{ fontSize: "0.8rem" }}>
                                         expires {timeUntil(joinCodeExpiry)}
                                     </span>
@@ -95,6 +101,7 @@ export function ActiveSessionsPanel({
                                 <button
                                     type="button"
                                     className="btn btn--ghost btn--sm"
+                                    data-testid={`active-session-rejoin-${s.session_id}`}
                                     disabled={loading}
                                     onClick={() => onRejoin({
                                         session_id: s.session_id,
@@ -112,6 +119,7 @@ export function ActiveSessionsPanel({
                                 <button
                                     type="button"
                                     className="btn btn--ghost btn--sm"
+                                    data-testid={`active-session-regenerate-${s.session_id}`}
                                     disabled={loading}
                                     onClick={() => handleRegenerate(s.session_id)}
                                 >
@@ -123,6 +131,7 @@ export function ActiveSessionsPanel({
                                         <button
                                             type="button"
                                             className="btn--icon btn--icon-danger"
+                                            data-testid={`active-session-end-confirm-${s.session_id}`}
                                             disabled={loading}
                                             onClick={() => handleConfirmEnd(s.session_id)}
                                         >
@@ -141,6 +150,7 @@ export function ActiveSessionsPanel({
                                     <button
                                         type="button"
                                         className="btn btn--ghost btn--sm btn--danger-text"
+                                        data-testid={`active-session-end-${s.session_id}`}
                                         disabled={loading}
                                         onClick={() => setConfirmEndId(s.session_id)}
                                     >

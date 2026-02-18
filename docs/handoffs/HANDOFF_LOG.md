@@ -4,6 +4,59 @@ Notes:
 - Compacted on 2026-02-18 to a rolling window.
 - Keep detailed entries for current context; older granular history is summarized below.
 
+## 2026-02-18T23:06:33Z - Codex
+
+### Scope Worked
+- Completed backlog item `15)` by isolating Playwright fixture data per spec and migrating high-traffic selectors to deterministic `data-testid` hooks.
+
+### Last Agent Accomplished
+- Added deterministic UI hooks for session lifecycle controls:
+  - `active session cards`
+  - `active session join code`
+  - `rejoin/new code/end` controls
+  - `lesson panel join code`
+  in:
+  - `app/parent/components/ActiveSessionsPanel.js`
+  - `app/parent/components/SessionControlPanel.js`
+  - `app/parent/components/ChildListPanel.js`
+- Refactored Playwright parent-console helpers to use stable test ids and assert API responses for create/start/manage actions in:
+  - `tests/playwright/helpers/parent-console.js`
+- Added explicit fixture cleanup helper (`cleanupFixtureData`) that tears down created sessions/children per spec via API calls.
+- Updated specs to use per-test isolated fixture objects and guaranteed cleanup in `finally`:
+  - `tests/playwright/parent-session-lifecycle.spec.js`
+  - `tests/playwright/child-join-code-redemption.spec.js`
+- Removed completed item `15)` from rolling backlog in `docs/PRODUCT_BACKLOG.md`.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/parent/components/ActiveSessionsPanel.js`
+- `/Users/bborn/home-school-helper/app/parent/components/SessionControlPanel.js`
+- `/Users/bborn/home-school-helper/app/parent/components/ChildListPanel.js`
+- `/Users/bborn/home-school-helper/tests/playwright/helpers/parent-console.js`
+- `/Users/bborn/home-school-helper/tests/playwright/parent-session-lifecycle.spec.js`
+- `/Users/bborn/home-school-helper/tests/playwright/child-join-code-redemption.spec.js`
+- `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm run test:e2e`
+- Result: pass (3 Playwright tests, 0 failures).
+- Command: `npm run test:unit`
+- Result: pass (118 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+
+### Open Risks / Issues
+- Playwright startup still emits non-functional `NO_COLOR` vs `FORCE_COLOR` warnings.
+- Helper cleanup currently best-effort (does not fail tests on cleanup API failures), but avoids shared-account buildup in normal flows.
+
+### Next Steps (Ordered)
+1. Execute backlog item `17)` transport-mode e2e coverage (`realtime` vs `polling`).
+2. Continue refactor backlog item `18)` parent console decomposition.
+3. Continue refactor backlog item `19)` split voice capture strategy.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-18T22:52:52Z - Codex
 
 ### Scope Worked
