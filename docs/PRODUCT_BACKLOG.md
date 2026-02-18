@@ -45,16 +45,6 @@ Scope:
 - Add privacy-safe funnel events (session start, child join success/fail, turn send, nudge send, voice usage).
 - Define baseline activation and retention metrics for iteration.
 
-### 21) Migrate hook tests off `react-test-renderer`
-Status: Open
-Problem:
-- Hook tests currently rely on `react-test-renderer`, which emits React 19 deprecation warnings and raises maintenance risk.
-Scope:
-- Migrate hook tests to a supported test harness while preserving current coverage depth.
-- Remove deprecated renderer dependency from dev tooling.
-Success metric:
-- Hook test suite runs without deprecation noise and remains stable on future React upgrades.
-
 ---
 
 ## Parking Lot (Not Scheduled)

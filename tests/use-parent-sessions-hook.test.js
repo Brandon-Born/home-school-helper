@@ -1,11 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import TestRenderer from "react-test-renderer";
+import { act } from "react";
 
 import { createUseParentSessions } from "../app/parent/hooks/useParentSessions.js";
 import { createHookRenderer } from "./helpers/hook-test-renderer.js";
-
-const { act } = TestRenderer;
 
 test("useParentSessions regenerateCode refreshes active and listed session metadata", async () => {
   const calls = {

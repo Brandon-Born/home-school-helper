@@ -1,13 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import React, { useRef, useState } from "react";
-import TestRenderer from "react-test-renderer";
+import { act } from "react";
 
 import { ApiRequestError } from "../src/lib/http.js";
 import { createUseChildVoiceCapture } from "../app/child/hooks/voice/useChildVoiceCapture.js";
 import { createHookRenderer, flushEffects } from "./helpers/hook-test-renderer.js";
-
-const { act } = TestRenderer;
 
 const originalClientVoiceTelemetrySetting = process.env.NEXT_PUBLIC_VOICE_TELEMETRY_DISABLED;
 process.env.NEXT_PUBLIC_VOICE_TELEMETRY_DISABLED = "1";

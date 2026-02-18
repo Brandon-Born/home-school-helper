@@ -1,11 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import TestRenderer from "react-test-renderer";
+import { act } from "react";
 
 import { createUseParentGuidanceActions } from "../app/parent/hooks/useParentGuidanceActions.js";
 import { createHookRenderer } from "./helpers/hook-test-renderer.js";
-
-const { act } = TestRenderer;
 
 test("useParentGuidanceActions sendNudge submits private note and clears input", async () => {
   const calls = {

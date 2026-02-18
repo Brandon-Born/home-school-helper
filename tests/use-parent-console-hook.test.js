@@ -1,11 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import TestRenderer from "react-test-renderer";
+import { act } from "react";
 
 import { createUseParentConsole } from "../app/parent/hooks/useParentConsole.js";
 import { createHookRenderer, flushEffects } from "./helpers/hook-test-renderer.js";
-
-const { act } = TestRenderer;
 
 function createSessionFixture(overrides = {}) {
   return {

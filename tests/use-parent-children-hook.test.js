@@ -1,11 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import TestRenderer from "react-test-renderer";
+import { act } from "react";
 
 import { createUseParentChildren } from "../app/parent/hooks/useParentChildren.js";
 import { createHookRenderer } from "./helpers/hook-test-renderer.js";
-
-const { act } = TestRenderer;
 
 test("useParentChildren createChild normalizes payload and emits success feedback", async () => {
   const calls = {

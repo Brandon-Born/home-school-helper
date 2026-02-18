@@ -4,6 +4,67 @@ Notes:
 - Compacted on 2026-02-18 to a rolling window.
 - Keep detailed entries for current context; older granular history is summarized below.
 
+## 2026-02-18T23:38:50Z - Codex
+
+### Scope Worked
+- Completed backlog item `21)` by migrating hook tests off `react-test-renderer` to a `react-dom` + `jsdom` harness and removing the deprecated dependency.
+
+### Last Agent Accomplished
+- Replaced hook test harness implementation:
+  - `tests/helpers/hook-test-renderer.js`
+  - now uses `react-dom/client` `createRoot` + `act` from `react`
+  - provisions a shared `jsdom` environment for hook rendering and `localStorage` access
+- Updated hook test files to stop importing `react-test-renderer` and use `act` from `react`:
+  - `tests/use-parent-console-hook.test.js`
+  - `tests/use-parent-sessions-hook.test.js`
+  - `tests/use-parent-children-hook.test.js`
+  - `tests/use-parent-guidance-actions-hook.test.js`
+  - `tests/use-child-console-hook.test.js`
+  - `tests/use-child-voice-capture.test.js`
+  - `tests/use-cloud-voice-capture-strategy.test.js`
+  - `tests/use-browser-voice-capture-strategy.test.js`
+- Updated dev dependencies:
+  - removed `react-test-renderer`
+  - added `jsdom`
+  in `package.json` and lockfile.
+- Verified hook suite no longer emits React 19 `react-test-renderer` deprecation warnings.
+- Removed completed backlog item `21)` from `docs/PRODUCT_BACKLOG.md`.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/tests/helpers/hook-test-renderer.js`
+- `/Users/bborn/home-school-helper/tests/use-parent-console-hook.test.js`
+- `/Users/bborn/home-school-helper/tests/use-parent-sessions-hook.test.js`
+- `/Users/bborn/home-school-helper/tests/use-parent-children-hook.test.js`
+- `/Users/bborn/home-school-helper/tests/use-parent-guidance-actions-hook.test.js`
+- `/Users/bborn/home-school-helper/tests/use-child-console-hook.test.js`
+- `/Users/bborn/home-school-helper/tests/use-child-voice-capture.test.js`
+- `/Users/bborn/home-school-helper/tests/use-cloud-voice-capture-strategy.test.js`
+- `/Users/bborn/home-school-helper/tests/use-browser-voice-capture-strategy.test.js`
+- `/Users/bborn/home-school-helper/package.json`
+- `/Users/bborn/home-school-helper/package-lock.json`
+- `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `node --test tests/use-browser-voice-capture-strategy.test.js tests/use-child-console-hook.test.js tests/use-child-voice-capture.test.js tests/use-cloud-voice-capture-strategy.test.js tests/use-parent-children-hook.test.js tests/use-parent-console-hook.test.js tests/use-parent-guidance-actions-hook.test.js tests/use-parent-sessions-hook.test.js`
+- Result: pass.
+- Command: `npm run test:unit`
+- Result: pass (130 tests, 0 failures).
+- Command: `npm run test:e2e`
+- Result: pass (default Playwright suite + transport matrix).
+- Command: `npm run build`
+- Result: pass.
+
+### Open Risks / Issues
+- Hook tests now depend on `jsdom` runtime behavior; any future browser-API-heavy tests may require explicit polyfills in the shared harness.
+- Existing non-functional Playwright warning (`NO_COLOR` vs `FORCE_COLOR`) remains unchanged.
+
+### Next Steps (Ordered)
+1. Continue quality backlog items `11)`, `12)`, and `13)`.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-18T23:35:11Z - Codex
 
 ### Scope Worked

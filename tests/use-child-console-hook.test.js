@@ -1,11 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import TestRenderer from "react-test-renderer";
+import { act } from "react";
 
 import { createUseChildConsole } from "../app/child/hooks/useChildConsole.js";
 import { createHookRenderer, flushEffects } from "./helpers/hook-test-renderer.js";
-
-const { act } = TestRenderer;
 
 function createLocalStorageMock() {
   const store = new Map();
