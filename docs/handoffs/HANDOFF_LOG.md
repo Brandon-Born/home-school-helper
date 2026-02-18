@@ -4,6 +4,63 @@ Notes:
 - Compacted on 2026-02-18 to a rolling window.
 - Keep detailed entries for current context; older granular history is summarized below.
 
+## 2026-02-18T23:31:19Z - Codex
+
+### Scope Worked
+- Completed backlog item `19)` by splitting child voice capture into transport-specific strategy hooks and keeping `useChildVoiceCapture` as a thin orchestrator.
+
+### Last Agent Accomplished
+- Added cloud voice capture strategy hook:
+  - `app/child/hooks/voice/useCloudVoiceCaptureStrategy.js`
+  - owns recorder lifecycle, upload/transcribe flow, telemetry, and cloud-specific error handling
+- Added browser voice capture strategy hook:
+  - `app/child/hooks/voice/useBrowserVoiceCaptureStrategy.js`
+  - owns speech-recognition lifecycle, interim/final transcript merge, and browser-specific errors
+- Refactored `app/child/hooks/voice/useChildVoiceCapture.js` into a chooser/orchestrator:
+  - keeps speech-support detection and support-ref synchronization
+  - delegates to cloud/browser strategy hooks
+  - exposes stable outward state/actions (`isTranscribing`, `isListening`, `isCloudRecording`, `start/stop/stopAll`)
+- Added focused strategy tests:
+  - `tests/use-cloud-voice-capture-strategy.test.js`
+  - `tests/use-browser-voice-capture-strategy.test.js`
+- Updated orchestrator capture tests to align with async strategy startup timing:
+  - `tests/use-child-voice-capture.test.js`
+- Removed completed backlog item `19)` from `docs/PRODUCT_BACKLOG.md`.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/child/hooks/voice/useCloudVoiceCaptureStrategy.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/voice/useBrowserVoiceCaptureStrategy.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/voice/useChildVoiceCapture.js`
+- `/Users/bborn/home-school-helper/tests/use-cloud-voice-capture-strategy.test.js`
+- `/Users/bborn/home-school-helper/tests/use-browser-voice-capture-strategy.test.js`
+- `/Users/bborn/home-school-helper/tests/use-child-voice-capture.test.js`
+- `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `node --test tests/use-child-voice-capture.test.js tests/use-cloud-voice-capture-strategy.test.js tests/use-browser-voice-capture-strategy.test.js`
+- Result: pass.
+- Command: `node --test tests/use-child-console-hook.test.js tests/use-child-voice-capture.test.js tests/use-cloud-voice-capture-strategy.test.js tests/use-browser-voice-capture-strategy.test.js`
+- Result: pass.
+- Command: `npm run test:unit`
+- Result: pass (128 tests, 0 failures).
+- Command: `npm run test:e2e`
+- Result: pass (default Playwright suite + transport matrix).
+- Command: `npm run build`
+- Result: pass.
+
+### Open Risks / Issues
+- Orchestrator startup timing for cloud capture is async by design (media permission + recorder init), so tests should assert end-state transitions rather than immediate recording flags.
+- Existing non-functional warnings remain (`react-test-renderer` deprecation; Playwright `NO_COLOR` vs `FORCE_COLOR`).
+
+### Next Steps (Ordered)
+1. Execute backlog item `20)` consolidate async action status boilerplate.
+2. Execute backlog item `21)` migrate hook tests off `react-test-renderer`.
+3. Continue P2 product-quality backlog (`11`, `12`, `13`).
+
+### Blocking Questions
+- None.
+
 ## 2026-02-18T23:25:13Z - Codex
 
 ### Scope Worked

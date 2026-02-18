@@ -113,10 +113,27 @@ test("useChildVoiceCapture transcribes cloud capture and updates input state", a
   const renderer = await createHookRenderer(() => useHarness());
   await flushEffects();
 
+  for (let attempt = 0; attempt < 8 && !renderer.getCurrent().capture.state.speechSupport.cloudStt; attempt += 1) {
+    await act(async () => {
+      await Promise.resolve();
+    });
+  }
+
   await act(async () => {
     renderer.getCurrent().capture.actions.startVoiceCapture();
   });
-  assert.equal(renderer.getCurrent().capture.state.isCloudRecording, true);
+
+  for (
+    let attempt = 0;
+    attempt < 8 &&
+    !renderer.getCurrent().capture.state.isCloudRecording &&
+    !renderer.getCurrent().capture.state.isTranscribing;
+    attempt += 1
+  ) {
+    await act(async () => {
+      await Promise.resolve();
+    });
+  }
 
   await act(async () => {
     renderer.getCurrent().capture.actions.stopVoiceCapture();

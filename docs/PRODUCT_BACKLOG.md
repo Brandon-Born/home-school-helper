@@ -21,16 +21,7 @@ How to use:
 
 ## P1 (High Value)
 
-### 19) Split child voice capture by transport strategy
-Status: Open
-Problem:
-- `app/child/hooks/voice/useChildVoiceCapture.js` still mixes cloud STT recorder flow and browser speech-recognition flow in one state machine.
-Scope:
-- Extract cloud and browser capture flows into strategy-specific hooks/modules.
-- Keep `useChildVoiceCapture` as a thin chooser/orchestrator over those strategies.
-- Add focused tests per strategy for transitions and failures.
-Success metric:
-- Voice capture code paths become easier to reason about, debug, and evolve independently.
+- None currently open.
 
 ---
 
