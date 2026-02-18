@@ -4,6 +4,68 @@ Notes:
 - Compacted on 2026-02-18 to a rolling window.
 - Keep detailed entries for current context; older granular history is summarized below.
 
+## 2026-02-18T21:15:59Z - Codex
+
+### Scope Worked
+- Completed backlog item `16)` by hardening realtime channel lifecycle behavior and adding lifecycle telemetry/counter visibility.
+- Completed backlog item `7)` by adding hook-level orchestration tests for child/parent/session stream flows with testable DI wrappers.
+
+### Last Agent Accomplished
+- Hardened realtime subscription shutdown semantics in `createSessionMessageSubscription`:
+  - Guarded callbacks after unsubscribe/close.
+  - Added safe cleanup on subscribe failure.
+- Added realtime lifecycle telemetry/counters in stream runtime:
+  - `stream_realtime_subscribe` attempt/subscribed events.
+  - `stream_realtime_unsubscribe` events.
+  - Disconnect payload counters: `realtime_subscribe_attempts`, `realtime_subscribe_success`, `realtime_unsubscribe_count`.
+  - Auto-mode realtime error fallback now unsubscribes before starting polling.
+- Added reconnect-cycle regression coverage to ensure balanced realtime subscribe/unsubscribe behavior.
+- Added hook-level coverage for:
+  - stream reconnect scheduling/disposal (`useSessionStream` controller),
+  - parent transcript merge + regenerate-code session coherence (`useParentConsole`),
+  - child join/send optimistic behavior + stream auth invalidation (`useChildConsole`).
+- Introduced testable factories for DI while preserving default exports:
+  - `createSessionStreamController`,
+  - `createUseParentConsole`,
+  - `createUseChildConsole`.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/src/server/session-foundation/message-service.js`
+- `/Users/bborn/home-school-helper/src/server/transcript-stream-runtime.js`
+- `/Users/bborn/home-school-helper/tests/transcript-stream-runtime-telemetry.test.js`
+- `/Users/bborn/home-school-helper/app/hooks/useSessionStream.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/useChildConsole.js`
+- `/Users/bborn/home-school-helper/tests/helpers/hook-test-renderer.js`
+- `/Users/bborn/home-school-helper/tests/use-session-stream.test.js`
+- `/Users/bborn/home-school-helper/tests/use-parent-console-hook.test.js`
+- `/Users/bborn/home-school-helper/tests/use-child-console-hook.test.js`
+- `/Users/bborn/home-school-helper/package.json`
+- `/Users/bborn/home-school-helper/package-lock.json`
+- `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+- `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm run test:unit`
+- Result: pass (107 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+- Command: `npm run test:e2e`
+- Result: pass (3 Playwright tests, 0 failures).
+
+### Open Risks / Issues
+- Hook tests use `react-test-renderer`, which currently emits deprecation warnings in React 19 but remains functional for this test harness.
+- Playwright startup logs still emit `NO_COLOR` vs `FORCE_COLOR` warnings; these are non-functional warnings.
+
+### Next Steps (Ordered)
+1. Execute backlog item `8)` voice observability + fallback-rate metrics.
+2. Execute backlog item `9)` parent action UX hardening for clearer inline status.
+3. Execute backlog item `10)` child voice runtime decomposition with focused capture-state tests.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-18T20:53:55Z - Codex
 
 ### Scope Worked

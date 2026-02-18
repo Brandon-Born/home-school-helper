@@ -86,10 +86,11 @@ export async function createSessionMessageSubscription(
   const channel = serviceClient.channel(channelName);
 
   let subscribed = false;
+  let closed = false;
 
   await new Promise((resolve, reject) => {
     const resolveOnce = () => {
-      if (subscribed) {
+      if (subscribed || closed) {
         return;
       }
       subscribed = true;
@@ -97,7 +98,7 @@ export async function createSessionMessageSubscription(
     };
 
     const rejectOnce = (error) => {
-      if (subscribed) {
+      if (subscribed || closed) {
         return;
       }
       subscribed = true;
@@ -114,6 +115,10 @@ export async function createSessionMessageSubscription(
           filter: `session_id=eq.${sessionId}`
         },
         (payload) => {
+          if (closed) {
+            return;
+          }
+
           const message = normalizeRealtimeMessageRow(payload?.new);
           if (!message) {
             return;
@@ -125,6 +130,10 @@ export async function createSessionMessageSubscription(
         }
       )
       .subscribe((status, error) => {
+        if (closed) {
+          return;
+        }
+
         if (status === "SUBSCRIBED") {
           resolveOnce();
           return;
@@ -134,6 +143,7 @@ export async function createSessionMessageSubscription(
           const failure = error instanceof Error ? error : new Error(`Realtime subscribe failed: ${status}`);
           if (!subscribed) {
             rejectOnce(failure);
+            Promise.resolve(serviceClient.removeChannel(channel)).catch(() => {});
           } else {
             Promise.resolve(onError?.(failure)).catch(() => {});
           }
@@ -147,6 +157,10 @@ export async function createSessionMessageSubscription(
   });
 
   return async function unsubscribe() {
+    if (closed) {
+      return;
+    }
+    closed = true;
     await serviceClient.removeChannel(channel);
   };
 }

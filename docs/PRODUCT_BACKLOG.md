@@ -162,7 +162,7 @@ Resolution notes:
   - `tests/dynamic-route-params.test.js`
 
 ### 7) Hook-level tests for client orchestration
-Status: Open
+Status: Done (2026-02-18)
 Problem:
 - Parent/child console hooks contain critical state machines with limited direct test coverage.
 Scope:
@@ -170,6 +170,14 @@ Scope:
 - Cover reconnect, auth invalidation, and optimistic message merge paths.
 Success metric:
 - Regressions in session UX are caught before merge.
+Resolution notes:
+- Added stream controller tests for reconnect scheduling and disposal behavior in `tests/use-session-stream.test.js`.
+- Added parent hook coverage for stream message merge behavior and session-manage optimistic updates in `tests/use-parent-console-hook.test.js`.
+- Added child hook coverage for join/send loading states, optimistic message merge, and stream-auth invalidation handling in `tests/use-child-console-hook.test.js`.
+- Introduced testable hook factories for dependency injection in:
+  - `app/hooks/useSessionStream.js`
+  - `app/parent/hooks/useParentConsole.js`
+  - `app/child/hooks/useChildConsole.js`
 
 ### 8) Voice observability and fallback-rate metrics
 Status: Open
@@ -225,7 +233,7 @@ Success metric:
 - Playwright suite remains stable at scale/repeated runs without flake from stale data or selector ambiguity.
 
 ### 16) Realtime channel lifecycle hardening
-Status: Open
+Status: Done (2026-02-18)
 Problem:
 - Stream runtime now supports multiple transport paths (`auto`, `realtime`, `polling`) and relies on channel subscribe/unsubscribe behavior that can be hard to reason about under reconnect churn.
 Scope:
@@ -234,6 +242,12 @@ Scope:
 - Document operational runbook checks for realtime channel health in staging/production.
 Success metric:
 - No channel leak growth across repeated reconnects; reconnect behavior remains bounded and observable.
+Resolution notes:
+- Hardened realtime subscription lifecycle in `src/server/session-foundation/message-service.js` with closed-state guards and safe cleanup on subscribe failures.
+- Added explicit realtime subscribe/unsubscribe counters and telemetry payload fields in `src/server/transcript-stream-runtime.js` (including disconnect summaries).
+- Added runtime-level reconnect-cycle lifecycle coverage ensuring balanced subscribe/unsubscribe counts in `tests/transcript-stream-runtime-telemetry.test.js`.
+- Kept automatic fallback to polling when realtime transport fails in `auto` mode, with explicit fallback reason telemetry.
+- Documented realtime channel operational checks/runbook guidance for staging/production in `docs/API_CONTRACT.md` under stream transport behavior.
 
 ### 17) Transport-mode e2e coverage (realtime vs polling fallback)
 Status: Open

@@ -8,7 +8,7 @@ import { useChildVoiceRuntime } from "./useChildVoiceRuntime.js";
 
 const STORAGE_KEY = "child_session_access";
 
-function mergeMessages(previous, incoming) {
+export function mergeMessages(previous, incoming) {
   const map = new Map(previous.map((message) => [message.id, message]));
   for (const message of incoming) {
     map.set(message.id, message);
@@ -19,7 +19,12 @@ function mergeMessages(previous, incoming) {
   );
 }
 
-export function useChildConsole() {
+export function createUseChildConsole({
+  apiRequestImpl = apiRequest,
+  useSessionStreamHook = useSessionStream,
+  useChildVoiceRuntimeHook = useChildVoiceRuntime
+} = {}) {
+  return function useChildConsole() {
   const [sessionAccess, setSessionAccess] = useState(null);
   const [joinCode, setJoinCode] = useState("");
   const [deviceFingerprint, setDeviceFingerprint] = useState("");
@@ -45,7 +50,7 @@ export function useChildConsole() {
     clearSessionRef.current(message);
   }, []);
 
-  const voice = useChildVoiceRuntime({
+  const voice = useChildVoiceRuntimeHook({
     sessionAccess,
     studentInput,
     setStudentInput,
@@ -129,7 +134,7 @@ export function useChildConsole() {
     setError(message || "We lost connection for a moment.");
   }, []);
 
-  useSessionStream({
+  useSessionStreamHook({
     sessionId: sessionAccess?.session_id ?? null,
     accessToken: sessionAccess?.child_session_token ?? null,
     onSnapshot: handleStreamSnapshot,
@@ -145,7 +150,7 @@ export function useChildConsole() {
     voiceActionsRef.current.setPendingTutorReply(false);
 
     try {
-      const payload = await apiRequest("/api/session/join", {
+      const payload = await apiRequestImpl("/api/session/join", {
         method: "POST",
         body: {
           code: joinCode,
@@ -176,7 +181,7 @@ export function useChildConsole() {
     voiceActionsRef.current.setPendingTutorReply(true);
 
     try {
-      const payload = await apiRequest(`/api/session/${sessionAccess.session_id}/child-turn`, {
+      const payload = await apiRequestImpl(`/api/session/${sessionAccess.session_id}/child-turn`, {
         method: "POST",
         bearerToken: sessionAccess.child_session_token,
         body: {
@@ -219,7 +224,7 @@ export function useChildConsole() {
     clearChildSession("");
   }
 
-  return {
+    return {
     state: {
       sessionAccess,
       joinCode,
@@ -253,5 +258,8 @@ export function useChildConsole() {
       stopVoiceCapture: voice.actions.stopVoiceCapture,
       leaveSession
     }
+    };
   };
 }
+
+export const useChildConsole = createUseChildConsole();

@@ -148,3 +148,51 @@ test("startTranscriptStreamRuntime streams realtime inserts without polling fall
     ["m2"]
   );
 });
+
+test("startTranscriptStreamRuntime keeps realtime subscribe/unsubscribe balanced across reconnect cycles", async () => {
+  let activeSubscriptions = 0;
+  let totalSubscriptions = 0;
+  let totalUnsubscriptions = 0;
+  const telemetryEvents = [];
+
+  for (let cycle = 0; cycle < 4; cycle += 1) {
+    const runtime = await startTranscriptStreamRuntime({
+      writer: {
+        write: async () => {},
+        close: async () => {}
+      },
+      sessionId: `s_cycle_${cycle}`,
+      visibility: "all",
+      limit: 10,
+      listSessionMessages: async () => [],
+      createSessionMessageSubscription: async () => {
+        activeSubscriptions += 1;
+        totalSubscriptions += 1;
+        return async () => {
+          activeSubscriptions -= 1;
+          totalUnsubscriptions += 1;
+        };
+      },
+      setTimer: () => ({ timer: true }),
+      clearTimer: () => {},
+      logStreamEvent: (_level, payload) => {
+        telemetryEvents.push(payload);
+      }
+    });
+
+    await runtime.close("cycle_close");
+  }
+
+  assert.equal(activeSubscriptions, 0);
+  assert.equal(totalSubscriptions, 4);
+  assert.equal(totalUnsubscriptions, 4);
+  assert.equal(
+    telemetryEvents.filter((event) => event.event === "stream_realtime_subscribe" && event.status === "subscribed")
+      .length,
+    4
+  );
+  assert.equal(
+    telemetryEvents.filter((event) => event.event === "stream_realtime_unsubscribe").length,
+    4
+  );
+});

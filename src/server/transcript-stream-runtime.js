@@ -77,6 +77,9 @@ export async function startTranscriptStreamRuntime({
   let keepAliveTimer = null;
   let unsubscribeMessages = null;
   let activeTransport = "none";
+  let realtimeSubscribeAttempts = 0;
+  let realtimeSubscribeSuccess = 0;
+  let realtimeUnsubscribeCount = 0;
   const connectedAtMs = Date.now();
   const desiredTransportMode = normalizeTransportMode(streamTransportMode);
 
@@ -200,6 +203,17 @@ export async function startTranscriptStreamRuntime({
       throw new Error("Realtime stream transport is unavailable.");
     }
 
+    realtimeSubscribeAttempts += 1;
+    logStreamEvent("info", {
+      event: "stream_realtime_subscribe",
+      session_id: sessionId,
+      visibility,
+      status: "attempt",
+      subscribe_attempts: realtimeSubscribeAttempts,
+      subscribe_success: realtimeSubscribeSuccess,
+      unsubscribe_count: realtimeUnsubscribeCount
+    });
+
     unsubscribeMessages = await createSessionMessageSubscription({
       sessionId,
       onMessage: async (message) => {
@@ -218,12 +232,41 @@ export async function startTranscriptStreamRuntime({
         });
 
         if (desiredTransportMode === "auto" && !pollTimer) {
+          if (unsubscribeMessages) {
+            try {
+              await unsubscribeMessages();
+              realtimeUnsubscribeCount += 1;
+              logStreamEvent("info", {
+                event: "stream_realtime_unsubscribe",
+                session_id: sessionId,
+                visibility,
+                subscribe_attempts: realtimeSubscribeAttempts,
+                subscribe_success: realtimeSubscribeSuccess,
+                unsubscribe_count: realtimeUnsubscribeCount,
+                reason: "realtime_error_fallback"
+              });
+            } catch {
+              // Ignore unsubscribe errors during fallback.
+            } finally {
+              unsubscribeMessages = null;
+            }
+          }
           startPollingTransport("realtime_error");
         }
       }
     });
 
     activeTransport = "realtime";
+    realtimeSubscribeSuccess += 1;
+    logStreamEvent("info", {
+      event: "stream_realtime_subscribe",
+      session_id: sessionId,
+      visibility,
+      status: "subscribed",
+      subscribe_attempts: realtimeSubscribeAttempts,
+      subscribe_success: realtimeSubscribeSuccess,
+      unsubscribe_count: realtimeUnsubscribeCount
+    });
     logStreamEvent("info", {
       event: "stream_transport_connected",
       session_id: sessionId,
@@ -282,6 +325,15 @@ export async function startTranscriptStreamRuntime({
       if (unsubscribeMessages) {
         try {
           await unsubscribeMessages();
+          realtimeUnsubscribeCount += 1;
+          logStreamEvent("info", {
+            event: "stream_realtime_unsubscribe",
+            session_id: sessionId,
+            visibility,
+            subscribe_attempts: realtimeSubscribeAttempts,
+            subscribe_success: realtimeSubscribeSuccess,
+            unsubscribe_count: realtimeUnsubscribeCount
+          });
         } catch {
           // Realtime subscription already closed.
         }
@@ -298,6 +350,9 @@ export async function startTranscriptStreamRuntime({
         session_id: sessionId,
         visibility,
         transport: activeTransport,
+        realtime_subscribe_attempts: realtimeSubscribeAttempts,
+        realtime_subscribe_success: realtimeSubscribeSuccess,
+        realtime_unsubscribe_count: realtimeUnsubscribeCount,
         reason,
         connection_duration_ms: Date.now() - connectedAtMs
       });

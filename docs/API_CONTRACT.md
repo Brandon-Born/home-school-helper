@@ -414,6 +414,7 @@ Auth behavior:
 Telemetry:
 - Server logs structured stream events under `[stream-server]` (connect, disconnect, poll error/recovery, connect failures).
 - Client logs structured stream events under `[stream-client]` (connect attempts, reconnect scheduling, disconnect causes, parent auth refresh attempts/results).
+- Server disconnect telemetry includes realtime lifecycle counters (`realtime_subscribe_attempts`, `realtime_subscribe_success`, `realtime_unsubscribe_count`) for leak/churn monitoring.
 - Optional env toggles:
   - `STREAM_TELEMETRY_DISABLED=1` disables server stream telemetry logs.
   - `NEXT_PUBLIC_STREAM_TELEMETRY_DISABLED=1` disables client stream telemetry logs.
@@ -422,6 +423,12 @@ Transport behavior:
 - Default `STREAM_TRANSPORT_MODE=auto` uses direct Supabase Realtime message subscriptions and falls back to polling if realtime is unavailable.
 - `STREAM_TRANSPORT_MODE=realtime` requires realtime subscription success (no polling fallback).
 - `STREAM_TRANSPORT_MODE=polling` forces the legacy polling path.
+
+Operational checks (realtime channel health):
+- Validate disconnect summaries keep `realtime_subscribe_success` and `realtime_unsubscribe_count` near 1:1 per stream lifecycle.
+- Watch for repeated `stream_realtime_subscribe` attempts without matching `stream_realtime_unsubscribe` events for the same session/visibility pair.
+- Investigate sustained `stream_transport_connected` fallback to `polling` in `auto` mode as a realtime infrastructure degradation signal.
+- For incident isolation, temporarily set `STREAM_TRANSPORT_MODE=polling` to keep transcript streaming available while realtime issues are triaged.
 
 ## POST `/api/session/:id/speech/transcribe`
 Transcribes child audio using Google Speech-to-Text V2.

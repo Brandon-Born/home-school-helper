@@ -11,7 +11,7 @@ function toList(value) {
     .filter(Boolean);
 }
 
-function mergeMessages(previous, incoming) {
+export function mergeMessages(previous, incoming) {
   const map = new Map(previous.map((message) => [message.id, message]));
   for (const message of incoming) {
     map.set(message.id, message);
@@ -22,7 +22,7 @@ function mergeMessages(previous, incoming) {
   );
 }
 
-function buildSessionForUi(sessionData, children = [], previousSession = null) {
+export function buildSessionForUi(sessionData, children = [], previousSession = null) {
   if (!sessionData) {
     return null;
   }
@@ -64,7 +64,11 @@ const initialLoadingState = {
   sessionManage: false
 };
 
-export function useParentConsole() {
+export function createUseParentConsole({
+  useParentSessionHook = useParentSession,
+  useParentTranscriptStreamHook = useParentTranscriptStream
+} = {}) {
+  return function useParentConsole() {
   const [parentProfile, setParentProfile] = useState(null);
   const [children, setChildren] = useState([]);
   const [selectedChildId, setSelectedChildId] = useState("");
@@ -104,7 +108,7 @@ export function useParentConsole() {
     invalidateParentSession,
     signInWithGoogle,
     signOut
-  } = useParentSession({
+  } = useParentSessionHook({
     onSessionCleared: clearParentData,
     setError
   });
@@ -168,7 +172,7 @@ export function useParentConsole() {
     setMessages((previous) => mergeMessages(previous, incomingMessages));
   }, []);
 
-  useParentTranscriptStream({
+  useParentTranscriptStreamHook({
     activeSessionId: activeSession?.session_id ?? null,
     accessToken: session?.access_token ?? null,
     refreshParentSession,
@@ -464,7 +468,7 @@ export function useParentConsole() {
     [children, parentRequest, setLoadingState]
   );
 
-  return {
+    return {
     state: {
       session,
       needsReauth,
@@ -501,5 +505,8 @@ export function useParentConsole() {
       setNudgeText,
       setError
     }
+    };
   };
 }
+
+export const useParentConsole = createUseParentConsole();
