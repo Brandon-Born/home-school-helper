@@ -124,8 +124,9 @@ Full security docs: [`docs/SECURITY_AND_COMPLIANCE.md`](docs/SECURITY_AND_COMPLI
 ```bash
 npm run dev           # Start dev server
 npm run build         # Production build
-npm test              # Run unit tests
-npm run test:e2e      # Playwright tests (uses bootstrap auth global setup)
+npm test              # Run unit + Playwright e2e tests
+npm run test:unit     # Run unit tests only
+npm run test:e2e      # Run Playwright e2e tests only
 npm run check:env     # Validate environment variables
 npm run check:handoff # Validate handoff log
 ```
@@ -138,10 +139,10 @@ To avoid manual Google OAuth during Playwright runs:
    - `ENABLE_TEST_AUTH_BOOTSTRAP=1`
    - `PLAYWRIGHT_TEST_AUTH_SECRET=...`
    - `PLAYWRIGHT_TEST_AUTH_EMAIL=playwright-parent@example.test`
-2. Export `PLAYWRIGHT_TEST_AUTH_SECRET` in your test shell (must match `.env`).
-3. Run app server, then run `npm run test:e2e`.
+2. Run `npm run test:e2e` (or `npm test`).
 
 `tests/playwright/global.setup.mjs` calls `POST /api/test-auth/bootstrap`, opens the one-time admin-generated link in Chromium, and writes `tests/playwright/.auth/parent.json` for re-use by all Playwright tests.
+Playwright starts the app server automatically through `playwright.config.mjs` `webServer` settings.
 
 ## Documentation Index
 

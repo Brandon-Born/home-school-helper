@@ -36,6 +36,63 @@ Notes:
 ### Blocking Questions
 - None.
 
+## 2026-02-18T18:05:10Z - Codex
+
+### Scope Worked
+- Expanded Playwright e2e coverage into a real suite for parent/child session-critical flows.
+- Wired e2e into the default test workflow so `npm test` now runs unit + Playwright checks.
+- Recorded automated evidence for existing dynamic-route params bug in backlog.
+
+### Last Agent Accomplished
+- Added reusable Playwright helpers in `/Users/bborn/home-school-helper/tests/playwright/helpers/parent-console.js`.
+- Added two new e2e specs:
+  - `/Users/bborn/home-school-helper/tests/playwright/parent-session-lifecycle.spec.js`
+  - `/Users/bborn/home-school-helper/tests/playwright/child-join-code-redemption.spec.js`
+- Kept and validated existing auth smoke spec:
+  - `/Users/bborn/home-school-helper/tests/playwright/parent-auth-bootstrap.spec.js`
+- Tightened Playwright config for deterministic runs:
+  - single worker, no fully-parallel race,
+  - built-in `webServer` startup for app server lifecycle.
+- Added env-aware Playwright runner script:
+  - `/Users/bborn/home-school-helper/scripts/run-playwright.mjs`
+- Updated npm scripts so normal workflow includes e2e:
+  - `npm test` now runs `test:unit` + `test:e2e`.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/tests/playwright/helpers/parent-console.js`
+- `/Users/bborn/home-school-helper/tests/playwright/parent-session-lifecycle.spec.js`
+- `/Users/bborn/home-school-helper/tests/playwright/child-join-code-redemption.spec.js`
+- `/Users/bborn/home-school-helper/tests/playwright/global.setup.mjs`
+- `/Users/bborn/home-school-helper/playwright.config.mjs`
+- `/Users/bborn/home-school-helper/scripts/run-playwright.mjs`
+- `/Users/bborn/home-school-helper/package.json`
+- `/Users/bborn/home-school-helper/README.md`
+- `/Users/bborn/home-school-helper/docs/START_HERE.md`
+- `/Users/bborn/home-school-helper/AGENT.md`
+- `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm run test:unit`
+- Result: pass (74 tests, 0 failures).
+- Command: `npm run test:e2e -- --list`
+- Result: pass (3 tests discovered).
+- Command: `npm run test:e2e`
+- Result: pass (3 tests, 0 failures).
+- Command: `npm test`
+- Result: pass (unit + e2e).
+
+### Open Risks / Issues
+- Automated e2e runs repeatedly log Next.js dynamic-route warnings from `/api/session/[id]/stream` due sync `params` usage (existing backlog item `UAT-BUG-3`).
+- Playwright/web server logs still emit non-blocking `NO_COLOR`/`FORCE_COLOR` warnings.
+
+### Next Steps (Ordered)
+1. Fix `UAT-BUG-3` by updating dynamic API routes to await `params` and add regression tests.
+2. Add one more e2e spec around session management rate-limit or voice fallback once those areas are hardened.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-18T17:53:51Z - Codex
 
 ### Scope Worked

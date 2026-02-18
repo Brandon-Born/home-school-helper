@@ -50,6 +50,9 @@ Problem:
 - This currently logs noisy runtime errors on hot paths and risks breakage with stricter Next.js behavior.
 Evidence (2026-02-18 UAT):
 - Observed repeatedly in dev server logs while exercising `/api/session/[id]/stream`, `/api/session/[id]/parent-nudge`, and `/api/session/[id]/speech/synthesize`.
+Evidence (2026-02-18 automated Playwright):
+- Reproduced during `npm run test:e2e` and `npm test` runs while child/parent session tests hit `GET /api/session/[id]/stream`.
+- Runtime logs show synchronous access in `app/api/session/[id]/stream/route.js` (`params.id` used before awaiting `params`).
 Scope:
 - Update dynamic route handlers to await `params` per Next.js 15 dynamic API requirements.
 - Add route-level regression tests for dynamic `params` access patterns in touched endpoints.

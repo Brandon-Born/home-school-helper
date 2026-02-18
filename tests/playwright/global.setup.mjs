@@ -4,6 +4,59 @@ import { chromium, request as playwrightRequest } from "@playwright/test";
 
 const AUTH_STATE_PATH = path.resolve("tests/playwright/.auth/parent.json");
 
+function normalizeValue(rawValue) {
+  const trimmed = rawValue.trim();
+  if (
+    (trimmed.startsWith("\"") && trimmed.endsWith("\"")) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
+async function loadEnvFile(filePath) {
+  try {
+    const content = await fs.readFile(filePath, "utf8");
+    const lines = content.split(/\r?\n/);
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) {
+        continue;
+      }
+
+      const separator = trimmed.indexOf("=");
+      if (separator === -1) {
+        continue;
+      }
+
+      const key = trimmed.slice(0, separator).trim();
+      if (!key || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
+        continue;
+      }
+
+      if (process.env[key] && String(process.env[key]).trim()) {
+        continue;
+      }
+
+      const value = normalizeValue(trimmed.slice(separator + 1));
+      process.env[key] = value;
+    }
+  } catch (error) {
+    if (error && typeof error === "object" && error.code === "ENOENT") {
+      return;
+    }
+
+    throw error;
+  }
+}
+
+async function loadDotEnvFiles() {
+  await loadEnvFile(path.resolve(".env"));
+  await loadEnvFile(path.resolve(".env.local"));
+}
+
 function requireEnv(name) {
   const value = String(process.env[name] ?? "").trim();
   if (!value) {
@@ -48,6 +101,8 @@ async function fetchBootstrapLink(baseURL, secret) {
 }
 
 export default async function globalSetup(config) {
+  await loadDotEnvFiles();
+
   const secret = requireEnv("PLAYWRIGHT_TEST_AUTH_SECRET");
   const baseURL = resolveBaseUrl(config);
   const actionLink = await fetchBootstrapLink(baseURL, secret);

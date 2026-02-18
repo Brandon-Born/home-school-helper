@@ -46,7 +46,9 @@ Stabilize cloud voice UX (Google STT V2 + Chirp 3), auth robustness, and launch-
 - Keep parent hidden guidance private from child output.
 
 ## Validation Commands
-- `npm test`
+- `npm test` (unit + Playwright e2e)
+- `npm run test:unit` (unit only)
+- `npm run test:e2e` (Playwright e2e only)
 - `npm run check:env`
 - `npm run check:handoff`
 - Headed Playwright UAT for touched UI/session flows (parent and/or child), with findings recorded in backlog/handoff.

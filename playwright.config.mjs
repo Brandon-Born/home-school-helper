@@ -5,7 +5,8 @@ const baseURL =
 
 export default defineConfig({
   testDir: "./tests/playwright",
-  fullyParallel: true,
+  fullyParallel: false,
+  workers: 1,
   reporter: "list",
   retries: process.env.CI ? 2 : 0,
   globalSetup: "./tests/playwright/global.setup.mjs",
@@ -21,5 +22,11 @@ export default defineConfig({
         ...devices["Desktop Chrome"]
       }
     }
-  ]
+  ],
+  webServer: {
+    command: "npm run dev",
+    url: baseURL,
+    timeout: 120000,
+    reuseExistingServer: true
+  }
 });

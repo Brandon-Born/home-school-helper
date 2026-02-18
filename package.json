@@ -10,9 +10,10 @@
     "start": "next start",
     "check:env": "node scripts/validate-env.mjs",
     "check:handoff": "bash scripts/check-handoff.sh",
-    "test": "node --test",
-    "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed"
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "node --test",
+    "test:e2e": "node scripts/run-playwright.mjs",
+    "test:e2e:headed": "node scripts/run-playwright.mjs --headed"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.95.3",
