@@ -13,7 +13,10 @@ export {
 
 export {
   redeemSessionCode,
-  startSessionForParent
+  startSessionForParent,
+  listActiveSessionsForParent,
+  endSessionForParent,
+  regenerateJoinCodeForSession
 } from "./session-foundation/session-service.js";
 
 export {

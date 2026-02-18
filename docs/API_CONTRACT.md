@@ -145,6 +145,68 @@ Deletes a child profile for authenticated parent. Blocked if the child has an ac
 - `404 child_not_found`: Child does not exist or is not owned by this parent.
 - `409 active_session_exists`: Child has an active session. End it first.
 
+## GET `/api/session/active`
+Lists all active sessions for the authenticated parent, enriched with child names.
+
+### Response (200)
+```json
+{
+  "sessions": [
+    {
+      "session_id": "uuid",
+      "child_id": "uuid",
+      "child_name": "Ava",
+      "status": "active",
+      "daily_context": {
+        "daily_subjects": ["Math"],
+        "parent_context": "Focus on confidence.",
+        "goal_notes": null,
+        "additional_context": null
+      },
+      "started_at": "timestamp"
+    }
+  ]
+}
+```
+
+## POST `/api/session/:id/manage`
+Manages an active session. Supports two actions: ending a session or regenerating a join code.
+
+### Request — End Session
+```json
+{
+  "action": "end"
+}
+```
+
+### Response (200) — End Session
+```json
+{
+  "session": { "id": "uuid", "status": "ended" }
+}
+```
+
+### Request — Regenerate Join Code
+```json
+{
+  "action": "regenerate_code"
+}
+```
+
+### Response (200) — Regenerate Join Code
+```json
+{
+  "session_id": "uuid",
+  "join_code": "AB12CD34",
+  "expires_at": "timestamp"
+}
+```
+
+### Errors
+- `400 invalid_action`: Action must be 'end' or 'regenerate_code'.
+- `404 session_not_found`: Session not found for this parent.
+- `409 session_not_active`: Session is not active (regenerate_code only).
+
 ## POST `/api/session/start`
 Starts a session for a parent-owned child and issues one-time 10-minute join code.
 

@@ -43,6 +43,7 @@ export function useParentConsole() {
   const [children, setChildren] = useState([]);
   const [selectedChildId, setSelectedChildId] = useState("");
   const [activeSession, setActiveSession] = useState(null);
+  const [activeSessions, setActiveSessions] = useState([]);
   const [messages, setMessages] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -56,6 +57,7 @@ export function useParentConsole() {
     setChildren([]);
     setSelectedChildId("");
     setActiveSession(null);
+    setActiveSessions([]);
     setMessages([]);
     setNudgeResponse("");
   }, []);
@@ -84,9 +86,11 @@ export function useParentConsole() {
     try {
       const profilePayload = await parentRequest("/api/parent/me");
       const childrenPayload = await parentRequest("/api/children");
+      const sessionsPayload = await parentRequest("/api/session/active");
 
       setParentProfile(profilePayload.parent);
       setChildren(childrenPayload.children ?? []);
+      setActiveSessions(sessionsPayload.sessions ?? []);
 
       if (!selectedChildId && childrenPayload.children?.length > 0) {
         setSelectedChildId(childrenPayload.children[0].id);
@@ -282,6 +286,65 @@ export function useParentConsole() {
     [activeSession?.session_id, parentRequest]
   );
 
+  const rejoinSession = useCallback(
+    (sessionData) => {
+      setActiveSession(sessionData);
+      setSelectedChildId(sessionData.child_id);
+      setMessages([]);
+      setNudgeResponse("");
+    },
+    []
+  );
+
+  const endSession = useCallback(
+    async (sessionId) => {
+      setLoading(true);
+      setError("");
+
+      try {
+        await parentRequest(`/api/session/${sessionId}/manage`, {
+          method: "POST",
+          body: { action: "end" }
+        });
+
+        if (activeSession?.session_id === sessionId) {
+          setActiveSession(null);
+          setMessages([]);
+          setNudgeResponse("");
+        }
+
+        setActiveSessions((prev) => prev.filter((s) => s.session_id !== sessionId));
+      } catch (requestError) {
+        setError(requestError instanceof Error ? requestError.message : "We couldn't end that session. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [activeSession?.session_id, parentRequest]
+  );
+
+  const regenerateCode = useCallback(
+    async (sessionId) => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const result = await parentRequest(`/api/session/${sessionId}/manage`, {
+          method: "POST",
+          body: { action: "regenerate_code" }
+        });
+
+        return result;
+      } catch (requestError) {
+        setError(requestError instanceof Error ? requestError.message : "We couldn't regenerate the join code. Please try again.");
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [parentRequest]
+  );
+
   return {
     state: {
       session,
@@ -290,6 +353,7 @@ export function useParentConsole() {
       children,
       selectedChildId,
       activeSession,
+      activeSessions,
       messages,
       error,
       loading,
@@ -305,6 +369,9 @@ export function useParentConsole() {
       updateChild,
       deleteChild,
       startSession,
+      rejoinSession,
+      endSession,
+      regenerateCode,
       sendNudge,
       setOverride,
       refreshParentData: fetchParentData,

@@ -16,8 +16,11 @@ Stabilize cloud voice UX (Google STT V2 + Chirp 3), auth robustness, and launch-
 - Session foundation APIs now exist:
   - `GET /api/parent/me`
   - `GET|POST /api/children`
+  - `PUT|DELETE /api/children/:id`
   - `POST /api/session/start`
+  - `GET /api/session/active`
   - `POST /api/session/join`
+  - `POST /api/session/:id/manage`
   - `POST /api/session/:id/speech/transcribe`
   - `POST /api/session/:id/speech/synthesize`
 - Child-turn now requires child session token; parent-nudge now requires authenticated parent ownership.
@@ -25,7 +28,7 @@ Stabilize cloud voice UX (Google STT V2 + Chirp 3), auth robustness, and launch-
 - Supabase migration exists at `supabase/migrations/20260217040000_session_foundation.sql`.
 - Transcript retention migration exists at `supabase/migrations/20260217193000_transcript_retention.sql` (daily 30-day purge via `pg_cron`).
 - Minimal UI flows now exist:
-  - `/parent` for auth, child profile creation, session start, nudges, transcript subscription.
+  - `/parent` for auth, child profile CRUD (create/edit/delete), session start, active session management (rejoin/end/regenerate code), nudges, and transcript subscription.
   - `/child` for join-code redemption, cloud voice capture/transcription, and cloud tutor speech playback.
 - Realtime transcript updates now stream through `GET /api/session/:id/stream` (SSE).
 

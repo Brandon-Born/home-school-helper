@@ -33,7 +33,7 @@ This spec covers the first production-capable version of the homeschool tutor we
 - Tutor pipeline calls Anthropic and enforces guardrails before response.
 
 ## Implemented UI Surfaces (Current)
-- `/parent`: auth + child profile + session start + hidden nudge + transcript subscription.
+- `/parent`: auth + child profile CRUD (create/edit/delete) + active session management (rejoin/end/regenerate code) + session start + hidden nudge + transcript subscription.
 - `/child`: join by code + turn submission + transcript subscription.
 - `/auth/callback`: OAuth code exchange completion.
 
@@ -50,7 +50,7 @@ This spec covers the first production-capable version of the homeschool tutor we
 - `src/server/supabase-config.js`: Supabase env parsing/validation.
 - `src/server/supabase-clients.js`: anon and service-role Supabase clients.
 - `src/server/auth.js`: parent bearer auth + child session token auth.
-- `src/server/session-foundation-service.js`: child CRUD, session start, join-code redemption, message persistence.
+- `src/server/session-foundation-service.js`: child CRUD (list/create/update/delete), session start, join-code redemption, active session listing, session end, join-code regeneration, message persistence.
 
 ## Guardrail Rules
 - Default: no direct answers.

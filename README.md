@@ -76,12 +76,14 @@ tests/                         Unit tests
 | Method | Route | Auth | Purpose |
 |--------|-------|------|---------|
 | POST | `/api/session/start` | Parent | Start session, get join code |
+| GET | `/api/session/active` | Parent | List active sessions |
 | POST | `/api/session/join` | Code | Redeem join code, get child token |
 | POST | `/api/session/:id/child-turn` | Child | Submit tutoring turn |
 | POST | `/api/session/:id/parent-nudge` | Parent | Send hidden guidance to tutor |
 | GET | `/api/session/:id/messages` | Both | Fetch transcript |
 | GET | `/api/session/:id/stream` | Both | SSE transcript stream |
 | POST | `/api/session/:id/override` | Parent | Toggle direct-answer mode |
+| POST | `/api/session/:id/manage` | Parent | End session or regenerate join code |
 
 ### Speech (optional, requires Google Cloud config)
 | Method | Route | Auth | Purpose |

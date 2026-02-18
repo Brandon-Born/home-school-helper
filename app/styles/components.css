@@ -427,3 +427,74 @@
 .btn--icon-danger:hover {
   background: color-mix(in oklab, var(--error) 15%, transparent);
 }
+
+/* ── Active session cards ──────────────────────── */
+
+.active-sessions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.active-session-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition: border-color 120ms ease;
+}
+
+.active-session-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.active-session-card__name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.active-session-card__time {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.active-session-card__subjects {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.active-session-card__code {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0;
+}
+
+.active-session-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.active-session-card__confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn--sm {
+  padding: 4px 10px;
+  min-height: 30px;
+  font-size: 0.82rem;
+}
+
+.btn--danger-text {
+  color: var(--error);
+}

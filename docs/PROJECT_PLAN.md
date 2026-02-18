@@ -31,19 +31,24 @@ Implemented:
 - API routes:
   - `GET /api/parent/me`
   - `GET|POST /api/children`
+  - `PUT|DELETE /api/children/:id`
   - `POST /api/session/start`
+  - `GET /api/session/active`
   - `POST /api/session/join`
   - `POST /api/session/:id/child-turn`
   - `POST /api/session/:id/parent-nudge`
   - `GET /api/session/:id/messages`
   - `POST /api/session/:id/override`
   - `GET /api/session/:id/stream`
+  - `POST /api/session/:id/manage`
 - Supabase migration and RLS policy SQL scaffold (`supabase/migrations/20260217040000_session_foundation.sql`).
 - Supabase migration applied and verified against remote project (`20260217040000`).
 - Transcript retention automation migration (`supabase/migrations/20260217193000_transcript_retention.sql`) with daily 30-day purge schedule.
 - Child session token auth on child-turn route.
 - Parent session ownership auth on parent-nudge route.
 - Initial web UI routes for parent and child operational flows (`/parent`, `/child`, `/auth/callback`).
+  - Parent: auth, child profile CRUD (create/edit/delete), active session management (rejoin/end/regenerate code), session start, nudges, transcript.
+  - Child: join-code redemption, cloud voice input/output, transcript.
 - Session transcript SSE subscription flow implemented for parent/child clients.
 - Agent operations docs (`AGENT.md`) and handoff system.
 - CI guard for handoff log updates on runtime code changes.

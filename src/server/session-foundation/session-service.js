@@ -176,3 +176,111 @@ export async function redeemSessionCode(payload, options = {}) {
     expires_at: childTokenExpiresAt
   };
 }
+
+export async function listActiveSessionsForParent(parentId, options = {}) {
+  const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
+
+  const { data: sessions, error } = await serviceClient
+    .from("sessions")
+    .select("id, child_id, status, daily_context, started_at")
+    .eq("parent_id", parentId)
+    .eq("status", "active")
+    .order("started_at", { ascending: false });
+
+  if (error) {
+    throw new ApiError(500, "sessions_fetch_failed", "Unable to fetch active sessions.");
+  }
+
+  if (!sessions || sessions.length === 0) {
+    return [];
+  }
+
+  // Enrich with child names
+  const childIds = [...new Set(sessions.map((s) => s.child_id))];
+  const { data: children, error: childError } = await serviceClient
+    .from("children")
+    .select("id, first_name")
+    .in("id", childIds);
+
+  if (childError) {
+    throw new ApiError(500, "children_lookup_failed", "Unable to fetch child names for sessions.");
+  }
+
+  const childMap = new Map((children ?? []).map((c) => [c.id, c.first_name]));
+
+  return sessions.map((s) => ({
+    session_id: s.id,
+    child_id: s.child_id,
+    child_name: childMap.get(s.child_id) ?? "Unknown",
+    status: s.status,
+    daily_context: s.daily_context,
+    started_at: s.started_at
+  }));
+}
+
+export async function endSessionForParent(parentId, sessionId, options = {}) {
+  const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
+
+  const { data, error } = await serviceClient
+    .from("sessions")
+    .update({ status: "ended" })
+    .eq("id", sessionId)
+    .eq("parent_id", parentId)
+    .eq("status", "active")
+    .select("id, status")
+    .maybeSingle();
+
+  if (error) {
+    throw new ApiError(500, "session_end_failed", "Unable to end session.");
+  }
+
+  if (!data) {
+    throw new ApiError(404, "session_not_found", "Active session not found for this parent.");
+  }
+
+  return data;
+}
+
+export async function regenerateJoinCodeForSession(parentId, sessionId, options = {}) {
+  const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
+
+  // Verify parent owns the session and it's active
+  const { data: session, error: sessionError } = await serviceClient
+    .from("sessions")
+    .select("id, child_id, status")
+    .eq("id", sessionId)
+    .eq("parent_id", parentId)
+    .maybeSingle();
+
+  if (sessionError) {
+    throw new ApiError(500, "session_lookup_failed", "Unable to validate session.");
+  }
+
+  if (!session) {
+    throw new ApiError(404, "session_not_found", "Session not found for this parent.");
+  }
+
+  if (session.status !== "active") {
+    throw new ApiError(409, "session_not_active", "Session is not active.");
+  }
+
+  const joinCode = generateJoinCode(8);
+  const codeHash = hashOpaqueToken(joinCode);
+  const expiresAt = new Date(Date.now() + JOIN_CODE_TTL_MINUTES * 60 * 1000).toISOString();
+
+  const { error: codeError } = await serviceClient.from("session_codes").insert({
+    session_id: session.id,
+    code_hash: codeHash,
+    expires_at: expiresAt
+  });
+
+  if (codeError) {
+    throw new ApiError(500, "session_code_create_failed", "Unable to create new join code.");
+  }
+
+  return {
+    session_id: session.id,
+    join_code: joinCode,
+    expires_at: expiresAt
+  };
+}

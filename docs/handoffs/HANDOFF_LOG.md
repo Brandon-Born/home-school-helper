@@ -1,5 +1,74 @@
 # Handoff Log
 
+## 2026-02-18T02:12:00Z - Antigravity
+
+### Scope Worked
+- Implemented child profile editing and deletion (backend + frontend).
+- Implemented active session management: listing, rejoining, ending, and join-code regeneration.
+- Full documentation audit and update across all project docs.
+
+### Last Agent Accomplished
+- Backend — child edit/delete:
+  - Added `updateChildForParent` and `deleteChildForParent` to `src/server/session-foundation/children-service.js`.
+  - Created `app/api/children/[id]/route.js` (PUT + DELETE handlers).
+  - Exported from barrel `src/server/session-foundation-service.js`.
+- Backend — active session management:
+  - Added `listActiveSessionsForParent`, `endSessionForParent`, `regenerateJoinCodeForSession` to `src/server/session-foundation/session-service.js`.
+  - Created `app/api/session/active/route.js` (GET) and `app/api/session/[id]/manage/route.js` (POST with `end` and `regenerate_code` actions).
+  - Exported from barrel.
+- Frontend — child edit/delete:
+  - Added `updateChild` and `deleteChild` actions to `app/parent/hooks/useParentConsole.js`.
+  - Refactored `app/parent/components/ChildListPanel.js` with inline edit form and delete confirmation.
+  - Updated `app/parent/page.js` to pass new props.
+- Frontend — active session management:
+  - Added `activeSessions` state, `rejoinSession`, `endSession`, `regenerateCode` actions to `app/parent/hooks/useParentConsole.js`.
+  - Created `app/parent/components/ActiveSessionsPanel.js` with rejoin/new-code/end buttons.
+  - Wired into `app/parent/page.js`.
+- CSS: added child card action styles and active session card styles to `app/styles/components.css`.
+- Documentation updates:
+  - `README.md`: added new routes to API tables.
+  - `docs/API_CONTRACT.md`: full request/response docs for all 4 new endpoints.
+  - `docs/START_HERE.md`: updated status snapshot with new routes and UI capabilities.
+  - `docs/PROJECT_PLAN.md`: updated current-state route list and UI descriptions.
+  - `docs/IMPLEMENTATION_SPEC.md`: updated barrel description and UI surfaces.
+
+### Files Touched
+- `src/server/session-foundation/children-service.js`
+- `src/server/session-foundation/session-service.js`
+- `src/server/session-foundation-service.js`
+- `app/api/children/[id]/route.js`
+- `app/api/session/active/route.js`
+- `app/api/session/[id]/manage/route.js`
+- `app/parent/hooks/useParentConsole.js`
+- `app/parent/components/ChildListPanel.js`
+- `app/parent/components/ActiveSessionsPanel.js`
+- `app/parent/page.js`
+- `app/styles/components.css`
+- `README.md`
+- `docs/API_CONTRACT.md`
+- `docs/START_HERE.md`
+- `docs/PROJECT_PLAN.md`
+- `docs/IMPLEMENTATION_SPEC.md`
+- `docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (68 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+
+### Open Risks / Issues
+- Delete-child is blocked when an active session exists (by design), but no UI feedback yet tells the parent to end the session first.
+- Active session management routes are not rate-limited yet.
+
+### Next Steps (Ordered)
+1. Add rate limiting to new session management routes.
+2. Consider adding unit tests for the new service functions.
+3. Add user-facing error messages when delete-child is blocked by active session.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-17T20:29:09Z - Codex
 
 ### Scope Worked

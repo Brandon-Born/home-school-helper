@@ -1,5 +1,6 @@
 "use client";
 
+import { ActiveSessionsPanel } from "./components/ActiveSessionsPanel.js";
 import { AuthPanel } from "./components/AuthPanel.js";
 import { ChildListPanel } from "./components/ChildListPanel.js";
 import { SessionControlPanel } from "./components/SessionControlPanel.js";
@@ -42,6 +43,14 @@ export default function ParentPage() {
               onCreateChild={actions.createChild}
               onUpdateChild={actions.updateChild}
               onDeleteChild={actions.deleteChild}
+              loading={state.loading}
+            />
+
+            <ActiveSessionsPanel
+              activeSessions={state.activeSessions}
+              onRejoin={actions.rejoinSession}
+              onEnd={actions.endSession}
+              onRegenerateCode={actions.regenerateCode}
               loading={state.loading}
             />
           </div>
