@@ -173,6 +173,28 @@ Scope:
 Success metric:
 - Smaller hooks, clearer ownership boundaries, and easier regression testing for voice behavior.
 
+### 14) Consolidate dynamic route handler boilerplate
+Status: Open
+Problem:
+- Dynamic session routes repeat the same cross-cutting steps (await `params`, auth resolution, rate limiting, error wrapping), which increases regression risk and made Next.js 15 `params` sync issues easy to reintroduce.
+Scope:
+- Introduce shared route utility helpers for dynamic `sessionId` extraction and standardized handler composition.
+- Migrate touched session routes to the helper pattern incrementally.
+- Add one focused utility test suite to lock behavior.
+Success metric:
+- Dynamic routes share a single tested pattern for `params` extraction/error handling, reducing duplicate logic and preventing sync-param regressions.
+
+### 15) E2E fixture isolation and deterministic selectors
+Status: Open
+Problem:
+- E2E runs currently depend on accumulating real data in shared auth accounts, and some UI assertions can become brittle/slow when historical sessions/children pile up.
+Scope:
+- Add test-fixture conventions for creating and tearing down isolated parent/child/session data per spec.
+- Introduce stable `data-testid` hooks for high-traffic controls (`join code`, `active session cards`, `rejoin/new code/end` actions).
+- Keep UI smoke checks while moving protocol-level assertions to API responses where appropriate.
+Success metric:
+- Playwright suite remains stable at scale/repeated runs without flake from stale data or selector ambiguity.
+
 ---
 
 ## P2 (Quality / Delight)
