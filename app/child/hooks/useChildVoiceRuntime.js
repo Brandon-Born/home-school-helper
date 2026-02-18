@@ -141,7 +141,7 @@ export function useChildVoiceRuntime({
     };
     utterance.onerror = () => {
       setIsPlayingSpeech(false);
-      setNotice("Audio could not play. You can read the tutor reply below.");
+      setNotice("Audio could not play. You can read the reply below.");
     };
     window.speechSynthesis?.speak(utterance);
     return true;
@@ -184,14 +184,14 @@ export function useChildVoiceRuntime({
     };
     audio.onerror = () => {
       revokePlaybackResources();
-      setNotice("Audio could not play. You can read the tutor reply below.");
+      setNotice("Audio could not play. You can read the reply below.");
     };
 
     try {
       await audio.play();
     } catch {
       revokePlaybackResources();
-      throw new Error("Audio playback is blocked right now. You can read the tutor reply below.");
+      throw new Error("Audio playback is blocked right now. You can read the reply below.");
     }
   }
 
@@ -230,7 +230,7 @@ export function useChildVoiceRuntime({
 
       const usedBrowserFallback = speakTextFallback(latest.content);
       if (!usedBrowserFallback) {
-        setNotice("Audio is unavailable right now. You can read the tutor reply below.");
+        setNotice("Audio is unavailable right now. You can read the reply below.");
       }
     })();
   }
@@ -310,7 +310,7 @@ export function useChildVoiceRuntime({
         try {
           await transcribeCloudRecording(new Blob(chunks, { type: recorder.mimeType || "audio/webm" }));
           setError("");
-          setNotice("Voice captured. Tap Ask Tutor when ready.");
+          setNotice("Voice captured. Tap Send when ready.");
         } catch (speechError) {
           if (isChildAuthFailure(speechError)) {
             onSessionInvalid("Your lesson code expired. Please ask your parent for a new code.");

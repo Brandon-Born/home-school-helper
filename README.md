@@ -1,4 +1,4 @@
-# Home School Helper
+# Homeschool Sidekick
 
 A web-based tutoring assistant for homeschool students. Parents set up lessons and steer the AI tutor in real time — children interact through a simple chat (with optional voice). The tutor defaults to **scaffold-first guidance**, giving hints and questions before answers.
 

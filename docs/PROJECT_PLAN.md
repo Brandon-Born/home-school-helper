@@ -1,4 +1,4 @@
-# Project Plan: Homeschool Tutor (v1)
+# Project Plan: Homeschool Sidekick (v1)
 
 ## 1. Objective
 Deliver a web-based, mobile-friendly tutoring assistant for homeschool students with:

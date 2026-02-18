@@ -8,7 +8,7 @@ export function AuthPanel({ session, needsReauth, parentProfile, loading, onRefr
         <p className="section-muted">
           {needsReauth
             ? "Your session expired — sign in again to pick up where you left off."
-            : "Sign in to set up lessons and guide your child's tutor."}
+            : "Sign in to set up lessons and guide your child's learning."}
         </p>
         <button onClick={onSignIn} type="button" className="btn btn--primary">
           {needsReauth ? "Sign in again" : "Sign in with Google"}

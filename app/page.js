@@ -6,7 +6,7 @@ export default function HomePage() {
   return (
     <AppShell
       role="home"
-      title="Tutoring that feels like teamwork."
+      title="Learning that feels like teamwork."
       subtitle="Parents set the direction. Kids get clear, patient, step-by-step help. No sign-ups for children — just a code and they're in."
     >
       <section className={`${styles.hero} reveal`}>
@@ -14,7 +14,7 @@ export default function HomePage() {
           <span className={styles.heroEmoji}>🎓</span>
           <h2 className="section-title">I'm a parent</h2>
           <p className="section-muted">
-            Sign in, tell the tutor what to focus on, and guide the lesson in real time — your child never sees your notes.
+            Sign in, set the focus for the lesson, and guide the session in real time — your child never sees your notes.
           </p>
           <Link href="/parent" className="btn btn--primary">
             Get started
@@ -37,14 +37,14 @@ export default function HomePage() {
           <span className={styles.featureIcon}>💡</span>
           <div>
             <strong>Hints first, not answers</strong>
-            <p className="section-muted">The tutor walks kids through problems step by step so they actually learn.</p>
+            <p className="section-muted">Your sidekick walks kids through problems step by step so they actually learn.</p>
           </div>
         </div>
         <div className={styles.featureItem}>
           <span className={styles.featureIcon}>🔒</span>
           <div>
             <strong>Private parent guidance</strong>
-            <p className="section-muted">Send notes to the tutor that your child never sees. Stay in control without hovering.</p>
+            <p className="section-muted">Send private notes that shape the lesson — your child never sees them. Stay in control without hovering.</p>
           </div>
         </div>
         <div className={styles.featureItem}>

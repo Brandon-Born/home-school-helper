@@ -8,7 +8,7 @@ export function TranscriptPanel({ activeSession, nudgeText, setNudgeText, onSend
 
   return (
     <section className="card">
-      <h2 className="section-title">Guide the tutor</h2>
+      <h2 className="section-title">Guide the session</h2>
       <p className="section-muted">Send private notes — your child won't see them.</p>
 
       <form onSubmit={onSendNudge} className="voice-row">

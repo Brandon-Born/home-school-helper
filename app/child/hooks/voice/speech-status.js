@@ -4,7 +4,7 @@ export function getVoiceStatusText(speechSupport) {
   }
 
   if (speechSupport.cloudStt) {
-    return "Voice input is ready. Tutor audio uses device playback.";
+    return "Voice input is ready. Sidekick audio uses device playback.";
   }
 
   if (speechSupport.browserStt && speechSupport.browserTts) {
@@ -36,11 +36,11 @@ export function getTurnStatusText({ isCloudRecording, isListening, isTranscribin
   }
 
   if (pendingTutorReply) {
-    return "Tutor is working on your answer...";
+    return "Sidekick is working on your answer...";
   }
 
   if (isPlayingSpeech) {
-    return "Tutor is speaking...";
+    return "Sidekick is speaking...";
   }
 
   return notice;
@@ -60,7 +60,7 @@ export function getListeningLabelText({ isCloudRecording, isListening, isTranscr
   }
 
   if (isPlayingSpeech) {
-    return "Tutor speaking...";
+    return "Sidekick speaking...";
   }
 
   return "Hold to talk";

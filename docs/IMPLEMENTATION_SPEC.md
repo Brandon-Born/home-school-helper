@@ -1,7 +1,7 @@
 # Implementation Spec (v1)
 
 ## Scope
-This spec covers the first production-capable version of the homeschool tutor web app with:
+This spec covers the first production-capable version of the Homeschool Sidekick web app with:
 - Parent Google login and onboarding.
 - Child join by short-lived one-time session code.
 - Hidden parent steering channel.

@@ -3,8 +3,8 @@ import { ThemeProvider } from "./components/theme/ThemeProvider.js";
 import { THEME_BOOTSTRAP_SCRIPT } from "../src/lib/theme-mode.js";
 
 export const metadata = {
-  title: "Home School Helper",
-  description: "A tutoring assistant where parents guide and kids learn — step by step."
+  title: "Homeschool Sidekick",
+  description: "Your AI-powered homeschool sidekick — parents steer, kids learn, step by step."
 };
 
 export default function RootLayout({ children }) {

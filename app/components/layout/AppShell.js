@@ -17,7 +17,7 @@ export function AppShell({ title, subtitle, role = "home", actions = null, child
       <header className="app-shell__header">
         <div>
           <Link href="/" className="app-shell__brand">
-            Home School Helper
+            Homeschool Sidekick
           </Link>
           <p className="app-shell__tagline">Learn together, step by step.</p>
         </div>

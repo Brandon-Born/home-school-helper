@@ -2,7 +2,7 @@
 
 function defaultActorLabel(actorType) {
   if (actorType === "assistant") {
-    return "Tutor";
+    return "Sidekick";
   }
 
   if (actorType === "parent") {
