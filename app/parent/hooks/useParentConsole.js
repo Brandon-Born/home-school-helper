@@ -22,6 +22,22 @@ function mergeMessages(previous, incoming) {
   );
 }
 
+function buildSessionForUi(sessionData, children = [], previousSession = null) {
+  if (!sessionData) {
+    return null;
+  }
+
+  const childNameFromList = children.find((child) => child.id === sessionData.child_id)?.first_name;
+  const startedAt = sessionData.started_at ?? previousSession?.started_at ?? new Date().toISOString();
+
+  return {
+    ...previousSession,
+    ...sessionData,
+    child_name: sessionData.child_name ?? childNameFromList ?? previousSession?.child_name ?? "Unknown",
+    started_at: startedAt
+  };
+}
+
 const initialChildForm = {
   child_name: "",
   age: "",
@@ -131,10 +147,7 @@ export function useParentConsole() {
           return null;
         }
 
-        return {
-          ...previous,
-          ...matching
-        };
+        return buildSessionForUi(matching, nextChildren, previous);
       });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "We couldn't load your parent data. Please try again.");
@@ -277,10 +290,11 @@ export function useParentConsole() {
           }
         });
 
-        setActiveSession(payload.session);
+        const nextSession = buildSessionForUi(payload.session, children);
+        setActiveSession(nextSession);
         setActiveSessions((previous) => {
-          const rest = previous.filter((sessionRow) => sessionRow.session_id !== payload.session.session_id);
-          return [payload.session, ...rest];
+          const rest = previous.filter((sessionRow) => sessionRow.session_id !== nextSession.session_id);
+          return [nextSession, ...rest];
         });
         setMessages([]);
         setNudgeResponse("");
@@ -290,7 +304,7 @@ export function useParentConsole() {
         setLoadingState("sessionStart", false);
       }
     },
-    [parentRequest, selectedChildId, sessionForm, setLoadingState]
+    [children, parentRequest, selectedChildId, sessionForm, setLoadingState]
   );
 
   const sendNudge = useCallback(
@@ -351,12 +365,18 @@ export function useParentConsole() {
 
   const rejoinSession = useCallback(
     (sessionData) => {
-      setActiveSession(sessionData);
+      setActiveSession((previous) =>
+        buildSessionForUi(
+          sessionData,
+          children,
+          previous?.session_id === sessionData.session_id ? previous : null
+        )
+      );
       setSelectedChildId(sessionData.child_id);
       setMessages([]);
       setNudgeResponse("");
     },
-    []
+    [children]
   );
 
   const endSession = useCallback(
@@ -397,6 +417,42 @@ export function useParentConsole() {
           body: { action: "regenerate_code" }
         });
 
+        if (result?.join_code) {
+          setActiveSession((previous) => {
+            if (!previous || previous.session_id !== sessionId) {
+              return previous;
+            }
+
+            return buildSessionForUi(
+              {
+                ...previous,
+                join_code: result.join_code,
+                expires_at: result.expires_at
+              },
+              children,
+              previous
+            );
+          });
+
+          setActiveSessions((previous) =>
+            previous.map((sessionRow) => {
+              if (sessionRow.session_id !== sessionId) {
+                return sessionRow;
+              }
+
+              return buildSessionForUi(
+                {
+                  ...sessionRow,
+                  join_code: result.join_code,
+                  expires_at: result.expires_at
+                },
+                children,
+                sessionRow
+              );
+            })
+          );
+        }
+
         return result;
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : "We couldn't regenerate the join code. Please try again.");
@@ -405,7 +461,7 @@ export function useParentConsole() {
         setLoadingState("sessionManage", false);
       }
     },
-    [parentRequest, setLoadingState]
+    [children, parentRequest, setLoadingState]
   );
 
   return {

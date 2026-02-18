@@ -6,7 +6,8 @@ import { requireChildSessionContext, requireParentContext } from "../src/server/
 import {
   ensureParentOwnsSession,
   listSessionMessages,
-  redeemSessionCode
+  redeemSessionCode,
+  startSessionForParent
 } from "../src/server/session-foundation-service.js";
 import { hashOpaqueToken } from "../src/server/session-codes.js";
 import { createFakeServiceClient } from "./helpers/fake-service-client.js";
@@ -56,6 +57,34 @@ test("redeemSessionCode redeems exactly once and creates child session token", a
     () => redeemSessionCode({ code }, { serviceClient }),
     (error) => error instanceof ApiError && error.status === 409 && error.code === "session_code_used"
   );
+});
+
+test("startSessionForParent returns UI metadata needed for active-session cards", async () => {
+  const serviceClient = createFakeServiceClient({
+    children: [
+      {
+        id: "child_1",
+        parent_id: "parent_1",
+        first_name: "Ava"
+      }
+    ]
+  });
+
+  const session = await startSessionForParent(
+    "parent_1",
+    {
+      child_id: "child_1",
+      daily_subjects: ["Math"],
+      parent_context: "Keep it short."
+    },
+    { serviceClient }
+  );
+
+  assert.equal(session.child_name, "Ava");
+  assert.equal(typeof session.started_at, "string");
+  assert.equal(Number.isNaN(new Date(session.started_at).getTime()), false);
+  assert.equal(typeof session.join_code, "string");
+  assert.equal(session.join_code.length, 8);
 });
 
 test("ensureParentOwnsSession enforces parent/session ownership", async () => {

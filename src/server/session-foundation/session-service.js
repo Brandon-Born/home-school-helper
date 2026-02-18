@@ -19,7 +19,7 @@ export async function startSessionForParent(parentId, payload, options = {}) {
 
   const { data: child, error: childError } = await serviceClient
     .from("children")
-    .select("id")
+    .select("id, first_name")
     .eq("id", normalized.child_id)
     .eq("parent_id", parentId)
     .maybeSingle();
@@ -86,7 +86,9 @@ export async function startSessionForParent(parentId, payload, options = {}) {
   return {
     session_id: session.id,
     child_id: session.child_id,
+    child_name: child.first_name ?? "Unknown",
     status: session.status,
+    started_at: session.started_at ?? new Date().toISOString(),
     join_code: joinCode,
     expires_at: expiresAt,
     daily_context: session.daily_context

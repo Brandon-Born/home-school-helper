@@ -117,3 +117,83 @@ Notes:
 ### Still-Relevant Unfinished Refactors Promoted to Backlog
 - Add missing rate limiting on active-session management routes.
 - Decompose large `useChildVoiceRuntime` capture/transcription logic into a focused hook/module.
+
+## 2026-02-18T16:32:08Z - Codex
+
+### Scope Worked
+- Fixed UAT-BUG-1 parent session metadata coherence across start/rejoin/regenerate flows.
+- Added server-side session-start metadata needed by parent UI (`child_name`, `started_at`).
+- Added regression coverage and updated API contract docs.
+
+### Last Agent Accomplished
+- Patched parent console state merging to preserve/enrich session metadata instead of overwriting with partial rows.
+- Patched active sessions panel to:
+  - avoid `NaN` time labels on malformed/missing timestamps,
+  - carry join-code metadata through rejoin,
+  - render regenerated/new join code from either local response state or session row.
+- Updated `startSessionForParent` response to include `child_name` and resilient `started_at` fallback.
+- Added integration test ensuring session-start returns UI metadata for active-session cards.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js`
+- `/Users/bborn/home-school-helper/app/parent/components/ActiveSessionsPanel.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation/session-service.js`
+- `/Users/bborn/home-school-helper/tests/session-auth-integration.test.js`
+- `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+
+### Tests / Checks Run
+- Command: `node --test tests/session-auth-integration.test.js tests/session-routes.test.js`
+- Result: pass (9 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+
+### Open Risks / Issues
+- UAT-BUG-2 (speech synth 503 reliability) and UAT-BUG-3 (Next.js dynamic params warnings) remain open.
+- Parent `Refresh` still required if session card metadata from backend becomes stale externally; local action flows are now coherent.
+
+### Next Steps (Ordered)
+1. Run quick authenticated UAT spot-check for start -> rejoin -> regenerate in browser to confirm no blank code/expiry states.
+2. Fix UAT-BUG-3 by updating remaining dynamic API routes to consistently await `params`.
+3. Fix UAT-BUG-2 by hardening speech synth config/fallback path and telemetry.
+
+### Blocking Questions
+- None.
+
+## 2026-02-18T16:42:48Z - Codex
+
+### Scope Worked
+- Added policy-level validation guidance requiring headed Playwright UAT for UI/session changes.
+- Executed authenticated headed Playwright regression pass for session metadata coherence fix (UAT-BUG-1).
+
+### Last Agent Accomplished
+- Confirmed fixed flow in browser for `/parent`:
+  1. End active session.
+  2. Start new session (`Create join code`).
+  3. Rejoin active session (`📺 Rejoin`).
+  4. Regenerate code (`🔄 New code`).
+- Verified outcomes remained coherent without manual refresh:
+  - Active card shows valid `Started just now` (no `NaN`).
+  - Lesson panel consistently shows join code and expiry timestamp.
+  - Regenerated code is reflected in both active card and lesson panel.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/AGENT.md`
+- `/Users/bborn/home-school-helper/docs/START_HERE.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (70 tests, 0 failures).
+- Command: headed Playwright run against `http://localhost:3000/parent` (authenticated).
+- Result: pass for start/rejoin/regenerate coherence regression path.
+
+### Open Risks / Issues
+- Existing non-blocking console error remains: missing `/favicon.ico` (404).
+- Existing open bug UAT-BUG-3 remains visible in dev logs (`params should be awaited` warnings on dynamic routes) and is not part of this fix.
+
+### Next Steps (Ordered)
+1. Fix UAT-BUG-3 dynamic-route params warnings.
+2. Fix UAT-BUG-2 speech synth 503 reliability/fallback behavior.
+
+### Blocking Questions
+- None.

@@ -49,6 +49,7 @@ Stabilize cloud voice UX (Google STT V2 + Chirp 3), auth robustness, and launch-
 - `npm test`
 - `npm run check:env`
 - `npm run check:handoff`
+- Headed Playwright UAT for touched UI/session flows (parent and/or child), with findings recorded in backlog/handoff.
 
 ## Before You Stop
 1. Update `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`.

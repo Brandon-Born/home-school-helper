@@ -230,7 +230,9 @@ Rate limit:
   "session": {
     "session_id": "uuid",
     "child_id": "uuid",
+    "child_name": "Ava",
     "status": "active",
+    "started_at": "timestamp",
     "join_code": "AB12CD34",
     "expires_at": "timestamp",
     "daily_context": {

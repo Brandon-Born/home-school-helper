@@ -3,7 +3,11 @@
 import { useState } from "react";
 
 function timeAgo(isoString) {
-    const diff = Date.now() - new Date(isoString).getTime();
+    if (!isoString) return "recently";
+    const timestamp = new Date(isoString).getTime();
+    if (Number.isNaN(timestamp)) return "recently";
+
+    const diff = Date.now() - timestamp;
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return "just now";
     if (mins < 60) return `${mins}m ago`;
@@ -13,7 +17,11 @@ function timeAgo(isoString) {
 }
 
 function timeUntil(isoString) {
-    const diff = new Date(isoString).getTime() - Date.now();
+    if (!isoString) return "soon";
+    const timestamp = new Date(isoString).getTime();
+    if (Number.isNaN(timestamp)) return "soon";
+
+    const diff = timestamp - Date.now();
     if (diff <= 0) return "expired";
     const mins = Math.ceil(diff / 60000);
     if (mins < 60) return `in ${mins}m`;
@@ -62,6 +70,8 @@ export function ActiveSessionsPanel({
             <div className="active-sessions-list">
                 {activeSessions.map((s) => {
                     const newCode = codeMap[s.session_id];
+                    const joinCode = newCode?.code ?? s.join_code;
+                    const joinCodeExpiry = newCode?.expires_at ?? s.expires_at;
                     const subjects = s.daily_context?.daily_subjects;
 
                     return (
@@ -79,11 +89,11 @@ export function ActiveSessionsPanel({
                                 </span>
                             ) : null}
 
-                            {newCode ? (
+                            {joinCode ? (
                                 <div className="active-session-card__code">
-                                    <span className="join-code">{newCode.code}</span>
+                                    <span className="join-code">{joinCode}</span>
                                     <span className="section-muted" style={{ fontSize: "0.8rem" }}>
-                                        expires {timeUntil(newCode.expires_at)}
+                                        expires {timeUntil(joinCodeExpiry)}
                                     </span>
                                 </div>
                             ) : null}
@@ -96,8 +106,12 @@ export function ActiveSessionsPanel({
                                     onClick={() => onRejoin({
                                         session_id: s.session_id,
                                         child_id: s.child_id,
+                                        child_name: s.child_name,
                                         status: s.status,
-                                        daily_context: s.daily_context
+                                        daily_context: s.daily_context,
+                                        started_at: s.started_at,
+                                        join_code: joinCode ?? null,
+                                        expires_at: joinCodeExpiry ?? null
                                     })}
                                 >
                                     📺 Rejoin

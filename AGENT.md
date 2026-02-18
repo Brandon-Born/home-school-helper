@@ -58,6 +58,7 @@ Build a web-based tutoring assistant for homeschool students that is voice-frien
 ## Definition Of Done
 A task is complete only when all items below are true:
 1. Code changes compile and tests/checks pass locally for touched areas.
-2. Docs are updated for any behavior, interface, or policy change.
-3. `docs/handoffs/HANDOFF_LOG.md` includes a new entry with outcomes and next actions.
-4. No secrets are exposed in client paths or API responses.
+2. For UI/session flow changes, headed Playwright validation is run for touched parent/child paths and outcomes are documented.
+3. Docs are updated for any behavior, interface, or policy change.
+4. `docs/handoffs/HANDOFF_LOG.md` includes a new entry with outcomes and next actions.
+5. No secrets are exposed in client paths or API responses.

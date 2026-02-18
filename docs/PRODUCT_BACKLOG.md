@@ -15,6 +15,47 @@ How to use:
 
 ## P0 (Highest Impact)
 
+### UAT-BUG-1) Parent session metadata desync on start/rejoin (Highest)
+Status: Open
+Problem:
+- In parent console, starting a new session can render the active-session card with missing child name and `Started NaNd ago` until a manual refresh.
+- Rejoining/regenerating can leave the lesson panel without join code/expiry (`Share this code...` with blank code and `Expires at` with no timestamp).
+Evidence (2026-02-18 UAT):
+- Reproduced on `/parent` after `Create join code`, `📺 Rejoin`, and `🔄 New code`.
+Scope:
+- Ensure `activeSessions` entries are normalized with `child_name` and `started_at` immediately after start/rejoin/manage actions.
+- Ensure `activeSession` always has current `join_code` and `expires_at` after rejoin/regenerate (no blank code state).
+Success metric:
+- Parent sees valid child name/time metadata immediately after session start.
+- Rejoin/new-code flows always show the current join code and expiry in both active-session list and lesson panel without refresh.
+
+### UAT-BUG-2) Child cloud TTS synth returns 503 during normal tutoring turns (Highest)
+Status: Open
+Problem:
+- Child flow repeatedly hits `POST /api/session/:id/speech/synthesize` with `503 Service Unavailable` after successful tutor replies.
+- Console logs accumulate 503 errors during otherwise normal tutoring turns.
+Evidence (2026-02-18 UAT):
+- Observed on sessions `5c89baa6-0762-458d-bc58-f36e2d7cbb3e` and `b3f8f106-2f2c-43a8-a342-0b43f0126ddc` in browser console/network logs.
+Scope:
+- Verify and harden cloud TTS dependency checks/config loading for UAT/dev environments.
+- Ensure reliable fallback path (browser TTS or silent mode) is explicit and does not emit repeated console-level resource errors for expected degradation.
+- Add structured telemetry for synth failures by route/session.
+Success metric:
+- Configured environments return successful synth responses during normal turns, or fallback cleanly without repeated 503 console noise.
+
+### UAT-BUG-3) Next.js 15 dynamic route params are accessed synchronously (Highest)
+Status: Open
+Problem:
+- Multiple dynamic API routes log runtime errors: `params should be awaited before using its properties`.
+- This currently logs noisy runtime errors on hot paths and risks breakage with stricter Next.js behavior.
+Evidence (2026-02-18 UAT):
+- Observed repeatedly in dev server logs while exercising `/api/session/[id]/stream`, `/api/session/[id]/parent-nudge`, and `/api/session/[id]/speech/synthesize`.
+Scope:
+- Update dynamic route handlers to await `params` per Next.js 15 dynamic API requirements.
+- Add route-level regression tests for dynamic `params` access patterns in touched endpoints.
+Success metric:
+- No `params should be awaited` runtime errors during parent/child UAT flows.
+
 ### 1) Enforce TTS-safe assistant output end-to-end
 Status: Open
 Problem:
