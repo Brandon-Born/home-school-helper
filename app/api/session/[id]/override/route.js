@@ -1,22 +1,30 @@
-import { NextResponse } from "next/server";
 import { requireParentContext } from "../../../../../src/server/auth.js";
 import { handleRouteError } from "../../../../../src/server/route-errors.js";
 import { setSessionDirectAnswerOverride } from "../../../../../src/server/session-foundation-service.js";
 
-export async function POST(request, { params }) {
-  try {
-    const payload = await request.json();
-    const { parent } = await requireParentContext(request);
+export function createOverridePostHandler(dependencies = {}) {
+  const requireParent = dependencies.requireParentContext ?? requireParentContext;
+  const setOverride = dependencies.setSessionDirectAnswerOverride ?? setSessionDirectAnswerOverride;
+  const onError = dependencies.handleRouteError ?? handleRouteError;
 
-    const result = await setSessionDirectAnswerOverride({
-      sessionId: params.id,
-      parentId: parent.id,
-      enabled: Boolean(payload.enabled),
-      durationMinutes: payload.duration_minutes
-    });
+  return async function POST(request, { params }) {
+    try {
+      const { id: sessionId } = await params;
+      const payload = await request.json();
+      const { parent } = await requireParent(request);
 
-    return NextResponse.json({ override: result });
-  } catch (error) {
-    return handleRouteError(error, "override_update_failed");
-  }
+      const result = await setOverride({
+        sessionId,
+        parentId: parent.id,
+        enabled: Boolean(payload.enabled),
+        durationMinutes: payload.duration_minutes
+      });
+
+      return Response.json({ override: result });
+    } catch (error) {
+      return onError(error, "override_update_failed");
+    }
+  };
 }
+
+export const POST = createOverridePostHandler();

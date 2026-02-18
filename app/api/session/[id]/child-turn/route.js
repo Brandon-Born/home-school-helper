@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { requireChildSessionContext } from "../../../../../src/server/auth.js";
 import {
   getSessionTutorContext
@@ -8,31 +7,42 @@ import { enforceRateLimit } from "../../../../../src/server/rate-limit.js";
 import { buildRateLimitPolicy } from "../../../../../src/server/rate-limit-policies.js";
 import { runSessionTutorTurn } from "../../../../../src/server/session-turn-orchestrator.js";
 
-export async function POST(request, { params }) {
-  try {
-    enforceRateLimit(request, buildRateLimitPolicy("childTurn", params.id));
+export function createChildTurnPostHandler(dependencies = {}) {
+  const applyRateLimit = dependencies.enforceRateLimit ?? enforceRateLimit;
+  const requireChild = dependencies.requireChildSessionContext ?? requireChildSessionContext;
+  const getTutorContext = dependencies.getSessionTutorContext ?? getSessionTutorContext;
+  const runTurn = dependencies.runSessionTutorTurn ?? runSessionTutorTurn;
+  const onError = dependencies.handleRouteError ?? handleRouteError;
 
-    const payload = await request.json();
-    const childContext = await requireChildSessionContext(request, params.id);
-    const tutorContext = await getSessionTutorContext({
-      sessionId: params.id,
-      childId: childContext.tokenRow.child_id
-    });
+  return async function POST(request, { params }) {
+    try {
+      const { id: sessionId } = await params;
+      applyRateLimit(request, buildRateLimitPolicy("childTurn", sessionId));
 
-    const result = await runSessionTutorTurn({
-      sessionId: params.id,
-      source: "child-turn",
-      studentInput: payload.student_input,
-      parentGuidance: tutorContext.latestParentGuidance,
-      profile: tutorContext.profile,
-      dailyContext: tutorContext.dailyContext,
-      allowDirectAnswer: tutorContext.allowDirectAnswer,
-      inputActorType: "child",
-      inputVisibilityScope: "child_and_parent"
-    });
+      const payload = await request.json();
+      const childContext = await requireChild(request, sessionId);
+      const tutorContext = await getTutorContext({
+        sessionId,
+        childId: childContext.tokenRow.child_id
+      });
 
-    return NextResponse.json(result);
-  } catch (error) {
-    return handleRouteError(error, "child_turn_failed");
-  }
+      const result = await runTurn({
+        sessionId,
+        source: "child-turn",
+        studentInput: payload.student_input,
+        parentGuidance: tutorContext.latestParentGuidance,
+        profile: tutorContext.profile,
+        dailyContext: tutorContext.dailyContext,
+        allowDirectAnswer: tutorContext.allowDirectAnswer,
+        inputActorType: "child",
+        inputVisibilityScope: "child_and_parent"
+      });
+
+      return Response.json(result);
+    } catch (error) {
+      return onError(error, "child_turn_failed");
+    }
+  };
 }
+
+export const POST = createChildTurnPostHandler();

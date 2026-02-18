@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { requireParentContext } from "../../../../../src/server/auth.js";
 import { handleRouteError } from "../../../../../src/server/route-errors.js";
 import {
@@ -9,36 +8,48 @@ import { enforceRateLimit } from "../../../../../src/server/rate-limit.js";
 import { buildRateLimitPolicy } from "../../../../../src/server/rate-limit-policies.js";
 import { runSessionTutorTurn } from "../../../../../src/server/session-turn-orchestrator.js";
 
-export async function POST(request, { params }) {
-  try {
-    enforceRateLimit(request, buildRateLimitPolicy("parentNudge", params.id));
+export function createParentNudgePostHandler(dependencies = {}) {
+  const applyRateLimit = dependencies.enforceRateLimit ?? enforceRateLimit;
+  const requireParent = dependencies.requireParentContext ?? requireParentContext;
+  const ensureOwnsSession = dependencies.ensureParentOwnsSession ?? ensureParentOwnsSession;
+  const getTutorContext = dependencies.getSessionTutorContext ?? getSessionTutorContext;
+  const runTurn = dependencies.runSessionTutorTurn ?? runSessionTutorTurn;
+  const onError = dependencies.handleRouteError ?? handleRouteError;
 
-    const payload = await request.json();
-    const { parent } = await requireParentContext(request);
+  return async function POST(request, { params }) {
+    try {
+      const { id: sessionId } = await params;
+      applyRateLimit(request, buildRateLimitPolicy("parentNudge", sessionId));
 
-    await ensureParentOwnsSession(parent.id, params.id);
-    const tutorContext = await getSessionTutorContext({
-      sessionId: params.id,
-      parentId: parent.id
-    });
+      const payload = await request.json();
+      const { parent } = await requireParent(request);
 
-    const result = await runSessionTutorTurn({
-      sessionId: params.id,
-      source: "parent-nudge",
-      studentInput: payload.nudge_text,
-      parentGuidance: payload.parent_guidance ?? payload.nudge_text,
-      profile: tutorContext.profile,
-      dailyContext: tutorContext.dailyContext,
-      allowDirectAnswer: tutorContext.allowDirectAnswer,
-      inputActorType: "parent",
-      inputVisibilityScope: "parent_only"
-    });
+      await ensureOwnsSession(parent.id, sessionId);
+      const tutorContext = await getTutorContext({
+        sessionId,
+        parentId: parent.id
+      });
 
-    return NextResponse.json({
-      ...result,
-      queued: true
-    });
-  } catch (error) {
-    return handleRouteError(error, "parent_nudge_failed");
-  }
+      const result = await runTurn({
+        sessionId,
+        source: "parent-nudge",
+        studentInput: payload.nudge_text,
+        parentGuidance: payload.parent_guidance ?? payload.nudge_text,
+        profile: tutorContext.profile,
+        dailyContext: tutorContext.dailyContext,
+        allowDirectAnswer: tutorContext.allowDirectAnswer,
+        inputActorType: "parent",
+        inputVisibilityScope: "parent_only"
+      });
+
+      return Response.json({
+        ...result,
+        queued: true
+      });
+    } catch (error) {
+      return onError(error, "parent_nudge_failed");
+    }
+  };
 }
+
+export const POST = createParentNudgePostHandler();

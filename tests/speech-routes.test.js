@@ -13,6 +13,7 @@ import {
 test("createSpeechTranscribePostHandler surfaces speech provider failures", async () => {
   const handler = createSpeechTranscribePostHandler({
     enforceRateLimit: () => {},
+    logSpeechFailure: () => {},
     requireChildSessionContext: async () => ({
       tokenRow: { child_id: "child_1" }
     }),
@@ -36,7 +37,8 @@ test("createSpeechTranscribePostHandler returns rate_limited when limiter reject
   const handler = createSpeechTranscribePostHandler({
     enforceRateLimit: () => {
       throw new ApiError(429, "rate_limited", "Too many requests. Please try again shortly.");
-    }
+    },
+    logSpeechFailure: () => {}
   });
 
   const response = await handler(new Request("https://example.test/api/session/s1/speech/transcribe", { method: "POST" }), {
@@ -53,6 +55,7 @@ test("createSpeechTranscribePostHandler returns rate_limited when limiter reject
 test("createSpeechSynthesizePostHandler surfaces speech provider failures", async () => {
   const handler = createSpeechSynthesizePostHandler({
     enforceRateLimit: () => {},
+    logSpeechFailure: () => {},
     requireChildSessionContext: async () => ({
       tokenRow: { child_id: "child_1" }
     }),
@@ -77,7 +80,8 @@ test("createSpeechSynthesizePostHandler returns rate_limited when limiter reject
   const handler = createSpeechSynthesizePostHandler({
     enforceRateLimit: () => {
       throw new ApiError(429, "rate_limited", "Too many requests. Please try again shortly.");
-    }
+    },
+    logSpeechFailure: () => {}
   });
 
   const response = await handler(

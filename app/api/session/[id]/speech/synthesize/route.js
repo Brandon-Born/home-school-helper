@@ -10,12 +10,19 @@ export function createSpeechSynthesizePostHandler(dependencies = {}) {
   const requireChild = dependencies.requireChildSessionContext ?? requireChildSessionContext;
   const synthesize = dependencies.synthesizeSpeech ?? synthesizeSpeech;
   const onError = dependencies.handleRouteError ?? handleRouteError;
+  const logFailure =
+    dependencies.logSpeechFailure ??
+    ((payload) => {
+      console.warn("[speech-route]", JSON.stringify(payload));
+    });
 
   return async function POST(request, { params }) {
+    let sessionId = "unknown";
     try {
-      applyRateLimit(request, buildRateLimitPolicy("speechSynthesize", params.id));
+      ({ id: sessionId } = await params);
+      applyRateLimit(request, buildRateLimitPolicy("speechSynthesize", sessionId));
 
-      await requireChild(request, params.id);
+      await requireChild(request, sessionId);
       const input = await parseSpeechSynthesizeInput(request);
       const audioBuffer = await synthesize(input);
 
@@ -27,6 +34,12 @@ export function createSpeechSynthesizePostHandler(dependencies = {}) {
         }
       });
     } catch (error) {
+      logFailure({
+        route: "speech_synthesize",
+        session_id: sessionId,
+        status: error?.status ?? 500,
+        code: error?.code ?? "speech_synthesize_failed"
+      });
       return onError(error, "speech_synthesize_failed");
     }
   };

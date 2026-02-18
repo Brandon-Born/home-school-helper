@@ -10,17 +10,30 @@ export function createSpeechTranscribePostHandler(dependencies = {}) {
   const requireChild = dependencies.requireChildSessionContext ?? requireChildSessionContext;
   const transcribe = dependencies.transcribeSpeech ?? transcribeSpeech;
   const onError = dependencies.handleRouteError ?? handleRouteError;
+  const logFailure =
+    dependencies.logSpeechFailure ??
+    ((payload) => {
+      console.warn("[speech-route]", JSON.stringify(payload));
+    });
 
   return async function POST(request, { params }) {
+    let sessionId = "unknown";
     try {
-      applyRateLimit(request, buildRateLimitPolicy("speechTranscribe", params.id));
+      ({ id: sessionId } = await params);
+      applyRateLimit(request, buildRateLimitPolicy("speechTranscribe", sessionId));
 
-      await requireChild(request, params.id);
+      await requireChild(request, sessionId);
       const input = await parseSpeechTranscribeInput(request);
       const result = await transcribe(input);
 
       return Response.json(result);
     } catch (error) {
+      logFailure({
+        route: "speech_transcribe",
+        session_id: sessionId,
+        status: error?.status ?? 500,
+        code: error?.code ?? "speech_transcribe_failed"
+      });
       return onError(error, "speech_transcribe_failed");
     }
   };

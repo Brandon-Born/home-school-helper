@@ -3,6 +3,7 @@
 import { useCallback, useRef } from "react";
 import { isChildAuthFailure } from "../../../../src/lib/auth-failures.js";
 import { ApiRequestError } from "../../../../src/lib/http.js";
+import { CLOUD_TTS_COOLDOWN_MS, shouldCooldownCloudTts } from "./cloud-tts-policy.js";
 
 const CLOUD_TTS_CLIENT_TIMEOUT_MS = 6500;
 
@@ -15,6 +16,8 @@ export function useVoicePlayback({
 }) {
   const playbackAudioRef = useRef(null);
   const playbackUrlRef = useRef(null);
+  const cloudTtsCooldownUntilRef = useRef(0);
+  const cloudTtsFallbackNoticeShownRef = useRef(false);
 
   const revokePlaybackResources = useCallback(() => {
     if (playbackAudioRef.current) {
@@ -139,9 +142,15 @@ export function useVoicePlayback({
 
   const playAssistantText = useCallback(
     async (text) => {
+      const now = Date.now();
+      const canAttemptCloudTts =
+        speechSupportRef.current.cloudTts && now >= cloudTtsCooldownUntilRef.current;
+
       try {
-        if (speechSupportRef.current.cloudTts) {
+        if (canAttemptCloudTts) {
           await playCloudTts(text);
+          cloudTtsCooldownUntilRef.current = 0;
+          cloudTtsFallbackNoticeShownRef.current = false;
           return;
         }
       } catch (speechError) {
@@ -150,7 +159,15 @@ export function useVoicePlayback({
           return;
         }
 
-        setNotice("Audio had an issue. Switching to backup voice.");
+        if (shouldCooldownCloudTts(speechError)) {
+          cloudTtsCooldownUntilRef.current = Date.now() + CLOUD_TTS_COOLDOWN_MS;
+          if (!cloudTtsFallbackNoticeShownRef.current) {
+            setNotice("Audio service is unstable. Using backup voice for a bit.");
+            cloudTtsFallbackNoticeShownRef.current = true;
+          }
+        } else {
+          setNotice("Audio had an issue. Switching to backup voice.");
+        }
       }
 
       const usedBrowserFallback = speakTextFallback(text);
@@ -163,6 +180,8 @@ export function useVoicePlayback({
 
   const resetPlayback = useCallback(() => {
     revokePlaybackResources();
+    cloudTtsCooldownUntilRef.current = 0;
+    cloudTtsFallbackNoticeShownRef.current = false;
     if (typeof window !== "undefined") {
       window.speechSynthesis?.cancel();
     }

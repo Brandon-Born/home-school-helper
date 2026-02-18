@@ -9,12 +9,13 @@ export function createMessagesGetHandler(dependencies = {}) {
 
   return async function GET(request, { params }) {
     try {
+      const { id: sessionId } = await params;
       const url = new URL(request.url);
       const limit = Number.parseInt(url.searchParams.get("limit") || "100", 10);
 
-      const viewerContext = await resolveViewerContext(request, params.id);
+      const viewerContext = await resolveViewerContext(request, sessionId);
       const messages = await listMessages({
-        sessionId: params.id,
+        sessionId,
         visibility: viewerContext.visibility,
         limit
       });

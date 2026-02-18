@@ -13,16 +13,17 @@ export function createStreamGetHandler(dependencies = {}) {
 
   return async function GET(request, { params }) {
     try {
+      const { id: sessionId } = await params;
       const url = new URL(request.url);
       const limit = Math.min(Math.max(Number.parseInt(url.searchParams.get("limit") || "150", 10), 1), 300);
 
-      const viewerContext = await resolveViewerContext(request, params.id);
+      const viewerContext = await resolveViewerContext(request, sessionId);
 
       const stream = new TransformStream();
       const writer = stream.writable.getWriter();
       const runtime = await startTranscriptStreamRuntime({
         writer,
-        sessionId: params.id,
+        sessionId,
         visibility: viewerContext.visibility,
         limit,
         listSessionMessages: listMessages,

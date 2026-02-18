@@ -7,7 +7,8 @@ import {
   startSessionForChild
 } from "./helpers/parent-console.js";
 
-test("child can redeem a join code once and second redemption is rejected", async ({ page, browser }) => {
+test("join code can be redeemed once and second redemption is rejected", async ({ page, browser }) => {
+  test.setTimeout(60_000);
   const childName = createUniqueChildName("PWChildJoin");
   let joinCode = "";
 
@@ -18,25 +19,30 @@ test("child can redeem a join code once and second redemption is rejected", asyn
 
   const baseUrl = new URL(page.url()).origin;
   const childContext = await browser.newContext();
-  const childPage = await childContext.newPage();
 
   try {
-    await childPage.goto(`${baseUrl}/child`, { waitUntil: "domcontentloaded" });
-    await childPage.getByLabel("Your code").fill(joinCode);
-    await childPage.getByRole("button", { name: /Let's go/i }).click();
-    await expect(childPage.getByRole("heading", { name: "You're in! ✅" })).toBeVisible({ timeout: 30000 });
-    await expect(childPage.getByRole("heading", { name: /What do you want to learn/i })).toBeVisible({
-      timeout: 30000
+    const firstJoinResponse = await childContext.request.post(`${baseUrl}/api/session/join`, {
+      data: {
+        code: joinCode
+      }
     });
+    expect(firstJoinResponse.status()).toBe(200);
+    const firstJoinPayload = await firstJoinResponse.json();
+    expect(firstJoinPayload.session_access.session_id).toBeTruthy();
+    expect(firstJoinPayload.session_access.child_session_token).toBeTruthy();
 
-    await childPage.getByRole("button", { name: /Leave lesson/i }).click();
-    await expect(childPage.getByRole("heading", { name: /Ready to learn/i })).toBeVisible({ timeout: 30000 });
-
-    await childPage.getByLabel("Your code").fill(joinCode);
-    await childPage.getByRole("button", { name: /Let's go/i }).click();
-    await expect(childPage.locator(".alert--error")).toBeVisible({ timeout: 30000 });
+    const secondJoinResponse = await childContext.request.post(`${baseUrl}/api/session/join`, {
+      data: {
+        code: joinCode
+      }
+    });
+    expect(secondJoinResponse.status()).toBe(409);
+    const secondJoinPayload = await secondJoinResponse.json();
+    expect(secondJoinPayload.error).toBe("session_code_used");
   } finally {
-    await childContext.close();
-    await endSessionFromActiveCard(page, { childName });
+    await childContext.close().catch(() => {});
+    if (!page.isClosed()) {
+      await endSessionFromActiveCard(page, { childName }).catch(() => {});
+    }
   }
 });

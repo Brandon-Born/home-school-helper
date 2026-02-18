@@ -16,7 +16,7 @@ How to use:
 ## P0 (Highest Impact)
 
 ### UAT-BUG-1) Parent session metadata desync on start/rejoin (Highest)
-Status: Open
+Status: Done (2026-02-18)
 Problem:
 - In parent console, starting a new session can render the active-session card with missing child name and `Started NaNd ago` until a manual refresh.
 - Rejoining/regenerating can leave the lesson panel without join code/expiry (`Share this code...` with blank code and `Expires at` with no timestamp).
@@ -28,9 +28,11 @@ Scope:
 Success metric:
 - Parent sees valid child name/time metadata immediately after session start.
 - Rejoin/new-code flows always show the current join code and expiry in both active-session list and lesson panel without refresh.
+Resolution notes:
+- Covered by automated e2e lifecycle regression (`tests/playwright/parent-session-lifecycle.spec.js`) validating create -> regenerate -> rejoin -> end flow without metadata drift.
 
 ### UAT-BUG-2) Child cloud TTS synth returns 503 during normal tutoring turns (Highest)
-Status: Open
+Status: Done (2026-02-18)
 Problem:
 - Child flow repeatedly hits `POST /api/session/:id/speech/synthesize` with `503 Service Unavailable` after successful tutor replies.
 - Console logs accumulate 503 errors during otherwise normal tutoring turns.
@@ -42,9 +44,12 @@ Scope:
 - Add structured telemetry for synth failures by route/session.
 Success metric:
 - Configured environments return successful synth responses during normal turns, or fallback cleanly without repeated 503 console noise.
+Resolution notes:
+- Added cloud TTS cooldown policy (`app/child/hooks/voice/cloud-tts-policy.js`) and client-side circuit breaker in `useVoicePlayback` so repeated provider failures fall back to browser TTS without retrying cloud synth every assistant message.
+- Added structured speech route failure telemetry including `session_id` in synth/transcribe routes.
 
 ### UAT-BUG-3) Next.js 15 dynamic route params are accessed synchronously (Highest)
-Status: Open
+Status: Done (2026-02-18)
 Problem:
 - Multiple dynamic API routes log runtime errors: `params should be awaited before using its properties`.
 - This currently logs noisy runtime errors on hot paths and risks breakage with stricter Next.js behavior.
@@ -58,6 +63,9 @@ Scope:
 - Add route-level regression tests for dynamic `params` access patterns in touched endpoints.
 Success metric:
 - No `params should be awaited` runtime errors during parent/child UAT flows.
+Resolution notes:
+- Updated dynamic routes to await `params` before using `id` (`stream`, `messages`, `child-turn`, `parent-nudge`, `override`, `speech/transcribe`, `speech/synthesize`).
+- Added regression coverage in `tests/dynamic-route-params.test.js` using promised `params` objects.
 
 ### 1) Enforce TTS-safe assistant output end-to-end
 Status: Open
