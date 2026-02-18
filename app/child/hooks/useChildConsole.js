@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { openEventStream } from "../../../src/lib/event-stream.js";
 import { isChildAuthFailure } from "../../../src/lib/auth-failures.js";
 import { apiRequest } from "../../../src/lib/http.js";
+import { useSessionStream } from "../../hooks/useSessionStream.js";
 import { useChildVoiceRuntime } from "./useChildVoiceRuntime.js";
 
 const STORAGE_KEY = "child_session_access";
@@ -25,11 +25,21 @@ export function useChildConsole() {
   const [deviceFingerprint, setDeviceFingerprint] = useState("");
   const [studentInput, setStudentInput] = useState("");
   const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState({
+    join: false,
+    send: false
+  });
   const [error, setError] = useState("");
   const clearSessionRef = useRef((message) => {
     void message;
   });
+
+  const setLoadingState = useCallback((key, value) => {
+    setLoading((previous) => ({
+      ...previous,
+      [key]: value
+    }));
+  }, []);
 
   const handleSessionInvalid = useCallback((message) => {
     clearSessionRef.current(message);
@@ -42,9 +52,16 @@ export function useChildConsole() {
     setError,
     onSessionInvalid: handleSessionInvalid
   });
+  const voiceActionsRef = useRef(voice.actions);
+  const voiceStreamRef = useRef(voice.stream);
+
+  useEffect(() => {
+    voiceActionsRef.current = voice.actions;
+    voiceStreamRef.current = voice.stream;
+  }, [voice.actions, voice.stream]);
 
   const clearChildSession = useCallback((message) => {
-    voice.actions.resetVoiceRuntime();
+    voiceActionsRef.current.resetVoiceRuntime();
 
     if (typeof window !== "undefined") {
       window.localStorage.removeItem(STORAGE_KEY);
@@ -52,10 +69,13 @@ export function useChildConsole() {
 
     setSessionAccess(null);
     setMessages([]);
-    setLoading(false);
+    setLoading({
+      join: false,
+      send: false
+    });
     setStudentInput("");
     setError(message || "");
-  }, [voice.actions]);
+  }, []);
 
   clearSessionRef.current = clearChildSession;
 
@@ -75,87 +95,54 @@ export function useChildConsole() {
     }
   }, []);
 
-  useEffect(() => {
-    if (!sessionAccess?.session_id || !sessionAccess?.child_session_token) {
-      return;
+  const handleStreamSnapshot = useCallback(
+    (incoming) => {
+      setMessages(incoming);
+      setError("");
+      voiceStreamRef.current.initializeFromSnapshot(incoming);
+    },
+    []
+  );
+
+  const handleStreamAppend = useCallback(
+    (incoming) => {
+      if (incoming.some((message) => message.actor_type === "assistant")) {
+        voiceActionsRef.current.setPendingTutorReply(false);
+      }
+      setMessages((previous) => mergeMessages(previous, incoming));
+      voiceStreamRef.current.handleIncomingMessages(incoming);
+    },
+    []
+  );
+
+  const handleStreamDisconnect = useCallback((streamError) => {
+    if (isChildAuthFailure(streamError)) {
+      clearSessionRef.current("Your lesson code expired. Please ask your parent for a new code.");
+      return "stop";
     }
 
-    let disposed = false;
-    let reconnectTimer;
-    let streamAbortController;
+    setError(streamError instanceof Error ? streamError.message : "Connection lost. Reconnecting...");
+    return "reconnect";
+  }, []);
 
-    const connect = async () => {
-      streamAbortController = new AbortController();
+  const handleStreamError = useCallback((message) => {
+    setError(message || "We lost connection for a moment.");
+  }, []);
 
-      try {
-        await openEventStream({
-          path: `/api/session/${sessionAccess.session_id}/stream?limit=200`,
-          bearerToken: sessionAccess.child_session_token,
-          signal: streamAbortController.signal,
-          onEvent: ({ event, data }) => {
-            if (disposed) {
-              return;
-            }
-
-            if (event === "snapshot") {
-              const incoming = data.messages ?? [];
-              setMessages(incoming);
-              setError("");
-              voice.stream.initializeFromSnapshot(incoming);
-              return;
-            }
-
-            if (event === "message_append") {
-              const incoming = data.messages ?? [];
-              if (incoming.some((message) => message.actor_type === "assistant")) {
-                voice.actions.setPendingTutorReply(false);
-              }
-              setMessages((previous) => mergeMessages(previous, incoming));
-              voice.stream.handleIncomingMessages(incoming);
-              return;
-            }
-
-            if (event === "error") {
-              setError(data?.message || "We lost connection for a moment.");
-            }
-          }
-        });
-      } catch (streamError) {
-        if (disposed) {
-          return;
-        }
-
-        if (isChildAuthFailure(streamError)) {
-          clearSessionRef.current("Your lesson code expired. Please ask your parent for a new code.");
-          return;
-        }
-
-        setError(streamError instanceof Error ? streamError.message : "Connection lost. Reconnecting...");
-        reconnectTimer = window.setTimeout(connect, 1800);
-      }
-    };
-
-    connect();
-
-    return () => {
-      disposed = true;
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-      }
-      if (streamAbortController) {
-        streamAbortController.abort();
-      }
-    };
-  }, [
-    sessionAccess?.child_session_token,
-    sessionAccess?.session_id
-  ]);
+  useSessionStream({
+    sessionId: sessionAccess?.session_id ?? null,
+    accessToken: sessionAccess?.child_session_token ?? null,
+    onSnapshot: handleStreamSnapshot,
+    onAppend: handleStreamAppend,
+    onStreamError: handleStreamError,
+    onDisconnect: handleStreamDisconnect
+  });
 
   async function joinSession(event) {
     event.preventDefault();
-    setLoading(true);
+    setLoadingState("join", true);
     setError("");
-    voice.actions.setPendingTutorReply(false);
+    voiceActionsRef.current.setPendingTutorReply(false);
 
     try {
       const payload = await apiRequest("/api/session/join", {
@@ -168,13 +155,13 @@ export function useChildConsole() {
 
       const access = payload.session_access;
       setSessionAccess(access);
-      voice.stream.initializeFromSnapshot([]);
+      voiceStreamRef.current.initializeFromSnapshot([]);
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(access));
       setJoinCode("");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "We couldn't join that lesson. Check the code and try again.");
     } finally {
-      setLoading(false);
+      setLoadingState("join", false);
     }
   }
 
@@ -184,18 +171,35 @@ export function useChildConsole() {
       return;
     }
 
-    setLoading(true);
+    setLoadingState("send", true);
     setError("");
-    voice.actions.setPendingTutorReply(true);
+    voiceActionsRef.current.setPendingTutorReply(true);
 
     try {
-      await apiRequest(`/api/session/${sessionAccess.session_id}/child-turn`, {
+      const payload = await apiRequest(`/api/session/${sessionAccess.session_id}/child-turn`, {
         method: "POST",
         bearerToken: sessionAccess.child_session_token,
         body: {
           student_input: studentInput.trim()
         }
       });
+
+      const freshMessages = [];
+      if (payload?.input_message) {
+        freshMessages.push(payload.input_message);
+      }
+      if (payload?.assistant_message) {
+        freshMessages.push(payload.assistant_message);
+      }
+
+      if (freshMessages.length > 0) {
+        setMessages((previous) => mergeMessages(previous, freshMessages));
+      }
+
+      if (payload?.assistant_message) {
+        voiceActionsRef.current.setPendingTutorReply(false);
+        voiceStreamRef.current.handleIncomingMessages([payload.assistant_message]);
+      }
 
       setStudentInput("");
     } catch (requestError) {
@@ -205,9 +209,9 @@ export function useChildConsole() {
       }
 
       setError(requestError instanceof Error ? requestError.message : "We couldn't send your question. Please try again.");
-      voice.actions.setPendingTutorReply(false);
+      voiceActionsRef.current.setPendingTutorReply(false);
     } finally {
-      setLoading(false);
+      setLoadingState("send", false);
     }
   }
 
@@ -223,6 +227,8 @@ export function useChildConsole() {
       studentInput,
       messages,
       loading,
+      joinLoading: loading.join,
+      sendLoading: loading.send,
       error,
       voiceBusy: voice.state.voiceBusy,
       isTranscribing: voice.state.isTranscribing,

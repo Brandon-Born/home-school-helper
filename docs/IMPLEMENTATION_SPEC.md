@@ -40,7 +40,8 @@ This spec covers the first production-capable version of the Homeschool Sidekick
 ## Live Updates (Current)
 - Realtime transcript updates use SSE subscription endpoint:
   - `GET /api/session/:id/stream`
-- Parent and child surfaces subscribe with bearer token and merge incremental `message_append` events.
+- Parent and child surfaces share a single stream runtime hook and merge incremental `message_append` events.
+- Stream polling uses a compound cursor (`created_at`, `id`) to avoid dropping messages with identical timestamps.
 
 ## Server Modules
 - `src/server/config.js`: typed env parsing/validation.
@@ -66,7 +67,7 @@ This spec covers the first production-capable version of the Homeschool Sidekick
 - `session.state.changed`
 
 ## Acceptance Criteria
-- Child-turn endpoint returns: `assistant_text`, `speak_payload`, `policy_applied`, `model_used`.
+- Child-turn endpoint returns: `assistant_text`, `speak_payload`, `input_message`, `assistant_message`, `policy_applied`, `model_used`.
 - Parent nudge endpoint uses same tutor pipeline and persists parent/assistant messages.
 - Required env vars fail startup when missing.
 - CI enforces handoff log update when runtime code changes.

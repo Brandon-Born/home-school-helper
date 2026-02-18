@@ -117,6 +117,8 @@ Acceptance criteria:
 Required response contract for tutor turn endpoints:
 - `assistant_text`
 - `speak_payload`
+- `input_message`
+- `assistant_message`
 - `policy_applied`
 - `model_used`
 

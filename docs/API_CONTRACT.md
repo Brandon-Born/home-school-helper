@@ -294,10 +294,28 @@ Rate limit:
     "voice": "default",
     "mode": "hybrid_tts"
   },
+  "input_message": {
+    "id": "uuid",
+    "actor_type": "child",
+    "visibility_scope": "child_and_parent",
+    "content": "Can you help me solve 3x + 4 = 19?",
+    "created_at": "timestamp"
+  },
+  "assistant_message": {
+    "id": "uuid",
+    "actor_type": "assistant",
+    "visibility_scope": "child_and_parent",
+    "content": "Let’s solve it together. What should we do first to isolate x?",
+    "policy_flags": ["none"],
+    "created_at": "timestamp"
+  },
   "policy_applied": ["none"],
   "model_used": "claude-sonnet-4-5-20250929"
 }
 ```
+
+Notes:
+- `input_message` and `assistant_message` are persisted transcript rows returned inline so the client can render and speak immediately without waiting for stream polling.
 
 ## POST `/api/session/:id/parent-nudge`
 Parent sends hidden nudge to steer tutor response.
@@ -321,6 +339,21 @@ Rate limit:
     "text": "You’re doing well. Let’s take one small step together.",
     "voice": "default",
     "mode": "hybrid_tts"
+  },
+  "input_message": {
+    "id": "uuid",
+    "actor_type": "parent",
+    "visibility_scope": "parent_only",
+    "content": "Student is getting frustrated; slow down and praise effort.",
+    "created_at": "timestamp"
+  },
+  "assistant_message": {
+    "id": "uuid",
+    "actor_type": "assistant",
+    "visibility_scope": "child_and_parent",
+    "content": "You’re doing well. Let’s take one small step together.",
+    "policy_flags": ["none"],
+    "created_at": "timestamp"
   },
   "policy_applied": ["none"],
   "model_used": "claude-sonnet-4-5-20250929",

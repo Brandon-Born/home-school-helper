@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isChildAuthFailure } from "../../../src/lib/auth-failures.js";
-import { ApiRequestError, apiFormRequest } from "../../../src/lib/http.js";
+import { apiFormRequest } from "../../../src/lib/http.js";
 import { initializeSpokenAssistantMessageIds, takeFreshAssistantMessages } from "./voice/assistant-messages.js";
 import { classifySpeechFailure } from "./voice/speech-errors.js";
 import { detectSpeechSupport, getSpeechRecognitionCtor } from "./voice/speech-support.js";
 import { getListeningLabelText, getTurnStatusText, getVoiceStatusText } from "./voice/speech-status.js";
+import { useVoicePlayback } from "./voice/useVoicePlayback.js";
 
 export function useChildVoiceRuntime({
   sessionAccess,
@@ -35,8 +36,6 @@ export function useChildVoiceRuntime({
   const mediaRecorderRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const audioChunksRef = useRef([]);
-  const playbackAudioRef = useRef(null);
-  const playbackUrlRef = useRef(null);
   const spokenAssistantMessageIdsRef = useRef(new Set());
   const autoSpeakRef = useRef(autoSpeak);
   const speechSupportRef = useRef(speechSupport);
@@ -46,19 +45,13 @@ export function useChildVoiceRuntime({
 
   const voiceStatus = useMemo(() => getVoiceStatusText(speechSupport), [speechSupport]);
 
-  function revokePlaybackResources() {
-    if (playbackAudioRef.current) {
-      playbackAudioRef.current.pause();
-      playbackAudioRef.current = null;
-    }
-
-    if (playbackUrlRef.current) {
-      URL.revokeObjectURL(playbackUrlRef.current);
-      playbackUrlRef.current = null;
-    }
-
-    setIsPlayingSpeech(false);
-  }
+  const voicePlayback = useVoicePlayback({
+    sessionAccess,
+    speechSupportRef,
+    setIsPlayingSpeech,
+    setNotice,
+    onSessionInvalid
+  });
 
   function stopBrowserVoiceCapture() {
     const recognition = recognitionRef.current;
@@ -107,92 +100,13 @@ export function useChildVoiceRuntime({
 
   function resetVoiceRuntime() {
     stopAllVoiceCapture();
-    revokePlaybackResources();
+    voicePlayback.resetPlayback();
     spokenAssistantMessageIdsRef.current = new Set();
-
-    if (typeof window !== "undefined") {
-      window.speechSynthesis?.cancel();
-    }
 
     setIsTranscribing(false);
     setIsPlayingSpeech(false);
     setPendingTutorReply(false);
     setNotice("");
-  }
-
-  function speakTextFallback(text) {
-    if (!speechSupportRef.current.browserTts || typeof window === "undefined") {
-      return false;
-    }
-
-    const trimmed = String(text || "").trim();
-    if (!trimmed) {
-      return false;
-    }
-
-    window.speechSynthesis?.cancel();
-    setIsPlayingSpeech(true);
-    const utterance = new SpeechSynthesisUtterance(trimmed);
-    utterance.lang = "en-US";
-    utterance.rate = 0.95;
-    utterance.pitch = 1;
-    utterance.onend = () => {
-      setIsPlayingSpeech(false);
-    };
-    utterance.onerror = () => {
-      setIsPlayingSpeech(false);
-      setNotice("Audio could not play. You can read the reply below.");
-    };
-    window.speechSynthesis?.speak(utterance);
-    return true;
-  }
-
-  async function playCloudTts(text) {
-    if (!sessionAccess?.session_id || !sessionAccess?.child_session_token) {
-      return;
-    }
-
-    const response = await fetch(`/api/session/${sessionAccess.session_id}/speech/synthesize`, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${sessionAccess.child_session_token}`,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({ text })
-    });
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      throw new ApiRequestError(payload?.message || "Unable to synthesize speech.", {
-        status: response.status,
-        code: payload?.error || null,
-        payload
-      });
-    }
-
-    const audioBlob = await response.blob();
-    revokePlaybackResources();
-
-    const objectUrl = URL.createObjectURL(audioBlob);
-    playbackUrlRef.current = objectUrl;
-    const audio = new Audio(objectUrl);
-    playbackAudioRef.current = audio;
-    setIsPlayingSpeech(true);
-
-    audio.onended = () => {
-      revokePlaybackResources();
-    };
-    audio.onerror = () => {
-      revokePlaybackResources();
-      setNotice("Audio could not play. You can read the reply below.");
-    };
-
-    try {
-      await audio.play();
-    } catch {
-      revokePlaybackResources();
-      throw new Error("Audio playback is blocked right now. You can read the reply below.");
-    }
   }
 
   function initializeFromSnapshot(messages = []) {
@@ -214,24 +128,7 @@ export function useChildVoiceRuntime({
     setNotice("");
 
     void (async () => {
-      try {
-        if (speechSupportRef.current.cloudTts) {
-          await playCloudTts(latest.content);
-          return;
-        }
-      } catch (speechError) {
-        if (isChildAuthFailure(speechError)) {
-          onSessionInvalid("Your lesson code expired. Please ask your parent for a new code.");
-          return;
-        }
-
-        setNotice("Audio had an issue. Switching to backup voice.");
-      }
-
-      const usedBrowserFallback = speakTextFallback(latest.content);
-      if (!usedBrowserFallback) {
-        setNotice("Audio is unavailable right now. You can read the reply below.");
-      }
+      await voicePlayback.playAssistantText(latest.content);
     })();
   }
 
@@ -439,10 +336,7 @@ export function useChildVoiceRuntime({
 
     return () => {
       stopAllVoiceCapture();
-      revokePlaybackResources();
-      if (typeof window !== "undefined") {
-        window.speechSynthesis?.cancel();
-      }
+      voicePlayback.resetPlayback();
     };
   }, []);
 

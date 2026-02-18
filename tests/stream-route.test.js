@@ -38,7 +38,8 @@ test("createStreamGetHandler uses child visibility when viewer is child", async 
   assert.deepEqual(listCalls[0], {
     sessionId: "s1",
     visibility: "child",
-    limit: 20
+    limit: 20,
+    order: "desc"
   });
 });
 
@@ -64,7 +65,8 @@ test("createStreamGetHandler uses full visibility when viewer is parent", async 
   assert.deepEqual(listCalls[0], {
     sessionId: "s1",
     visibility: "all",
-    limit: 150
+    limit: 150,
+    order: "desc"
   });
 });
 
@@ -172,6 +174,102 @@ test("createStreamGetHandler emits snapshot then ordered message_append events",
   assert.deepEqual(
     appendEvents[0].data.messages.map((message) => message.id),
     ["m2", "m3"]
+  );
+
+  abortController.abort();
+  await reader.cancel();
+});
+
+test("createStreamGetHandler cursor advances with created_at and id", async () => {
+  const pollCallbacks = [];
+  let listCallCount = 0;
+  const seededRows = [
+    [
+      {
+        id: "m100",
+        actor_type: "assistant",
+        visibility_scope: "child_and_parent",
+        content: "base",
+        created_at: "2026-02-17T00:00:00.000Z"
+      }
+    ],
+    [
+      {
+        id: "m099",
+        actor_type: "assistant",
+        visibility_scope: "child_and_parent",
+        content: "older id same timestamp",
+        created_at: "2026-02-17T00:00:00.000Z"
+      },
+      {
+        id: "m100",
+        actor_type: "assistant",
+        visibility_scope: "child_and_parent",
+        content: "base",
+        created_at: "2026-02-17T00:00:00.000Z"
+      },
+      {
+        id: "m101",
+        actor_type: "assistant",
+        visibility_scope: "child_and_parent",
+        content: "newer id same timestamp",
+        created_at: "2026-02-17T00:00:00.000Z"
+      },
+      {
+        id: "m102",
+        actor_type: "assistant",
+        visibility_scope: "child_and_parent",
+        content: "later timestamp",
+        created_at: "2026-02-17T00:00:01.000Z"
+      }
+    ]
+  ];
+
+  const handler = createStreamGetHandler({
+    resolveSessionViewerContext: async () => ({ role: "child", visibility: "child" }),
+    listSessionMessages: async () => {
+      const index = Math.min(listCallCount, seededRows.length - 1);
+      listCallCount += 1;
+      return seededRows[index];
+    },
+    setTimer: (callback, interval) => {
+      if (interval === 1800) {
+        pollCallbacks.push(callback);
+      }
+      return { interval };
+    },
+    clearTimer: () => {}
+  });
+
+  const abortController = new AbortController();
+  const response = await handler(
+    new Request("https://example.test/api/session/s1/stream?limit=10", {
+      signal: abortController.signal
+    }),
+    { params: { id: "s1" } }
+  );
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
+  const firstChunk = await reader.read();
+  assert.equal(firstChunk.done, false);
+  const snapshotEvents = parseSseEvents(decoder.decode(firstChunk.value));
+  assert.equal(snapshotEvents[0].event, "snapshot");
+  assert.deepEqual(
+    snapshotEvents[0].data.messages.map((message) => message.id),
+    ["m100"]
+  );
+
+  const pollPromise = pollCallbacks[0]();
+  const secondChunk = await reader.read();
+  await pollPromise;
+  assert.equal(secondChunk.done, false);
+  const appendEvents = parseSseEvents(decoder.decode(secondChunk.value));
+  assert.equal(appendEvents[0].event, "message_append");
+  assert.deepEqual(
+    appendEvents[0].data.messages.map((message) => message.id),
+    ["m101", "m102"]
   );
 
   abortController.abort();

@@ -1,5 +1,67 @@
 # Handoff Log
 
+## 2026-02-18T06:14:01Z - Codex
+
+### Scope Worked
+- Implemented all requested immediate refactors for stream reliability, loading-state ergonomics, and child voice runtime structure.
+- Updated API/docs to reflect response contract and current implementation.
+
+### Last Agent Accomplished
+- Stream client consolidation:
+  - Added shared hook `/Users/bborn/home-school-helper/app/hooks/useSessionStream.js`.
+  - Rewired `/Users/bborn/home-school-helper/app/parent/hooks/useParentTranscriptStream.js` and `/Users/bborn/home-school-helper/app/child/hooks/useChildConsole.js` to use shared stream lifecycle/reconnect logic (including reconnect after clean disconnects).
+- Stream cursor hardening:
+  - Updated `/Users/bborn/home-school-helper/src/server/transcript-stream-runtime.js` to track a compound cursor (`created_at`, `id`).
+  - Updated `/Users/bborn/home-school-helper/src/server/session-foundation/message-service.js` to enforce deterministic sort (`created_at`, `id`) for paging stability.
+  - Added regression test `createStreamGetHandler cursor advances with created_at and id` in `/Users/bborn/home-school-helper/tests/stream-route.test.js`.
+- Per-action loading state refactor:
+  - Parent console now uses keyed loading flags in `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js` and targeted UI disables in `/Users/bborn/home-school-helper/app/parent/page.js`.
+  - Child console now uses `joinLoading`/`sendLoading` in `/Users/bborn/home-school-helper/app/child/hooks/useChildConsole.js` and `/Users/bborn/home-school-helper/app/child/page.js`.
+- Voice runtime decomposition:
+  - Extracted playback + cloud/browser TTS concerns into `/Users/bborn/home-school-helper/app/child/hooks/voice/useVoicePlayback.js`.
+  - Simplified `/Users/bborn/home-school-helper/app/child/hooks/useChildVoiceRuntime.js` to focus on capture/transcription/status orchestration.
+- Tutor response contract clarity:
+  - Renamed inline persisted message field from `child_message` to role-agnostic `input_message` in `/Users/bborn/home-school-helper/src/server/session-turn-orchestrator.js` and client consumption path.
+- Speech latency defaults:
+  - Kept operation-specific reliability defaults in `/Users/bborn/home-school-helper/src/server/speech-provider.js` (faster synth failover).
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/hooks/useSessionStream.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentTranscriptStream.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/useChildConsole.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/voice/useVoicePlayback.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/useChildVoiceRuntime.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js`
+- `/Users/bborn/home-school-helper/app/parent/page.js`
+- `/Users/bborn/home-school-helper/app/child/page.js`
+- `/Users/bborn/home-school-helper/src/server/transcript-stream-runtime.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation/message-service.js`
+- `/Users/bborn/home-school-helper/src/server/session-turn-orchestrator.js`
+- `/Users/bborn/home-school-helper/src/server/speech-provider.js`
+- `/Users/bborn/home-school-helper/tests/helpers/fake-service-client.js`
+- `/Users/bborn/home-school-helper/tests/stream-route.test.js`
+- `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+- `/Users/bborn/home-school-helper/docs/IMPLEMENTATION_SPEC.md`
+- `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
+- `/Users/bborn/home-school-helper/README.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm test`
+- Result: pass (69 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+
+### Open Risks / Issues
+- Stream cursor ordering uses lexical `id` tie-break semantics; safe for UUID-style identifiers, but if ID format changes, keep tuple ordering behavior covered by tests.
+
+### Next Steps (Ordered)
+1. Add focused unit tests around `app/hooks/useSessionStream.js` reconnect state machine (auth refresh, clean close, and fatal stop paths).
+2. Add client-side telemetry counters (stream reconnects, cloud-TTS timeout fallback rate) to make UX regressions visible.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-18T02:12:00Z - Antigravity
 
 ### Scope Worked

@@ -9,7 +9,7 @@ class FakeQuery {
     this.upsertConflict = null;
     this.payload = null;
     this.filters = [];
-    this.orderBy = null;
+    this.orderBy = [];
     this.limitCount = null;
   }
 
@@ -53,7 +53,7 @@ class FakeQuery {
   }
 
   order(field, { ascending = true } = {}) {
-    this.orderBy = { field, ascending };
+    this.orderBy.push({ field, ascending });
     return this;
   }
 
@@ -241,19 +241,23 @@ class FakeQuery {
   }
 
   applyOrder(rows) {
-    if (!this.orderBy) {
+    if (!Array.isArray(this.orderBy) || this.orderBy.length === 0) {
       return [...rows];
     }
 
-    const { field, ascending } = this.orderBy;
-    const direction = ascending ? 1 : -1;
-
     return [...rows].sort((left, right) => {
-      if (left[field] === right[field]) {
-        return 0;
+      for (const ordering of this.orderBy) {
+        const { field, ascending } = ordering;
+        const direction = ascending ? 1 : -1;
+
+        if (left[field] === right[field]) {
+          continue;
+        }
+
+        return left[field] > right[field] ? direction : -direction;
       }
 
-      return left[field] > right[field] ? direction : -direction;
+      return 0;
     });
   }
 

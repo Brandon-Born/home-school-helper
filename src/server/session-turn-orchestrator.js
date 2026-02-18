@@ -36,14 +36,14 @@ export async function runSessionTutorTurn(
 
   const tutorConfig = getConfig();
 
-  await persistMessage({
+  const inputMessageRow = await persistMessage({
     sessionId,
     actorType: inputActorType,
     visibilityScope: inputVisibilityScope,
     content: studentInput
   });
 
-  await persistMessage({
+  const assistantMessageRow = await persistMessage({
     sessionId,
     actorType: "assistant",
     visibilityScope: "child_and_parent",
@@ -59,5 +59,26 @@ export async function runSessionTutorTurn(
     policyApplied: result.policy_applied
   });
 
-  return result;
+  return {
+    ...result,
+    input_message: inputMessageRow
+      ? {
+          id: inputMessageRow.id,
+          actor_type: inputActorType,
+          visibility_scope: inputVisibilityScope,
+          content: String(studentInput || "").trim(),
+          created_at: inputMessageRow.created_at
+        }
+      : null,
+    assistant_message: assistantMessageRow
+      ? {
+          id: assistantMessageRow.id,
+          actor_type: "assistant",
+          visibility_scope: "child_and_parent",
+          content: result.assistant_text,
+          policy_flags: result.policy_applied,
+          created_at: assistantMessageRow.created_at
+        }
+      : null
+  };
 }

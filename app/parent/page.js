@@ -25,7 +25,7 @@ export default function ParentPage() {
         session={state.session}
         needsReauth={state.needsReauth}
         parentProfile={state.parentProfile}
-        loading={state.loading}
+        loading={state.loading.auth || state.loading.refreshParentData}
         onRefresh={actions.refreshParentData}
         onSignOut={actions.signOut}
         onSignIn={actions.signInWithGoogle}
@@ -43,7 +43,7 @@ export default function ParentPage() {
               onCreateChild={actions.createChild}
               onUpdateChild={actions.updateChild}
               onDeleteChild={actions.deleteChild}
-              loading={state.loading}
+              loading={state.loading.childMutation}
             />
 
             <ActiveSessionsPanel
@@ -51,7 +51,7 @@ export default function ParentPage() {
               onRejoin={actions.rejoinSession}
               onEnd={actions.endSession}
               onRegenerateCode={actions.regenerateCode}
-              loading={state.loading}
+              loading={state.loading.sessionManage}
             />
           </div>
 
@@ -62,7 +62,7 @@ export default function ParentPage() {
               setSessionForm={actions.setSessionForm}
               onStartSession={actions.startSession}
               activeSession={state.activeSession}
-              loading={state.loading}
+              loading={state.loading.sessionStart || state.loading.override || state.loading.sessionManage}
               onEnableOverride={() => actions.setOverride(true)}
               onDisableOverride={() => actions.setOverride(false)}
             />
@@ -72,7 +72,7 @@ export default function ParentPage() {
               nudgeText={state.nudgeText}
               setNudgeText={actions.setNudgeText}
               onSendNudge={actions.sendNudge}
-              loading={state.loading}
+              loading={state.loading.nudge}
               nudgeResponse={state.nudgeResponse}
               messages={state.messages}
             />

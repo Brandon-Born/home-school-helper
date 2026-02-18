@@ -38,6 +38,16 @@ const initialSessionForm = {
   additional_context: ""
 };
 
+const initialLoadingState = {
+  auth: false,
+  refreshParentData: false,
+  childMutation: false,
+  sessionStart: false,
+  nudge: false,
+  override: false,
+  sessionManage: false
+};
+
 export function useParentConsole() {
   const [parentProfile, setParentProfile] = useState(null);
   const [children, setChildren] = useState([]);
@@ -46,11 +56,18 @@ export function useParentConsole() {
   const [activeSessions, setActiveSessions] = useState([]);
   const [messages, setMessages] = useState([]);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(initialLoadingState);
   const [nudgeResponse, setNudgeResponse] = useState("");
   const [childForm, setChildForm] = useState(initialChildForm);
   const [sessionForm, setSessionForm] = useState(initialSessionForm);
   const [nudgeText, setNudgeText] = useState("");
+
+  const setLoadingState = useCallback((key, value) => {
+    setLoading((previous) => ({
+      ...previous,
+      [key]: value
+    }));
+  }, []);
 
   const clearParentData = useCallback(() => {
     setParentProfile(null);
@@ -60,6 +77,7 @@ export function useParentConsole() {
     setActiveSessions([]);
     setMessages([]);
     setNudgeResponse("");
+    setLoading(initialLoadingState);
   }, []);
 
   const {
@@ -80,27 +98,50 @@ export function useParentConsole() {
       return;
     }
 
-    setLoading(true);
+    setLoadingState("refreshParentData", true);
     setError("");
 
     try {
-      const profilePayload = await parentRequest("/api/parent/me");
-      const childrenPayload = await parentRequest("/api/children");
-      const sessionsPayload = await parentRequest("/api/session/active");
+      const [profilePayload, childrenPayload, sessionsPayload] = await Promise.all([
+        parentRequest("/api/parent/me"),
+        parentRequest("/api/children"),
+        parentRequest("/api/session/active")
+      ]);
 
       setParentProfile(profilePayload.parent);
-      setChildren(childrenPayload.children ?? []);
-      setActiveSessions(sessionsPayload.sessions ?? []);
+      const nextChildren = childrenPayload.children ?? [];
+      setChildren(nextChildren);
+      const nextActiveSessions = sessionsPayload.sessions ?? [];
+      setActiveSessions(nextActiveSessions);
 
-      if (!selectedChildId && childrenPayload.children?.length > 0) {
-        setSelectedChildId(childrenPayload.children[0].id);
-      }
+      setSelectedChildId((previous) => {
+        if (previous && nextChildren.some((child) => child.id === previous)) {
+          return previous;
+        }
+        return nextChildren[0]?.id ?? "";
+      });
+
+      setActiveSession((previous) => {
+        if (!previous) {
+          return previous;
+        }
+
+        const matching = nextActiveSessions.find((sessionRow) => sessionRow.session_id === previous.session_id);
+        if (!matching) {
+          return null;
+        }
+
+        return {
+          ...previous,
+          ...matching
+        };
+      });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "We couldn't load your parent data. Please try again.");
     } finally {
-      setLoading(false);
+      setLoadingState("refreshParentData", false);
     }
-  }, [parentRequest, selectedChildId, session?.access_token]);
+  }, [parentRequest, session?.access_token, setLoadingState]);
 
   useEffect(() => {
     fetchParentData();
@@ -124,10 +165,28 @@ export function useParentConsole() {
     setError
   });
 
+  const signIn = useCallback(async () => {
+    setLoadingState("auth", true);
+    try {
+      await signInWithGoogle();
+    } finally {
+      setLoadingState("auth", false);
+    }
+  }, [setLoadingState, signInWithGoogle]);
+
+  const signOutAction = useCallback(async () => {
+    setLoadingState("auth", true);
+    try {
+      await signOut();
+    } finally {
+      setLoadingState("auth", false);
+    }
+  }, [setLoadingState, signOut]);
+
   const createChild = useCallback(
     async (event) => {
       event.preventDefault();
-      setLoading(true);
+      setLoadingState("childMutation", true);
       setError("");
 
       try {
@@ -145,15 +204,15 @@ export function useParentConsole() {
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : "We couldn't save that child profile. Please try again.");
       } finally {
-        setLoading(false);
+        setLoadingState("childMutation", false);
       }
     },
-    [childForm, fetchParentData, parentRequest]
+    [childForm, fetchParentData, parentRequest, setLoadingState]
   );
 
   const updateChild = useCallback(
     async (childId, updatedForm) => {
-      setLoading(true);
+      setLoadingState("childMutation", true);
       setError("");
 
       try {
@@ -170,15 +229,15 @@ export function useParentConsole() {
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : "We couldn't update that child profile. Please try again.");
       } finally {
-        setLoading(false);
+        setLoadingState("childMutation", false);
       }
     },
-    [fetchParentData, parentRequest]
+    [fetchParentData, parentRequest, setLoadingState]
   );
 
   const deleteChild = useCallback(
     async (childId) => {
-      setLoading(true);
+      setLoadingState("childMutation", true);
       setError("");
 
       try {
@@ -194,16 +253,16 @@ export function useParentConsole() {
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : "We couldn't delete that child profile. Please try again.");
       } finally {
-        setLoading(false);
+        setLoadingState("childMutation", false);
       }
     },
-    [fetchParentData, parentRequest, selectedChildId]
+    [fetchParentData, parentRequest, selectedChildId, setLoadingState]
   );
 
   const startSession = useCallback(
     async (event) => {
       event.preventDefault();
-      setLoading(true);
+      setLoadingState("sessionStart", true);
       setError("");
 
       try {
@@ -219,15 +278,19 @@ export function useParentConsole() {
         });
 
         setActiveSession(payload.session);
+        setActiveSessions((previous) => {
+          const rest = previous.filter((sessionRow) => sessionRow.session_id !== payload.session.session_id);
+          return [payload.session, ...rest];
+        });
         setMessages([]);
         setNudgeResponse("");
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : "We couldn't start the session. Please try again.");
       } finally {
-        setLoading(false);
+        setLoadingState("sessionStart", false);
       }
     },
-    [parentRequest, selectedChildId, sessionForm]
+    [parentRequest, selectedChildId, sessionForm, setLoadingState]
   );
 
   const sendNudge = useCallback(
@@ -237,7 +300,7 @@ export function useParentConsole() {
         return;
       }
 
-      setLoading(true);
+      setLoadingState("nudge", true);
       setError("");
 
       try {
@@ -254,10 +317,10 @@ export function useParentConsole() {
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : "We couldn't send that private note. Please try again.");
       } finally {
-        setLoading(false);
+        setLoadingState("nudge", false);
       }
     },
-    [activeSession?.session_id, nudgeText, parentRequest]
+    [activeSession?.session_id, nudgeText, parentRequest, setLoadingState]
   );
 
   const setOverride = useCallback(
@@ -266,7 +329,7 @@ export function useParentConsole() {
         return;
       }
 
-      setLoading(true);
+      setLoadingState("override", true);
       setError("");
 
       try {
@@ -280,10 +343,10 @@ export function useParentConsole() {
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : "We couldn't update direct-answer mode. Please try again.");
       } finally {
-        setLoading(false);
+        setLoadingState("override", false);
       }
     },
-    [activeSession?.session_id, parentRequest]
+    [activeSession?.session_id, parentRequest, setLoadingState]
   );
 
   const rejoinSession = useCallback(
@@ -298,7 +361,7 @@ export function useParentConsole() {
 
   const endSession = useCallback(
     async (sessionId) => {
-      setLoading(true);
+      setLoadingState("sessionManage", true);
       setError("");
 
       try {
@@ -317,15 +380,15 @@ export function useParentConsole() {
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : "We couldn't end that session. Please try again.");
       } finally {
-        setLoading(false);
+        setLoadingState("sessionManage", false);
       }
     },
-    [activeSession?.session_id, parentRequest]
+    [activeSession?.session_id, parentRequest, setLoadingState]
   );
 
   const regenerateCode = useCallback(
     async (sessionId) => {
-      setLoading(true);
+      setLoadingState("sessionManage", true);
       setError("");
 
       try {
@@ -339,10 +402,10 @@ export function useParentConsole() {
         setError(requestError instanceof Error ? requestError.message : "We couldn't regenerate the join code. Please try again.");
         return null;
       } finally {
-        setLoading(false);
+        setLoadingState("sessionManage", false);
       }
     },
-    [parentRequest]
+    [parentRequest, setLoadingState]
   );
 
   return {
@@ -357,14 +420,15 @@ export function useParentConsole() {
       messages,
       error,
       loading,
+      busy: Object.values(loading).some(Boolean),
       nudgeResponse,
       childForm,
       sessionForm,
       nudgeText
     },
     actions: {
-      signInWithGoogle,
-      signOut,
+      signInWithGoogle: signIn,
+      signOut: signOutAction,
       createChild,
       updateChild,
       deleteChild,

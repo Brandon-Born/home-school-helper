@@ -21,11 +21,42 @@ function parseBoundedInt(rawValue, fallbackValue, min, max) {
   return Math.min(max, Math.max(min, parsed));
 }
 
-function getReliabilityConfig(env = process.env) {
+const DEFAULT_RELIABILITY_BY_OPERATION = Object.freeze({
+  transcribe: Object.freeze({
+    timeoutMs: 12000,
+    maxRetries: 1,
+    retryBaseDelayMs: 250
+  }),
+  synthesize: Object.freeze({
+    timeoutMs: 6000,
+    maxRetries: 0,
+    retryBaseDelayMs: 250
+  })
+});
+
+function getReliabilityConfig(env = process.env, operation) {
+  const defaults = DEFAULT_RELIABILITY_BY_OPERATION[operation] ?? DEFAULT_RELIABILITY_BY_OPERATION.transcribe;
+  const operationPrefix = operation === "synthesize" ? "SPEECH_SYNTH" : "SPEECH_TRANSCRIBE";
+
   return {
-    timeoutMs: parseBoundedInt(env.SPEECH_REQUEST_TIMEOUT_MS, 12000, 100, 60000),
-    maxRetries: parseBoundedInt(env.SPEECH_MAX_RETRIES, 1, 0, 3),
-    retryBaseDelayMs: parseBoundedInt(env.SPEECH_RETRY_BASE_DELAY_MS, 250, 25, 3000),
+    timeoutMs: parseBoundedInt(
+      env[`${operationPrefix}_TIMEOUT_MS`] ?? env.SPEECH_REQUEST_TIMEOUT_MS,
+      defaults.timeoutMs,
+      100,
+      60000
+    ),
+    maxRetries: parseBoundedInt(
+      env[`${operationPrefix}_MAX_RETRIES`] ?? env.SPEECH_MAX_RETRIES,
+      defaults.maxRetries,
+      0,
+      3
+    ),
+    retryBaseDelayMs: parseBoundedInt(
+      env[`${operationPrefix}_RETRY_BASE_DELAY_MS`] ?? env.SPEECH_RETRY_BASE_DELAY_MS,
+      defaults.retryBaseDelayMs,
+      25,
+      3000
+    ),
     telemetryDisabled: String(env.SPEECH_TELEMETRY_DISABLED || "").trim() === "1"
   };
 }
@@ -71,7 +102,7 @@ async function sleep(ms) {
 }
 
 async function invokeSpeechOperation(provider, operation, input, env = process.env) {
-  const config = getReliabilityConfig(env);
+  const config = getReliabilityConfig(env, operation);
   if (typeof provider?.[operation] !== "function") {
     throw new ApiError(500, "speech_provider_config_invalid", `Speech provider does not support ${operation}.`);
   }

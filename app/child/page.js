@@ -26,7 +26,7 @@ export default function ChildPage() {
             deviceFingerprint={state.deviceFingerprint}
             setDeviceFingerprint={actions.setDeviceFingerprint}
             onSubmit={actions.joinSession}
-            loading={state.loading}
+            loading={state.joinLoading}
           />
         </div>
       ) : (
@@ -44,7 +44,7 @@ export default function ChildPage() {
           <TutorComposerPanel
             studentInput={state.studentInput}
             setStudentInput={actions.setStudentInput}
-            loading={state.loading}
+            loading={state.sendLoading}
             voiceBusy={state.voiceBusy}
             isTranscribing={state.isTranscribing}
             isPlayingSpeech={state.isPlayingSpeech}

@@ -4,6 +4,40 @@ export function serializeSse(event, payload) {
   return encoder.encode(`event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`);
 }
 
+function toCursor(message) {
+  return {
+    createdAt: String(message?.created_at || ""),
+    id: String(message?.id || "")
+  };
+}
+
+function compareCursorValues(leftCursor, rightCursor) {
+  const leftTime = Date.parse(leftCursor.createdAt);
+  const rightTime = Date.parse(rightCursor.createdAt);
+
+  if (!Number.isNaN(leftTime) && !Number.isNaN(rightTime) && leftTime !== rightTime) {
+    return leftTime - rightTime;
+  }
+
+  if (leftCursor.createdAt !== rightCursor.createdAt) {
+    return leftCursor.createdAt > rightCursor.createdAt ? 1 : -1;
+  }
+
+  if (leftCursor.id === rightCursor.id) {
+    return 0;
+  }
+
+  return leftCursor.id > rightCursor.id ? 1 : -1;
+}
+
+function isAfterCursor(message, cursor) {
+  if (!cursor) {
+    return true;
+  }
+
+  return compareCursorValues(toCursor(message), cursor) > 0;
+}
+
 export async function startTranscriptStreamRuntime({
   writer,
   sessionId,
@@ -18,15 +52,19 @@ export async function startTranscriptStreamRuntime({
   let closed = false;
   let isPolling = false;
   let seenIds = new Set();
+  let lastSeenCursor = null;
 
-  const initialMessages = await listSessionMessages({
+  const initialSnapshotRows = await listSessionMessages({
     sessionId,
     visibility,
-    limit
+    limit,
+    order: "desc"
   });
+  const initialMessages = [...initialSnapshotRows].reverse();
 
   for (const message of initialMessages) {
     seenIds.add(message.id);
+    lastSeenCursor = toCursor(message);
   }
 
   // Do not block handler return on initial backpressure; stream consumer may not be attached yet.
@@ -52,13 +90,16 @@ export async function startTranscriptStreamRuntime({
       const messages = await listSessionMessages({
         sessionId,
         visibility,
-        limit
+        limit,
+        order: "asc",
+        afterCreatedAt: lastSeenCursor?.createdAt ?? null
       });
 
-      const fresh = messages.filter((message) => !seenIds.has(message.id));
+      const fresh = messages.filter((message) => isAfterCursor(message, lastSeenCursor) && !seenIds.has(message.id));
       if (fresh.length > 0) {
         for (const message of fresh) {
           seenIds.add(message.id);
+          lastSeenCursor = toCursor(message);
         }
 
         if (seenIds.size > 5000) {

@@ -93,6 +93,8 @@ tests/                         Unit tests
 
 Full request/response shapes: [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md)
 
+`POST /api/session/:id/child-turn` now returns persisted `input_message` and `assistant_message` rows inline so clients can render and speak immediately, without waiting for stream polling.
+
 ## UI Routes
 
 | Route | Who | What |
@@ -117,7 +119,7 @@ Full security docs: [`docs/SECURITY_AND_COMPLIANCE.md`](docs/SECURITY_AND_COMPLI
 ```bash
 npm run dev           # Start dev server
 npm run build         # Production build
-npm test              # Run unit tests (68 tests)
+npm test              # Run unit tests (69 tests)
 npm run check:env     # Validate environment variables
 npm run check:handoff # Validate handoff log
 ```

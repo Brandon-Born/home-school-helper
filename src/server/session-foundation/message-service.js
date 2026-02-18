@@ -31,21 +31,27 @@ export async function persistSessionMessage(
 }
 
 export async function listSessionMessages(
-  { sessionId, visibility = "all", limit = 100 },
+  { sessionId, visibility = "all", limit = 100, order = "asc", afterCreatedAt = null },
   options = {}
 ) {
   const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
   const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 200);
+  const ascendingOrder = order !== "desc";
 
   let query = serviceClient
     .from("messages")
     .select("id, actor_type, visibility_scope, content, policy_flags, created_at")
     .eq("session_id", sessionId)
-    .order("created_at", { ascending: true })
+    .order("created_at", { ascending: ascendingOrder })
+    .order("id", { ascending: ascendingOrder })
     .limit(safeLimit);
 
   if (visibility === "child") {
     query = query.eq("visibility_scope", "child_and_parent");
+  }
+
+  if (afterCreatedAt) {
+    query = query.gte("created_at", String(afterCreatedAt));
   }
 
   const { data, error } = await query;
