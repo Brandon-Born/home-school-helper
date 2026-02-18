@@ -18,6 +18,10 @@
   animation-delay: 240ms;
 }
 
+.stagger>*:nth-child(5) {
+  animation-delay: 320ms;
+}
+
 @keyframes fade-up {
   from {
     opacity: 0;
