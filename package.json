@@ -10,12 +10,17 @@
     "start": "next start",
     "check:env": "node scripts/validate-env.mjs",
     "check:handoff": "bash scripts/check-handoff.sh",
-    "test": "node --test"
+    "test": "node --test",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.95.3",
     "next": "^15.5.12",
     "react": "19.2.4",
     "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0"
   }
 }

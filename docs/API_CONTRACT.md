@@ -462,6 +462,32 @@ Parent toggles direct-answer mode for a bounded duration.
 }
 ```
 
+## POST `/api/test-auth/bootstrap` (test-only)
+Creates a one-time auth link for Playwright automation without interactive OAuth.
+
+Availability:
+- Disabled by default.
+- Returns `404 not_found` unless `ENABLE_TEST_AUTH_BOOTSTRAP=1`.
+- Always disabled in production (`NODE_ENV=production`).
+
+Authorization:
+- Requires header `x-test-auth-secret: <PLAYWRIGHT_TEST_AUTH_SECRET>`.
+
+Environment requirements when enabled:
+- `PLAYWRIGHT_TEST_AUTH_SECRET`
+- `PLAYWRIGHT_TEST_AUTH_EMAIL`
+
+### Response (200)
+```json
+{
+  "auth": {
+    "email": "playwright-parent@example.test",
+    "action_link": "https://<project>.supabase.co/auth/v1/verify?...",
+    "redirect_to": "http://localhost:3000/auth/callback"
+  }
+}
+```
+
 ## Visibility Rules
 - Parent can read parent-only and shared messages for owned sessions.
 - Child routes only accept valid child session token issued by `/api/session/join`.

@@ -19,6 +19,9 @@
 - `ANTHROPIC_MAX_TOKENS` (default `512`)
 - `ANTHROPIC_TEMPERATURE` (default `0.3`)
 - `TUTOR_SYSTEM_PROMPT_VERSION` (default `v1`)
+- `ENABLE_TEST_AUTH_BOOTSTRAP` (default disabled; keep disabled in Preview/Production)
+- `PLAYWRIGHT_TEST_AUTH_SECRET` (only for local/test Playwright bootstrap usage)
+- `PLAYWRIGHT_TEST_AUTH_EMAIL` (only for local/test Playwright bootstrap usage)
 
 ## Vercel Setup
 1. Connect GitHub repository to Vercel project.
@@ -45,4 +48,5 @@
 ## Operational Notes
 - Do not store `.env` in repo.
 - Never expose `ANTHROPIC_API_KEY` to client bundles.
+- Keep `/api/test-auth/bootstrap` disabled outside local/test by leaving `ENABLE_TEST_AUTH_BOOTSTRAP` unset.
 - Any env-var contract changes require updates to `.env.example` and README.

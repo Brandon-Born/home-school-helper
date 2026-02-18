@@ -6,4 +6,8 @@ node_modules
 .DS_Store
 coverage
 .npm-cache
+.playwright-cli
 supabase/.temp
+playwright-report
+test-results
+tests/playwright/.auth

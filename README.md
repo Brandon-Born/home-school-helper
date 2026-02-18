@@ -39,6 +39,11 @@ npm run dev                # http://localhost:3000
 
 Optional variables for Anthropic tuning (`ANTHROPIC_MAX_TOKENS`, `ANTHROPIC_TEMPERATURE`, `TUTOR_SYSTEM_PROMPT_VERSION`) and Google Speech integration are documented in `.env.example`.
 
+For non-interactive Playwright auth in local/test, configure:
+- `ENABLE_TEST_AUTH_BOOTSTRAP=1`
+- `PLAYWRIGHT_TEST_AUTH_SECRET=<shared secret for setup + route header>`
+- `PLAYWRIGHT_TEST_AUTH_EMAIL=<test parent account email>`
+
 ## Project Structure
 
 ```
@@ -119,10 +124,24 @@ Full security docs: [`docs/SECURITY_AND_COMPLIANCE.md`](docs/SECURITY_AND_COMPLI
 ```bash
 npm run dev           # Start dev server
 npm run build         # Production build
-npm test              # Run unit tests (69 tests)
+npm test              # Run unit tests
+npm run test:e2e      # Playwright tests (uses bootstrap auth global setup)
 npm run check:env     # Validate environment variables
 npm run check:handoff # Validate handoff log
 ```
+
+## Playwright Auth Bootstrap (Test-Only)
+
+To avoid manual Google OAuth during Playwright runs:
+
+1. Set `.env` values:
+   - `ENABLE_TEST_AUTH_BOOTSTRAP=1`
+   - `PLAYWRIGHT_TEST_AUTH_SECRET=...`
+   - `PLAYWRIGHT_TEST_AUTH_EMAIL=playwright-parent@example.test`
+2. Export `PLAYWRIGHT_TEST_AUTH_SECRET` in your test shell (must match `.env`).
+3. Run app server, then run `npm run test:e2e`.
+
+`tests/playwright/global.setup.mjs` calls `POST /api/test-auth/bootstrap`, opens the one-time admin-generated link in Chromium, and writes `tests/playwright/.auth/parent.json` for re-use by all Playwright tests.
 
 ## Documentation Index
 
