@@ -3,7 +3,7 @@
 Last updated: 2026-02-18
 
 Purpose:
-- Capture high-impact product and engineering improvements beyond the current “working” baseline.
+- Capture high-impact product and engineering improvements beyond the current "working" baseline.
 - Give future agents a prioritized queue to pull from without rediscovery.
 
 How to use:
@@ -34,7 +34,7 @@ Scope:
 - Ensure active session payload always has current join code/expiry context (or fetch on rejoin).
 - Keep `activeSession` and `activeSessions` synchronized after manage/start actions.
 Success metric:
-- Rejoin and “new code” flows always display current code and expiry without manual refresh.
+- Rejoin and "new code" flows always display current code and expiry without manual refresh.
 
 ### 3) Distributed rate limiting backend
 Status: Open
@@ -46,20 +46,31 @@ Scope:
 Success metric:
 - Rate limits remain consistent across multi-instance deployment.
 
-### 4) Stream disconnect/reconnect telemetry
+### 4) Close rate-limit coverage gaps on session management routes
+Status: Open
+Problem:
+- `GET /api/session/active` and `POST /api/session/[id]/manage` currently bypass route-level throttling.
+Scope:
+- Add dedicated policies in `src/server/rate-limit-policies.js` for active-session listing and manage actions.
+- Enforce limits in both routes with stable parent/session-scoped keys.
+- Add route tests for `rate_limited` responses and success-path non-regression.
+Success metric:
+- All parent session lifecycle endpoints enforce explicit, tested rate limits.
+
+### 5) Stream disconnect/reconnect telemetry
 Status: Open
 Problem:
 - Limited visibility into reconnect loops and stream churn.
 Scope:
 - Add structured client/server metrics for stream connect, clean close, reconnect attempts, and auth refresh loops.
 Success metric:
-- Can answer “how often are sessions reconnecting and why?” from logs/dashboard.
+- Can answer "how often are sessions reconnecting and why?" from logs/dashboard.
 
 ---
 
 ## P1 (High Value)
 
-### 5) Replace polling-backed SSE with direct realtime transport
+### 6) Replace polling-backed SSE with direct realtime transport
 Status: Open
 Problem:
 - Polling interval adds latency and extra DB reads.
@@ -69,7 +80,7 @@ Scope:
 Success metric:
 - Lower median transcript latency and lower polling load.
 
-### 6) Hook-level tests for client orchestration
+### 7) Hook-level tests for client orchestration
 Status: Open
 Problem:
 - Parent/child console hooks contain critical state machines with limited direct test coverage.
@@ -79,7 +90,7 @@ Scope:
 Success metric:
 - Regressions in session UX are caught before merge.
 
-### 7) Voice observability and fallback-rate metrics
+### 8) Voice observability and fallback-rate metrics
 Status: Open
 Problem:
 - Limited visibility into cloud TTS/STT failures, timeout fallback rate, and playback errors.
@@ -89,7 +100,7 @@ Scope:
 Success metric:
 - Voice slowdown/failure complaints can be traced to concrete metrics quickly.
 
-### 8) Parent action UX hardening
+### 9) Parent action UX hardening
 Status: Open
 Problem:
 - Some async failures are shown only as generic alerts; action-level feedback can be clearer.
@@ -97,25 +108,36 @@ Scope:
 - Add targeted inline status for child CRUD, override, nudge, and session management outcomes.
 - Preserve non-blocking behavior with per-action loading.
 Success metric:
-- Fewer ambiguous “buggy” reports from parents during rapid action sequences.
+- Fewer ambiguous "buggy" reports from parents during rapid action sequences.
+
+### 10) Decompose child voice capture/transcription runtime
+Status: Open
+Problem:
+- `app/child/hooks/useChildVoiceRuntime.js` is still large and mixes capture/transcription state with orchestration.
+Scope:
+- Extract capture/transcription lifecycle into a focused hook/module (for example `useChildVoiceCapture`).
+- Keep `useChildVoiceRuntime` as an orchestration layer with stable outward API.
+- Add targeted tests for extracted capture state transitions and failure handling.
+Success metric:
+- Smaller hooks, clearer ownership boundaries, and easier regression testing for voice behavior.
 
 ---
 
 ## P2 (Quality / Delight)
 
-### 9) Accessibility pass (parent + child)
+### 11) Accessibility pass (parent + child)
 Status: Open
 Scope:
 - Keyboard navigation review, ARIA states on dynamic controls, focus management after async actions.
 - Ensure transcript updates are screen-reader friendly.
 
-### 10) Performance polish for long sessions
+### 12) Performance polish for long sessions
 Status: Open
 Scope:
 - Virtualize transcript rendering for very long message lists.
 - Add message windowing while preserving full-history server access.
 
-### 11) Product analytics baseline
+### 13) Product analytics baseline
 Status: Open
 Scope:
 - Add privacy-safe funnel events (session start, child join success/fail, turn send, nudge send, voice usage).
