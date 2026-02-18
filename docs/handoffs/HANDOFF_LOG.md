@@ -4,6 +4,75 @@ Notes:
 - Compacted on 2026-02-18 to a rolling window.
 - Keep detailed entries for current context; older granular history is summarized below.
 
+## 2026-02-18T22:03:03Z - Codex
+
+### Scope Worked
+- Completed backlog item `8)` by adding voice observability and fallback-rate metrics across client capture/playback paths and server speech provider/routes.
+
+### Last Agent Accomplished
+- Added client voice telemetry helper (`src/lib/voice-telemetry.js`) with structured error extraction and counter-style metric logging under `[voice-client]`.
+- Added server voice telemetry helper (`src/server/voice-telemetry.js`) with matching schema under `[voice-server]`.
+- Instrumented child voice runtime in `app/child/hooks/useChildVoiceRuntime.js` for:
+  - cloud STT start/recording/transcribe success + failure,
+  - empty-audio/empty-transcript outcomes,
+  - microphone permission-denied paths,
+  - browser STT start/error/unavailable states.
+- Instrumented playback runtime in `app/child/hooks/voice/useVoicePlayback.js` for:
+  - cloud TTS attempt/success,
+  - fallback reasons (cooldown/request failure/provider unstable),
+  - browser fallback used,
+  - autoplay blocked, playback error, and no-fallback-unavailable outcomes.
+- Refactored `src/server/speech-provider.js` telemetry to emit dashboard-friendly timeout/retry/success metrics with `operation` + `provider` dimensions.
+- Added route-level voice metrics in:
+  - `app/api/session/[id]/speech/transcribe/route.js`
+  - `app/api/session/[id]/speech/synthesize/route.js`
+  including success/failed/rate-limited/auth-failed outcomes and request duration.
+- Updated docs/env:
+  - `.env.example` with `SPEECH_TELEMETRY_DISABLED` and `NEXT_PUBLIC_VOICE_TELEMETRY_DISABLED`.
+  - `docs/API_CONTRACT.md` voice telemetry schema and metric list.
+  - `README.md` optional voice telemetry env references.
+  - `docs/PRODUCT_BACKLOG.md` marked item `8)` done with resolution notes.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/src/lib/voice-telemetry.js`
+- `/Users/bborn/home-school-helper/src/server/voice-telemetry.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/useChildVoiceRuntime.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/voice/useVoicePlayback.js`
+- `/Users/bborn/home-school-helper/src/server/speech-provider.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/speech/transcribe/route.js`
+- `/Users/bborn/home-school-helper/app/api/session/[id]/speech/synthesize/route.js`
+- `/Users/bborn/home-school-helper/tests/voice-telemetry.test.js`
+- `/Users/bborn/home-school-helper/tests/speech-provider.test.js`
+- `/Users/bborn/home-school-helper/tests/speech-routes.test.js`
+- `/Users/bborn/home-school-helper/tests/dynamic-route-params.test.js`
+- `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+- `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`
+- `/Users/bborn/home-school-helper/.env.example`
+- `/Users/bborn/home-school-helper/README.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `node --test tests/voice-telemetry.test.js tests/speech-provider.test.js tests/speech-routes.test.js`
+- Result: pass (15 tests, 0 failures).
+- Command: `npm run test:unit`
+- Result: pass (111 tests, 0 failures).
+- Command: `npm run build`
+- Result: pass.
+- Command: `npm run test:e2e`
+- Result: pass (3 Playwright tests, 0 failures).
+
+### Open Risks / Issues
+- Voice fallback/autoplay metrics are currently client-log based (`[voice-client]`); centralized client-log ingestion is still required to graph them in production dashboards.
+- Playwright startup still emits non-functional `NO_COLOR` vs `FORCE_COLOR` warnings.
+
+### Next Steps (Ordered)
+1. Execute backlog item `9)` parent action UX hardening.
+2. Execute backlog item `10)` child voice runtime decomposition.
+3. Execute backlog item `14)` dynamic route handler boilerplate consolidation.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-18T21:15:59Z - Codex
 
 ### Scope Worked

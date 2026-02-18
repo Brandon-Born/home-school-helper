@@ -3,6 +3,7 @@
 import { useCallback, useRef } from "react";
 import { isChildAuthFailure } from "../../../../src/lib/auth-failures.js";
 import { ApiRequestError } from "../../../../src/lib/http.js";
+import { getVoiceErrorDetails, logClientVoiceMetric } from "../../../../src/lib/voice-telemetry.js";
 import { CLOUD_TTS_COOLDOWN_MS, shouldCooldownCloudTts } from "./cloud-tts-policy.js";
 
 const CLOUD_TTS_CLIENT_TIMEOUT_MS = 6500;
@@ -55,12 +56,20 @@ export function useVoicePlayback({
       };
       utterance.onerror = () => {
         setIsPlayingSpeech(false);
+        logClientVoiceMetric(
+          "browser_tts_playback_error",
+          {
+            transport: "browser_tts",
+            session_id: sessionAccess?.session_id ?? null
+          },
+          { level: "warn" }
+        );
         setNotice("Audio could not play. You can read the reply below.");
       };
       window.speechSynthesis?.speak(utterance);
       return true;
     },
-    [setIsPlayingSpeech, setNotice, speechSupportRef]
+    [sessionAccess?.session_id, setIsPlayingSpeech, setNotice, speechSupportRef]
   );
 
   const playCloudTts = useCallback(
@@ -73,6 +82,10 @@ export function useVoicePlayback({
       const timeoutId = window.setTimeout(() => {
         controller.abort();
       }, CLOUD_TTS_CLIENT_TIMEOUT_MS);
+      logClientVoiceMetric("cloud_tts_attempt", {
+        transport: "cloud_tts",
+        session_id: sessionAccess.session_id
+      });
 
       let response;
       try {
@@ -121,13 +134,33 @@ export function useVoicePlayback({
       };
       audio.onerror = () => {
         revokePlaybackResources();
+        logClientVoiceMetric(
+          "cloud_tts_audio_element_error",
+          {
+            transport: "cloud_tts",
+            session_id: sessionAccess.session_id
+          },
+          { level: "warn" }
+        );
         setNotice("Audio could not play. You can read the reply below.");
       };
 
       try {
         await audio.play();
+        logClientVoiceMetric("cloud_tts_success", {
+          transport: "cloud_tts",
+          session_id: sessionAccess.session_id
+        });
       } catch {
         revokePlaybackResources();
+        logClientVoiceMetric(
+          "tts_autoplay_blocked",
+          {
+            transport: "cloud_tts",
+            session_id: sessionAccess.session_id
+          },
+          { level: "warn" }
+        );
         throw new Error("Audio playback is blocked right now. You can read the reply below.");
       }
     },
@@ -153,8 +186,23 @@ export function useVoicePlayback({
           cloudTtsFallbackNoticeShownRef.current = false;
           return;
         }
+        if (speechSupportRef.current.cloudTts) {
+          logClientVoiceMetric("cloud_tts_fallback", {
+            reason: "cooldown_active",
+            transport: "browser_tts",
+            session_id: sessionAccess?.session_id ?? null
+          });
+        }
       } catch (speechError) {
         if (isChildAuthFailure(speechError)) {
+          logClientVoiceMetric(
+            "voice_session_invalid",
+            {
+              session_id: sessionAccess?.session_id ?? null,
+              ...getVoiceErrorDetails(speechError)
+            },
+            { level: "warn" }
+          );
           onSessionInvalid("Your lesson code expired. Please ask your parent for a new code.");
           return;
         }
@@ -165,17 +213,50 @@ export function useVoicePlayback({
             setNotice("Audio service is unstable. Using backup voice for a bit.");
             cloudTtsFallbackNoticeShownRef.current = true;
           }
+          logClientVoiceMetric(
+            "cloud_tts_fallback",
+            {
+              reason: "provider_unstable",
+              transport: "browser_tts",
+              session_id: sessionAccess?.session_id ?? null,
+              ...getVoiceErrorDetails(speechError)
+            },
+            { level: "warn" }
+          );
         } else {
+          logClientVoiceMetric(
+            "cloud_tts_fallback",
+            {
+              reason: "request_failed",
+              transport: "browser_tts",
+              session_id: sessionAccess?.session_id ?? null,
+              ...getVoiceErrorDetails(speechError)
+            },
+            { level: "warn" }
+          );
           setNotice("Audio had an issue. Switching to backup voice.");
         }
       }
 
       const usedBrowserFallback = speakTextFallback(text);
       if (!usedBrowserFallback) {
+        logClientVoiceMetric(
+          "tts_unavailable",
+          {
+            reason: "no_browser_fallback",
+            session_id: sessionAccess?.session_id ?? null
+          },
+          { level: "warn" }
+        );
         setNotice("Audio is unavailable right now. You can read the reply below.");
+      } else if (speechSupportRef.current.cloudTts) {
+        logClientVoiceMetric("browser_tts_fallback_used", {
+          transport: "browser_tts",
+          session_id: sessionAccess?.session_id ?? null
+        });
       }
     },
-    [onSessionInvalid, playCloudTts, setNotice, speakTextFallback, speechSupportRef]
+    [onSessionInvalid, playCloudTts, sessionAccess?.session_id, setNotice, speakTextFallback, speechSupportRef]
   );
 
   const resetPlayback = useCallback(() => {

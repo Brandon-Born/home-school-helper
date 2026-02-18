@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { isChildAuthFailure } from "../../../src/lib/auth-failures.js";
 import { apiFormRequest } from "../../../src/lib/http.js";
+import { getVoiceErrorDetails, logClientVoiceMetric } from "../../../src/lib/voice-telemetry.js";
 import { initializeSpokenAssistantMessageIds, takeFreshAssistantMessages } from "./voice/assistant-messages.js";
 import { classifySpeechFailure } from "./voice/speech-errors.js";
 import { detectSpeechSupport, getSpeechRecognitionCtor } from "./voice/speech-support.js";
@@ -148,11 +149,23 @@ export function useChildVoiceRuntime({
 
     const transcript = String(payload?.transcript || "").trim();
     if (!transcript) {
+      logClientVoiceMetric(
+        "cloud_stt_empty_transcript",
+        {
+          transport: "cloud_stt",
+          session_id: sessionAccess.session_id
+        },
+        { level: "warn" }
+      );
       throw new Error("We could not hear that clearly. Try again closer to the microphone.");
     }
 
     const baseInput = studentInputRef.current.trim();
     setStudentInput([baseInput, transcript].filter(Boolean).join(" "));
+    logClientVoiceMetric("cloud_stt_transcribe_success", {
+      transport: "cloud_stt",
+      session_id: sessionAccess.session_id
+    });
   }
 
   async function startCloudVoiceCapture() {
@@ -181,6 +194,14 @@ export function useChildVoiceRuntime({
       };
 
       recorder.onerror = () => {
+        logClientVoiceMetric(
+          "cloud_stt_recording_error",
+          {
+            transport: "cloud_stt",
+            session_id: sessionAccess?.session_id ?? null
+          },
+          { level: "warn" }
+        );
         setError("Recording failed. Hold to talk and try again.");
         setNotice("");
         setIsCloudRecording(false);
@@ -199,6 +220,14 @@ export function useChildVoiceRuntime({
         }
 
         if (chunks.length === 0) {
+          logClientVoiceMetric(
+            "cloud_stt_empty_audio",
+            {
+              transport: "cloud_stt",
+              session_id: sessionAccess?.session_id ?? null
+            },
+            { level: "warn" }
+          );
           return;
         }
 
@@ -210,10 +239,28 @@ export function useChildVoiceRuntime({
           setNotice("Voice captured. Tap Send when ready.");
         } catch (speechError) {
           if (isChildAuthFailure(speechError)) {
+            logClientVoiceMetric(
+              "voice_session_invalid",
+              {
+                transport: "cloud_stt",
+                session_id: sessionAccess?.session_id ?? null,
+                ...getVoiceErrorDetails(speechError)
+              },
+              { level: "warn" }
+            );
             onSessionInvalid("Your lesson code expired. Please ask your parent for a new code.");
             return;
           }
 
+          logClientVoiceMetric(
+            "cloud_stt_transcribe_failed",
+            {
+              transport: "cloud_stt",
+              session_id: sessionAccess?.session_id ?? null,
+              ...getVoiceErrorDetails(speechError)
+            },
+            { level: "warn" }
+          );
           setError(classifySpeechFailure(speechError, "We could not turn that into text. Hold to talk and try again."));
           setNotice("");
         } finally {
@@ -222,10 +269,27 @@ export function useChildVoiceRuntime({
       };
 
       recorder.start();
+      logClientVoiceMetric("cloud_stt_recording_start", {
+        transport: "cloud_stt",
+        session_id: sessionAccess?.session_id ?? null
+      });
       setError("");
       setNotice("Listening. Release to transcribe.");
       setIsCloudRecording(true);
-    } catch {
+    } catch (captureError) {
+      const denied =
+        captureError && typeof captureError === "object"
+          ? captureError.name === "NotAllowedError" || captureError.name === "PermissionDeniedError"
+          : false;
+      logClientVoiceMetric(
+        denied ? "microphone_permission_denied" : "cloud_stt_start_failed",
+        {
+          transport: "cloud_stt",
+          session_id: sessionAccess?.session_id ?? null,
+          ...getVoiceErrorDetails(captureError)
+        },
+        { level: "warn" }
+      );
       setError("Please allow microphone access to use voice input.");
       setNotice("");
     }
@@ -238,6 +302,14 @@ export function useChildVoiceRuntime({
 
     const RecognitionCtor = getSpeechRecognitionCtor();
     if (!RecognitionCtor) {
+      logClientVoiceMetric(
+        "browser_stt_unavailable",
+        {
+          transport: "browser_stt",
+          session_id: sessionAccess?.session_id ?? null
+        },
+        { level: "warn" }
+      );
       setError("Voice input is not available in this browser.");
       return;
     }
@@ -270,8 +342,26 @@ export function useChildVoiceRuntime({
 
     recognition.onerror = (event) => {
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        logClientVoiceMetric(
+          "microphone_permission_denied",
+          {
+            transport: "browser_stt",
+            session_id: sessionAccess?.session_id ?? null,
+            speech_error: event.error
+          },
+          { level: "warn" }
+        );
         setError("Microphone permission is off. Turn it on to use voice input.");
       } else {
+        logClientVoiceMetric(
+          "browser_stt_error",
+          {
+            transport: "browser_stt",
+            session_id: sessionAccess?.session_id ?? null,
+            speech_error: event.error
+          },
+          { level: "warn" }
+        );
         setError(`Voice input stopped: ${event.error}`);
       }
       setNotice("");
@@ -289,9 +379,22 @@ export function useChildVoiceRuntime({
       setNotice("Listening. Release to stop.");
       setIsListening(true);
       recognition.start();
-    } catch {
+      logClientVoiceMetric("browser_stt_start", {
+        transport: "browser_stt",
+        session_id: sessionAccess?.session_id ?? null
+      });
+    } catch (captureError) {
       recognitionRef.current = null;
       setIsListening(false);
+      logClientVoiceMetric(
+        "browser_stt_start_failed",
+        {
+          transport: "browser_stt",
+          session_id: sessionAccess?.session_id ?? null,
+          ...getVoiceErrorDetails(captureError)
+        },
+        { level: "warn" }
+      );
       setError("Could not start voice input.");
       setNotice("");
     }

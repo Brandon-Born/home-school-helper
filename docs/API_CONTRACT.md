@@ -439,6 +439,16 @@ Rate limit:
 Auth behavior:
 - Requires valid child session bearer token for this session.
 
+Telemetry:
+- Server voice events log under `[voice-server]` with dashboard-friendly metric rows:
+  - Shape: `{ "event": "voice_metric", "metric": "<name>", "count": 1, ...dimensions, "at": "<iso>" }`
+  - Core metrics: `speech_request_success`, `speech_request_retry`, `speech_provider_timeout`, `speech_route_success`, `speech_route_rate_limited`, `speech_route_auth_failed`, `speech_route_failed`.
+- Client voice events log under `[voice-client]` with the same metric row shape.
+  - Core metrics: `cloud_stt_transcribe_success`, `cloud_stt_transcribe_failed`, `cloud_tts_fallback`, `browser_tts_fallback_used`, `microphone_permission_denied`, `tts_autoplay_blocked`, `tts_unavailable`.
+- Optional env toggles:
+  - `SPEECH_TELEMETRY_DISABLED=1` disables server voice telemetry logs.
+  - `NEXT_PUBLIC_VOICE_TELEMETRY_DISABLED=1` disables client voice telemetry logs.
+
 ### Request
 - `multipart/form-data`
 - field `audio`: recorded audio file/blob.

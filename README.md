@@ -37,7 +37,7 @@ npm run dev                # http://localhost:3000
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-only) |
 
-Optional variables for Anthropic tuning (`ANTHROPIC_MAX_TOKENS`, `ANTHROPIC_TEMPERATURE`, `TUTOR_SYSTEM_PROMPT_VERSION`), stream telemetry/transport (`STREAM_TELEMETRY_DISABLED`, `NEXT_PUBLIC_STREAM_TELEMETRY_DISABLED`, `STREAM_TRANSPORT_MODE`), and Google Speech integration are documented in `.env.example`.
+Optional variables for Anthropic tuning (`ANTHROPIC_MAX_TOKENS`, `ANTHROPIC_TEMPERATURE`, `TUTOR_SYSTEM_PROMPT_VERSION`), stream telemetry/transport (`STREAM_TELEMETRY_DISABLED`, `NEXT_PUBLIC_STREAM_TELEMETRY_DISABLED`, `STREAM_TRANSPORT_MODE`), voice telemetry (`SPEECH_TELEMETRY_DISABLED`, `NEXT_PUBLIC_VOICE_TELEMETRY_DISABLED`), and Google Speech integration are documented in `.env.example`.
 
 For non-interactive Playwright auth in local/test, configure:
 - `ENABLE_TEST_AUTH_BOOTSTRAP=1`

@@ -180,7 +180,7 @@ Resolution notes:
   - `app/child/hooks/useChildConsole.js`
 
 ### 8) Voice observability and fallback-rate metrics
-Status: Open
+Status: Done (2026-02-18)
 Problem:
 - Limited visibility into cloud TTS/STT failures, timeout fallback rate, and playback errors.
 Scope:
@@ -188,6 +188,18 @@ Scope:
 - Add dashboard-friendly log schema.
 Success metric:
 - Voice slowdown/failure complaints can be traced to concrete metrics quickly.
+Resolution notes:
+- Added shared voice telemetry utilities with structured error extraction and metric logging in:
+  - `src/lib/voice-telemetry.js` (client)
+  - `src/server/voice-telemetry.js` (server)
+- Instrumented child voice capture/playback lifecycle to emit counter metrics for:
+  - cloud STT success/failure,
+  - cloud TTS fallback usage,
+  - microphone permission denied,
+  - autoplay and browser playback failures.
+- Upgraded speech provider reliability telemetry to emit server-side timeout/retry/success metrics with provider/operation dimensions.
+- Added speech route outcome metrics (`success`, `failed`, `rate_limited`, `auth_failed`) with duration/session dimensions.
+- Added telemetry regression coverage in `tests/voice-telemetry.test.js` and extended provider telemetry assertions in `tests/speech-provider.test.js`.
 
 ### 9) Parent action UX hardening
 Status: Open

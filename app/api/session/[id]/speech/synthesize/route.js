@@ -4,20 +4,27 @@ import { synthesizeSpeech } from "../../../../../../src/server/speech-provider.j
 import { enforceRateLimit } from "../../../../../../src/server/rate-limit.js";
 import { buildRateLimitPolicy } from "../../../../../../src/server/rate-limit-policies.js";
 import { parseSpeechSynthesizeInput } from "../../../../../../src/server/speech-route-validators.js";
+import {
+  getServerVoiceErrorDetails,
+  logServerVoiceMetric,
+  logServerVoiceTelemetry
+} from "../../../../../../src/server/voice-telemetry.js";
 
 export function createSpeechSynthesizePostHandler(dependencies = {}) {
   const applyRateLimit = dependencies.enforceRateLimit ?? enforceRateLimit;
   const requireChild = dependencies.requireChildSessionContext ?? requireChildSessionContext;
   const synthesize = dependencies.synthesizeSpeech ?? synthesizeSpeech;
   const onError = dependencies.handleRouteError ?? handleRouteError;
+  const logSpeechEvent = dependencies.logSpeechEvent ?? logServerVoiceTelemetry;
   const logFailure =
     dependencies.logSpeechFailure ??
     ((payload) => {
-      console.warn("[speech-route]", JSON.stringify(payload));
+      logServerVoiceMetric("speech_route_failed", payload, { level: "warn" });
     });
 
   return async function POST(request, { params }) {
     let sessionId = "unknown";
+    const startedAtMs = Date.now();
     try {
       ({ id: sessionId } = await params);
       await applyRateLimit(request, buildRateLimitPolicy("speechSynthesize", sessionId));
@@ -25,6 +32,11 @@ export function createSpeechSynthesizePostHandler(dependencies = {}) {
       await requireChild(request, sessionId);
       const input = await parseSpeechSynthesizeInput(request);
       const audioBuffer = await synthesize(input);
+      logServerVoiceMetric("speech_route_success", {
+        route: "speech_synthesize",
+        session_id: sessionId,
+        duration_ms: Date.now() - startedAtMs
+      });
 
       return new Response(audioBuffer, {
         status: 200,
@@ -34,6 +46,24 @@ export function createSpeechSynthesizePostHandler(dependencies = {}) {
         }
       });
     } catch (error) {
+      const payload = {
+        route: "speech_synthesize",
+        session_id: sessionId,
+        duration_ms: Date.now() - startedAtMs,
+        ...getServerVoiceErrorDetails(error)
+      };
+      logSpeechEvent("warn", {
+        event: "speech_route_request",
+        status: "failed",
+        ...payload
+      });
+      if (payload.error_code === "rate_limited") {
+        logServerVoiceMetric("speech_route_rate_limited", payload, { level: "warn" });
+      } else if (payload.error_code === "invalid_child_session_token" || payload.error_code === "missing_authorization") {
+        logServerVoiceMetric("speech_route_auth_failed", payload, { level: "warn" });
+      } else {
+        logServerVoiceMetric("speech_route_failed", payload, { level: "warn" });
+      }
       logFailure({
         route: "speech_synthesize",
         session_id: sessionId,

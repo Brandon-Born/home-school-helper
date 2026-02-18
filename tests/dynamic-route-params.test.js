@@ -10,6 +10,12 @@ import { createParentNudgePostHandler } from "../app/api/session/[id]/parent-nud
 import { createOverridePostHandler } from "../app/api/session/[id]/override/route.js";
 import { createAudioFormRequest, createJsonRequest } from "./helpers/route-test-helpers.js";
 
+const originalSpeechTelemetrySetting = process.env.SPEECH_TELEMETRY_DISABLED;
+process.env.SPEECH_TELEMETRY_DISABLED = "1";
+test.after(() => {
+  process.env.SPEECH_TELEMETRY_DISABLED = originalSpeechTelemetrySetting;
+});
+
 test("dynamic route handlers accept promised params for messages and stream routes", async () => {
   const messagesHandler = createMessagesGetHandler({
     resolveSessionViewerContext: async (_request, sessionId) => ({ visibility: sessionId }),

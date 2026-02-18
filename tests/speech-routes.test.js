@@ -10,9 +10,16 @@ import {
   createJsonRequest
 } from "./helpers/route-test-helpers.js";
 
+const originalSpeechTelemetrySetting = process.env.SPEECH_TELEMETRY_DISABLED;
+process.env.SPEECH_TELEMETRY_DISABLED = "1";
+test.after(() => {
+  process.env.SPEECH_TELEMETRY_DISABLED = originalSpeechTelemetrySetting;
+});
+
 test("createSpeechTranscribePostHandler surfaces speech provider failures", async () => {
   const handler = createSpeechTranscribePostHandler({
     enforceRateLimit: () => {},
+    logSpeechEvent: () => {},
     logSpeechFailure: () => {},
     requireChildSessionContext: async () => ({
       tokenRow: { child_id: "child_1" }
@@ -38,6 +45,7 @@ test("createSpeechTranscribePostHandler returns rate_limited when limiter reject
     enforceRateLimit: () => {
       throw new ApiError(429, "rate_limited", "Too many requests. Please try again shortly.");
     },
+    logSpeechEvent: () => {},
     logSpeechFailure: () => {}
   });
 
@@ -55,6 +63,7 @@ test("createSpeechTranscribePostHandler returns rate_limited when limiter reject
 test("createSpeechSynthesizePostHandler surfaces speech provider failures", async () => {
   const handler = createSpeechSynthesizePostHandler({
     enforceRateLimit: () => {},
+    logSpeechEvent: () => {},
     logSpeechFailure: () => {},
     requireChildSessionContext: async () => ({
       tokenRow: { child_id: "child_1" }
@@ -81,6 +90,7 @@ test("createSpeechSynthesizePostHandler returns rate_limited when limiter reject
     enforceRateLimit: () => {
       throw new ApiError(429, "rate_limited", "Too many requests. Please try again shortly.");
     },
+    logSpeechEvent: () => {},
     logSpeechFailure: () => {}
   });
 

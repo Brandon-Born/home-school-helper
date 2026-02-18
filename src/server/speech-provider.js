@@ -3,6 +3,7 @@ import {
   synthesizeWithGoogleTts,
   transcribeWithGoogleSpeech
 } from "./google-speech.js";
+import { getServerVoiceErrorDetails, logServerVoiceMetric, logServerVoiceTelemetry } from "./voice-telemetry.js";
 
 const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
 const RETRYABLE_CODES = new Set([
@@ -56,18 +57,8 @@ function getReliabilityConfig(env = process.env, operation) {
       defaults.retryBaseDelayMs,
       25,
       3000
-    ),
-    telemetryDisabled: String(env.SPEECH_TELEMETRY_DISABLED || "").trim() === "1"
+    )
   };
-}
-
-function logSpeechTelemetry(level, payload, config) {
-  if (config.telemetryDisabled) {
-    return;
-  }
-
-  const logger = level === "error" ? console.error : level === "warn" ? console.warn : console.info;
-  logger("[speech]", JSON.stringify(payload));
 }
 
 function normalizeProviderError(error, { operation, timeoutMs }) {
@@ -106,6 +97,7 @@ async function invokeSpeechOperation(provider, operation, input, env = process.e
   if (typeof provider?.[operation] !== "function") {
     throw new ApiError(500, "speech_provider_config_invalid", `Speech provider does not support ${operation}.`);
   }
+  const providerName = String(provider?.name || "unknown");
 
   for (let attempt = 0; attempt <= config.maxRetries; attempt += 1) {
     const startedAtMs = Date.now();
@@ -121,19 +113,19 @@ async function invokeSpeechOperation(provider, operation, input, env = process.e
       });
       clearTimeout(timeout);
 
-      if (attempt > 0) {
-        logSpeechTelemetry(
-          "info",
-          {
-            event: "speech_request",
-            operation,
-            status: "ok_after_retry",
-            attempt: attempt + 1,
-            duration_ms: Date.now() - startedAtMs
-          },
-          config
-        );
-      }
+      const durationMs = Date.now() - startedAtMs;
+      logServerVoiceMetric(
+        "speech_request_success",
+        {
+          operation,
+          provider: providerName,
+          status: attempt > 0 ? "ok_after_retry" : "ok",
+          attempt: attempt + 1,
+          retries_used: attempt,
+          duration_ms: durationMs
+        },
+        { env }
+      );
 
       return result;
     } catch (rawError) {
@@ -143,26 +135,50 @@ async function invokeSpeechOperation(provider, operation, input, env = process.e
         timeoutMs: config.timeoutMs
       });
       const shouldRetry = attempt < config.maxRetries && isRetryableError(error);
+      const durationMs = Date.now() - startedAtMs;
 
-      logSpeechTelemetry(
+      logServerVoiceTelemetry(
         shouldRetry ? "warn" : "error",
         {
           event: "speech_request",
           operation,
+          provider: providerName,
           status: shouldRetry ? "retrying" : "failed",
           attempt: attempt + 1,
-          duration_ms: Date.now() - startedAtMs,
-          error_code: error.code,
-          error_status: error.status
+          retries_used: attempt,
+          duration_ms: durationMs,
+          ...getServerVoiceErrorDetails(error)
         },
-        config
+        { env }
       );
+      if (error.code === "speech_provider_timeout") {
+        logServerVoiceMetric(
+          "speech_provider_timeout",
+          {
+            operation,
+            provider: providerName,
+            attempt: attempt + 1
+          },
+          { level: "warn", env }
+        );
+      }
 
       if (!shouldRetry) {
         throw error;
       }
 
       const retryDelayMs = Math.min(config.retryBaseDelayMs * 2 ** attempt, 2000);
+      logServerVoiceMetric(
+        "speech_request_retry",
+        {
+          operation,
+          provider: providerName,
+          attempt: attempt + 1,
+          retry_delay_ms: retryDelayMs,
+          ...getServerVoiceErrorDetails(error)
+        },
+        { level: "warn", env }
+      );
       await sleep(retryDelayMs);
     }
   }
