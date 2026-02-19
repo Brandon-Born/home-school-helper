@@ -52,7 +52,6 @@ Mitigation: server-only LLM module and env validation.
 5. Document in decisions log and handoff log.
 
 ## Open Compliance Work
-- Formal parental consent records and policy text.
-- Data export and deletion endpoint UX.
-- Legal review before production launch.
-- Distributed/global rate limiting (current implementation is in-process baseline per runtime instance).
+- COPPA consent/export/deletion implementation is tracked in `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md` and must be completed before production launch.
+- Legal review and provider written-assurance signoff are required before production launch.
+- Configure `RATE_LIMIT_BACKEND=supabase` in deployed environments to require shared/global limits; keep `auto` only for local/dev fallback.

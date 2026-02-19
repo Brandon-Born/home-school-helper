@@ -5,6 +5,7 @@ import { AuthPanel } from "./components/AuthPanel.js";
 import { ChildListPanel } from "./components/ChildListPanel.js";
 import { SessionControlPanel } from "./components/SessionControlPanel.js";
 import { TranscriptPanel } from "./components/TranscriptPanel.js";
+import { StatusAlert } from "../components/feedback/StatusAlert.js";
 import { useParentConsole } from "./hooks/useParentConsole.js";
 import { AppShell } from "../components/layout/AppShell.js";
 
@@ -19,7 +20,7 @@ export default function ParentPage() {
       title="Your command center"
       subtitle="Set up lessons, share a code, and quietly guide the session while your child learns."
     >
-      {state.error ? <div className="alert alert--error">{state.error}</div> : null}
+      <StatusAlert tone="error" message={state.error} />
 
       <AuthPanel
         session={state.session}

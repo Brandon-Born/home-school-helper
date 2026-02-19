@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { StatusAlert } from "../../components/feedback/StatusAlert.js";
 
 function timeAgo(isoString) {
     if (!isoString) return "recently";
@@ -53,13 +54,13 @@ export function ActiveSessionsPanel({
     };
 
     return (
-        <section className="card" data-testid="active-sessions-panel">
+        <section className="card" data-testid="active-sessions-panel" aria-busy={loading}>
             <h2 className="section-title">Active sessions</h2>
-            {actionAlert ? (
-                <div className={`alert alert--${actionAlert.tone}`} style={{ marginBottom: 10 }}>
-                    {actionAlert.message}
-                </div>
-            ) : null}
+            <StatusAlert
+                tone={actionAlert?.tone}
+                message={actionAlert?.message}
+                style={{ marginBottom: 10 }}
+            />
 
             <div className="active-sessions-list">
                 {activeSessions.map((s) => {
@@ -126,12 +127,13 @@ export function ActiveSessionsPanel({
                                     🔄 New code
                                 </button>
                                 {confirmEndId === s.session_id ? (
-                                    <span className="active-session-card__confirm">
+                                    <span id={`active-session-end-confirm-${s.session_id}`} className="active-session-card__confirm">
                                         <span className="section-muted" style={{ fontSize: "0.82rem" }}>End?</span>
                                         <button
                                             type="button"
                                             className="btn--icon btn--icon-danger"
                                             data-testid={`active-session-end-confirm-${s.session_id}`}
+                                            aria-label={`Confirm end session for ${s.child_name}`}
                                             disabled={loading}
                                             onClick={() => handleConfirmEnd(s.session_id)}
                                         >
@@ -140,6 +142,7 @@ export function ActiveSessionsPanel({
                                         <button
                                             type="button"
                                             className="btn--icon"
+                                            aria-label={`Cancel ending session for ${s.child_name}`}
                                             disabled={loading}
                                             onClick={() => setConfirmEndId(null)}
                                         >
@@ -151,6 +154,9 @@ export function ActiveSessionsPanel({
                                         type="button"
                                         className="btn btn--ghost btn--sm btn--danger-text"
                                         data-testid={`active-session-end-${s.session_id}`}
+                                        aria-label={`End session for ${s.child_name}`}
+                                        aria-expanded={confirmEndId === s.session_id}
+                                        aria-controls={`active-session-end-confirm-${s.session_id}`}
                                         disabled={loading}
                                         onClick={() => setConfirmEndId(s.session_id)}
                                     >

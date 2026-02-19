@@ -358,6 +358,11 @@
   background: color-mix(in oklab, var(--role-accent) 6%, var(--surface-muted) 94%);
 }
 
+.child-card:focus-visible {
+  border-color: color-mix(in oklab, var(--role-accent) 55%, var(--border) 45%);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--role-accent) 18%, transparent);
+}
+
 .child-card.is-selected {
   border-color: color-mix(in oklab, var(--role-accent) 50%, var(--border) 50%);
   background: color-mix(in oklab, var(--role-accent) 10%, var(--surface) 90%);
@@ -417,6 +422,10 @@
 
 .btn--icon:hover {
   background: color-mix(in oklab, var(--text-muted) 12%, transparent);
+}
+
+.btn--icon:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--role-accent) 20%, transparent);
 }
 
 .btn--icon-danger {

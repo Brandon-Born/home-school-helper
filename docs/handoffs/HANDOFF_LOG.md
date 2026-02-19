@@ -4,6 +4,128 @@ Notes:
 - Compacted on 2026-02-18 to a rolling window.
 - Keep detailed entries for current context; older granular history is summarized below.
 
+## 2026-02-19T16:00:58Z - Codex
+
+### Scope Worked
+- Completed backlog item `11)` accessibility pass (parent + child), including keyboard improvements, ARIA/state semantics, focus handling after async alerts, and transcript screen-reader announcements.
+
+### Last Agent Accomplished
+- Added a shared alert component with focus and live-region semantics:
+  - `app/components/feedback/StatusAlert.js`
+- Upgraded transcript rendering for assistive tech:
+  - `app/components/transcript/TranscriptFeed.js`
+  - added `role="log"`/`aria-live` behavior and concise new-message announcements.
+- Improved parent-side accessibility and dynamic-state semantics:
+  - `app/parent/page.js`
+  - `app/parent/components/ChildListPanel.js`
+  - `app/parent/components/ChildProfilePanel.js`
+  - `app/parent/components/ActiveSessionsPanel.js`
+  - `app/parent/components/SessionControlPanel.js`
+  - `app/parent/components/TranscriptPanel.js`
+- Improved child-side accessibility and keyboard interaction:
+  - `app/child/page.js`
+  - `app/child/components/JoinSessionPanel.js`
+  - `app/child/components/TutorComposerPanel.js`
+  - `app/child/components/SessionStatusPanel.js`
+  - added keyboard-accessible voice control behavior and status associations.
+- Expanded shared form/input flexibility for accessibility attributes:
+  - `app/components/forms/FormFields.js`
+- Added global and component-level accessibility styles:
+  - `app/styles/base.css` (`.sr-only`)
+  - `app/styles/components.css` (focus-visible states for custom interactive controls)
+- Finalized Playwright env-warning suppression:
+  - `scripts/run-playwright.mjs`
+  - if both color env vars are present, unset `NO_COLOR` to avoid noisy warning when Playwright injects `FORCE_COLOR`.
+- Removed completed backlog item `11)` from:
+  - `docs/PRODUCT_BACKLOG.md`
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/components/feedback/StatusAlert.js`
+- `/Users/bborn/home-school-helper/app/components/transcript/TranscriptFeed.js`
+- `/Users/bborn/home-school-helper/app/components/forms/FormFields.js`
+- `/Users/bborn/home-school-helper/app/parent/page.js`
+- `/Users/bborn/home-school-helper/app/child/page.js`
+- `/Users/bborn/home-school-helper/app/parent/components/ChildListPanel.js`
+- `/Users/bborn/home-school-helper/app/parent/components/ChildProfilePanel.js`
+- `/Users/bborn/home-school-helper/app/parent/components/ActiveSessionsPanel.js`
+- `/Users/bborn/home-school-helper/app/parent/components/SessionControlPanel.js`
+- `/Users/bborn/home-school-helper/app/parent/components/TranscriptPanel.js`
+- `/Users/bborn/home-school-helper/app/child/components/JoinSessionPanel.js`
+- `/Users/bborn/home-school-helper/app/child/components/TutorComposerPanel.js`
+- `/Users/bborn/home-school-helper/app/child/components/SessionStatusPanel.js`
+- `/Users/bborn/home-school-helper/app/styles/base.css`
+- `/Users/bborn/home-school-helper/app/styles/components.css`
+- `/Users/bborn/home-school-helper/scripts/run-playwright.mjs`
+- `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm run test:unit`
+- Result: pass (130 tests, 0 failures).
+- Command: `npm run test:e2e`
+- Result: pass (default suite + transport matrix).
+- Command: `NO_COLOR=1 FORCE_COLOR=1 node scripts/run-playwright.mjs tests/playwright/parent-auth-bootstrap.spec.js`
+- Result: pass; no `NO_COLOR`/`FORCE_COLOR` warning emitted.
+
+### Open Risks / Issues
+- Accessibility pass covered high-impact parent/child flows, but there is still no automated a11y audit tooling (for example axe) in CI.
+- Remaining open backlog items are `12)` performance for long sessions and `13)` product analytics baseline.
+
+### Next Steps (Ordered)
+1. Execute backlog item `12)` performance polish for long sessions (transcript virtualization/windowing).
+2. Execute backlog item `13)` product analytics baseline with privacy-safe events.
+
+### Blocking Questions
+- None.
+
+## 2026-02-19T15:52:07Z - Codex
+
+### Scope Worked
+- Fixed remaining non-backlog operational/documentation items and removed the lingering Playwright color-env warning path.
+
+### Last Agent Accomplished
+- Updated Playwright runner env handling to avoid `NO_COLOR` vs `FORCE_COLOR` warning noise:
+  - `scripts/run-playwright.mjs`
+  - when both are present, runner now unsets `FORCE_COLOR` so `NO_COLOR` is honored deterministically.
+- Refreshed stale non-backlog tracking docs so open work is accurate and consolidated:
+  - `docs/PROJECT_PLAN.md`:
+    - updated current-state date,
+    - added missing speech routes in implemented API list,
+    - replaced stale "Not yet implemented" bullets with current non-backlog items.
+  - `docs/START_HERE.md`:
+    - replaced stale stream-hook-expansion task with COPPA launch-plan tracking task.
+  - `docs/SECURITY_AND_COMPLIANCE.md`:
+    - replaced old open-compliance bullets with explicit COPPA plan linkage, legal/provider signoff requirement, and production rate-limit backend guidance.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/scripts/run-playwright.mjs`
+- `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
+- `/Users/bborn/home-school-helper/docs/START_HERE.md`
+- `/Users/bborn/home-school-helper/docs/SECURITY_AND_COMPLIANCE.md`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `NO_COLOR=1 FORCE_COLOR=1 node scripts/run-playwright.mjs --version`
+- Result: pass; outputs Playwright version without color-env warning.
+- Command: `npm run check:handoff`
+- Result: pass.
+- Command: `npm run check:env`
+- Result: fail (`Missing Google Speech environment variables: GOOGLE_SERVICE_ACCOUNT_JSON`).
+
+### Open Risks / Issues
+- Deployed-environment verification remains operational work (Supabase retention migration + Google Speech env checks) and was not executable from docs/scripts alone.
+- COPPA consent/export/deletion implementation remains deferred by plan and must be completed before production launch.
+- Local environment currently has partial Google Speech config (`GOOGLE_CLOUD_PROJECT_ID` present without `GOOGLE_SERVICE_ACCOUNT_JSON`), so cloud speech checks remain blocked until credential completion.
+
+### Next Steps (Ordered)
+1. Continue backlog items `11)`, `12)`, and `13)`.
+2. Verify transcript-retention migration and cron in each deployed Supabase environment.
+3. Verify Google Speech config and run child cloud voice end-to-end in each deployed environment.
+4. Execute `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md` before production launch freeze.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-18T23:38:50Z - Codex
 
 ### Scope Worked

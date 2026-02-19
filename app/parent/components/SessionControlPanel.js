@@ -1,5 +1,6 @@
 "use client";
 import { TextAreaField, TextField } from "../../components/forms/FormFields.js";
+import { StatusAlert } from "../../components/feedback/StatusAlert.js";
 
 export function SessionControlPanel({
   selectedChild,
@@ -23,18 +24,18 @@ export function SessionControlPanel({
   }
 
   return (
-    <section className="card">
+    <section className="card" aria-busy={loading}>
       <h2 className="section-title">
         Lesson for {selectedChild.first_name}
       </h2>
-      {sessionStartAlert ? (
-        <div className={`alert alert--${sessionStartAlert.tone}`} style={{ marginBottom: 10 }}>
-          {sessionStartAlert.message}
-        </div>
-      ) : null}
+      <StatusAlert
+        tone={sessionStartAlert?.tone}
+        message={sessionStartAlert?.message}
+        style={{ marginBottom: 10 }}
+      />
 
       {activeSession && activeSession.child_id === selectedChild.id ? (
-        <div className="card card--accent" data-testid="session-lesson-share-panel">
+        <div className="card card--accent" data-testid="session-lesson-share-panel" role="status" aria-live="polite">
           <p className="section-muted">Share this code with {selectedChild.first_name}:</p>
           <div className="join-code" data-testid="session-lesson-join-code">{activeSession.join_code}</div>
           <p className="section-muted" style={{ marginTop: 8, fontSize: "0.88rem" }}>
@@ -51,20 +52,22 @@ export function SessionControlPanel({
               Back to guided mode
             </button>
           </div>
-          {overrideAlert ? (
-            <div className={`alert alert--${overrideAlert.tone}`} style={{ marginTop: 10 }}>
-              {overrideAlert.message}
-            </div>
-          ) : null}
+          <StatusAlert
+            tone={overrideAlert?.tone}
+            message={overrideAlert?.message}
+            style={{ marginTop: 10 }}
+          />
         </div>
       ) : (
-        <form onSubmit={onStartSession} className="form-grid">
+        <form onSubmit={onStartSession} className="form-grid" aria-busy={loading}>
           <TextField
             id="daily-subjects"
             label="Today's subject"
             placeholder="Math"
             value={sessionForm.daily_subjects}
             onChange={(event) => setSessionForm((prev) => ({ ...prev, daily_subjects: event.target.value }))}
+            autoFocus
+            required
           />
           <TextAreaField
             id="parent-context"

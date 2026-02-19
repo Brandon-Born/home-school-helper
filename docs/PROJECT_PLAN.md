@@ -22,7 +22,7 @@ Deliver a web-based, mobile-friendly tutoring assistant for homeschool students 
 - Child identity: one-time join code, no child login.
 - Retention target: 30-day transcript retention, no raw audio storage.
 
-## 4. Current State (as of 2026-02-17)
+## 4. Current State (as of 2026-02-19)
 Implemented:
 - Baseline Next.js project structure.
 - Server config validation for Anthropic env vars.
@@ -41,6 +41,8 @@ Implemented:
   - `POST /api/session/:id/override`
   - `GET /api/session/:id/stream`
   - `POST /api/session/:id/manage`
+  - `POST /api/session/:id/speech/transcribe`
+  - `POST /api/session/:id/speech/synthesize`
 - Supabase migration and RLS policy SQL scaffold (`supabase/migrations/20260217040000_session_foundation.sql`).
 - Supabase migration applied and verified against remote project (`20260217040000`).
 - Transcript retention automation migration (`supabase/migrations/20260217193000_transcript_retention.sql`) with daily 30-day purge schedule.
@@ -53,10 +55,11 @@ Implemented:
 - Agent operations docs (`AGENT.md`) and handoff system.
 - CI guard for handoff log updates on runtime code changes.
 
-Not yet implemented:
-- Voice controls on parent surface (child cloud voice loop implemented).
-- Production-grade realtime event fan-out and client subscription wiring.
-- End-to-end tests and deployment hardening.
+Remaining non-backlog items:
+- Verify transcript retention migration (`20260217193000`) and cron job in each deployed Supabase environment.
+- Validate Google Speech STT/TTS configuration in each deployed environment.
+- COPPA-first consent/deletion/export flows and legal launch review (tracked in `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md`).
+- Optional parent-surface voice controls (child cloud voice loop is implemented).
 
 ## 5. Execution Roadmap
 
@@ -148,4 +151,4 @@ Required internal config module behavior:
 1. Execute the highest-priority open item in `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`.
 2. Validate Google Speech STT/TTS configuration in local/Vercel and run end-to-end child voice tests.
 3. Verify transcript retention migration (`20260217193000`) is applied in each deployed Supabase environment.
-4. Expand hook-level stream orchestration tests (`useSessionStream`, parent/child console reconnect/auth flows).
+4. Keep COPPA launch work deferred in `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md` until stabilization goals are met, then execute before production launch freeze.

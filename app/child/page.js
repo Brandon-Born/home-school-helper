@@ -4,6 +4,7 @@ import { JoinSessionPanel } from "./components/JoinSessionPanel.js";
 import { SessionStatusPanel } from "./components/SessionStatusPanel.js";
 import { TranscriptPanel } from "./components/TranscriptPanel.js";
 import { TutorComposerPanel } from "./components/TutorComposerPanel.js";
+import { StatusAlert } from "../components/feedback/StatusAlert.js";
 import { useChildConsole } from "./hooks/useChildConsole.js";
 import { AppShell } from "../components/layout/AppShell.js";
 
@@ -16,7 +17,7 @@ export default function ChildPage() {
       title="Hey there! 👋"
       subtitle="Type the code your parent gave you and let's get started."
     >
-      {state.error ? <div className="alert alert--error">{state.error}</div> : null}
+      <StatusAlert tone="error" message={state.error} />
 
       {!state.sessionAccess ? (
         <div className="console-centered">

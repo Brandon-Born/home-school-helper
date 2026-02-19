@@ -37,7 +37,7 @@ Stabilize cloud voice UX (Google STT V2 + Chirp 3), auth robustness, and launch-
 1. Pull the top open item from `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`.
 2. Verify transcript retention migration (`20260217193000_transcript_retention.sql`) is applied in each Supabase environment and cron job exists.
 3. Verify Google Speech env config in each environment (local/Vercel) and run child cloud voice flow end-to-end.
-4. Expand hook-level coverage for parent/child stream orchestration (reconnect, auth invalidation, optimistic merges).
+4. Keep COPPA launch work tracked in `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md` and execute before production launch freeze.
 
 ## Hard Rules
 - Never expose `ANTHROPIC_API_KEY` in client code.

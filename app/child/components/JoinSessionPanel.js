@@ -6,7 +6,7 @@ export function JoinSessionPanel({ joinCode, setJoinCode, deviceFingerprint, set
       <h2 className="section-title">Ready to learn? 📚</h2>
       <p className="section-muted">Type the code your parent gave you.</p>
 
-      <form onSubmit={onSubmit} className="form-grid">
+      <form onSubmit={onSubmit} className="form-grid" aria-busy={loading}>
         <div className="field">
           <label className="label" htmlFor="join-code">
             Your code
@@ -19,6 +19,7 @@ export function JoinSessionPanel({ joinCode, setJoinCode, deviceFingerprint, set
             onChange={(event) => setJoinCode(event.target.value)}
             autoComplete="off"
             autoFocus
+            required
           />
         </div>
         <div className="field">

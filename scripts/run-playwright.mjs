@@ -53,12 +53,23 @@ function loadDotEnvFiles() {
 
 function runPlaywright(args = [], envOverrides = {}) {
   const command = process.platform === "win32" ? "npx.cmd" : "npx";
+  const childEnv = {
+    ...process.env,
+    ...envOverrides
+  };
+  const hasNoColor = Boolean(String(childEnv.NO_COLOR || "").trim());
+  const hasForceColor = Boolean(String(childEnv.FORCE_COLOR || "").trim());
+
+  // Avoid noisy support-color warning when both are set.
+  // Playwright may inject FORCE_COLOR into spawned processes.
+  // If FORCE_COLOR is present, unset NO_COLOR to keep logs warning-free.
+  if (hasNoColor && hasForceColor) {
+    delete childEnv.NO_COLOR;
+  }
+
   const child = spawn(command, ["playwright", "test", ...args], {
     stdio: "inherit",
-    env: {
-      ...process.env,
-      ...envOverrides
-    }
+    env: childEnv
   });
 
   return new Promise((resolve, reject) => {

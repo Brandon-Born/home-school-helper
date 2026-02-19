@@ -27,12 +27,6 @@ How to use:
 
 ## P2 (Quality / Delight)
 
-### 11) Accessibility pass (parent + child)
-Status: Open
-Scope:
-- Keyboard navigation review, ARIA states on dynamic controls, focus management after async actions.
-- Ensure transcript updates are screen-reader friendly.
-
 ### 12) Performance polish for long sessions
 Status: Open
 Scope:

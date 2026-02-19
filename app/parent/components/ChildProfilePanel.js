@@ -1,16 +1,25 @@
 "use client";
 import { TextAreaField, TextField } from "../../components/forms/FormFields.js";
 
-export function ChildProfilePanel({ childForm, loading, onSubmit, onCancel, setChildForm }) {
+export function ChildProfilePanel({
+  childForm,
+  loading,
+  onSubmit,
+  onCancel,
+  setChildForm,
+  autoFocusFirstField = false
+}) {
   return (
     <div className="child-form-inline">
-      <form onSubmit={onSubmit} className="form-grid">
+      <form onSubmit={onSubmit} className="form-grid" aria-busy={loading}>
         <TextField
           id="child-name"
           label="First name"
           placeholder="Ava"
           value={childForm.child_name}
           onChange={(event) => setChildForm((prev) => ({ ...prev, child_name: event.target.value }))}
+          autoFocus={autoFocusFirstField}
+          required
         />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <TextField
@@ -22,6 +31,7 @@ export function ChildProfilePanel({ childForm, loading, onSubmit, onCancel, setC
             placeholder="10"
             value={childForm.age}
             onChange={(event) => setChildForm((prev) => ({ ...prev, age: event.target.value }))}
+            inputMode="numeric"
           />
           <TextField
             id="child-grade"

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
+import { StatusAlert } from "../../components/feedback/StatusAlert.js";
 import { ChildProfilePanel } from "./ChildProfilePanel.js";
 
 function childToForm(child) {
@@ -26,6 +27,7 @@ export function ChildListPanel({
     loading,
     actionAlert
 }) {
+    const childListHeadingId = useId();
     const [showAddForm, setShowAddForm] = useState(false);
     const [editingChildId, setEditingChildId] = useState(null);
     const [editForm, setEditForm] = useState(null);
@@ -66,20 +68,20 @@ export function ChildListPanel({
     };
 
     return (
-        <section className="card">
-            <h2 className="section-title">Your children</h2>
-            {actionAlert ? (
-                <div className={`alert alert--${actionAlert.tone}`} style={{ marginBottom: 10 }}>
-                    {actionAlert.message}
-                </div>
-            ) : null}
+        <section className="card" aria-busy={loading}>
+            <h2 id={childListHeadingId} className="section-title">Your children</h2>
+            <StatusAlert
+                tone={actionAlert?.tone}
+                message={actionAlert?.message}
+                style={{ marginBottom: 10 }}
+            />
 
             {children.length === 0 && !showAddForm ? (
                 <p className="section-muted">No children added yet — add one to get started.</p>
             ) : null}
 
             {children.length > 0 ? (
-                <div className="child-list">
+                <div className="child-list" role="listbox" aria-labelledby={childListHeadingId}>
                     {children.map((child) => (
                         <div key={child.id}>
                             {editingChildId === child.id ? (
@@ -90,6 +92,7 @@ export function ChildListPanel({
                                         onSubmit={handleSaveEdit}
                                         onCancel={handleCancelEdit}
                                         loading={loading}
+                                        autoFocusFirstField
                                     />
                                 </div>
                             ) : (
@@ -97,9 +100,19 @@ export function ChildListPanel({
                                     className={`child-card${selectedChildId === child.id ? " is-selected" : ""}`}
                                     data-testid={`child-card-${child.id}`}
                                     onClick={() => setSelectedChildId(child.id)}
-                                    role="button"
+                                    role="option"
+                                    aria-selected={selectedChildId === child.id}
+                                    aria-label={`${child.first_name} profile`}
                                     tabIndex={0}
-                                    onKeyDown={(e) => e.key === "Enter" && setSelectedChildId(child.id)}
+                                    onKeyDown={(e) => {
+                                        if (e.target !== e.currentTarget) {
+                                            return;
+                                        }
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            setSelectedChildId(child.id);
+                                        }
+                                    }}
                                 >
                                     <div className="child-card__header">
                                         <span className="child-card__name">{child.first_name}</span>
@@ -107,6 +120,7 @@ export function ChildListPanel({
                                             <button
                                                 type="button"
                                                 className="btn--icon"
+                                                aria-label={`Edit ${child.first_name}`}
                                                 title="Edit"
                                                 onClick={(e) => { e.stopPropagation(); handleStartEdit(child); }}
                                             >
@@ -117,6 +131,7 @@ export function ChildListPanel({
                                                     <button
                                                         type="button"
                                                         className="btn--icon btn--icon-danger"
+                                                        aria-label={`Confirm delete ${child.first_name}`}
                                                         title="Confirm delete"
                                                         onClick={(e) => { e.stopPropagation(); handleConfirmDelete(child.id); }}
                                                     >
@@ -125,6 +140,7 @@ export function ChildListPanel({
                                                     <button
                                                         type="button"
                                                         className="btn--icon"
+                                                        aria-label={`Cancel delete ${child.first_name}`}
                                                         title="Cancel"
                                                         onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
                                                     >
@@ -135,6 +151,9 @@ export function ChildListPanel({
                                                 <button
                                                     type="button"
                                                     className="btn--icon"
+                                                    aria-label={`Delete ${child.first_name}`}
+                                                    aria-expanded={confirmDeleteId === child.id}
+                                                    aria-controls={`child-delete-confirm-${child.id}`}
                                                     title="Delete"
                                                     onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(child.id); }}
                                                 >
@@ -148,6 +167,11 @@ export function ChildListPanel({
                                         {child.grade && child.subjects?.length ? " · " : ""}
                                         {child.subjects?.length ? child.subjects.join(", ") : ""}
                                     </span>
+                                    {confirmDeleteId === child.id ? (
+                                        <span id={`child-delete-confirm-${child.id}`} className="sr-only">
+                                            Delete confirmation controls shown.
+                                        </span>
+                                    ) : null}
                                 </div>
                             )}
                         </div>
@@ -156,13 +180,14 @@ export function ChildListPanel({
             ) : null}
 
             {showAddForm ? (
-                <div className="child-form-inline">
+                <div id="child-create-form" className="child-form-inline">
                     <ChildProfilePanel
                         childForm={childForm}
                         setChildForm={setChildForm}
                         onSubmit={handleSaveNew}
                         onCancel={() => setShowAddForm(false)}
                         loading={loading}
+                        autoFocusFirstField
                     />
                 </div>
             ) : (
@@ -170,6 +195,8 @@ export function ChildListPanel({
                     type="button"
                     className="btn btn--secondary"
                     data-testid="child-add-button"
+                    aria-expanded={showAddForm}
+                    aria-controls="child-create-form"
                     onClick={() => setShowAddForm(true)}
                     style={{ marginTop: children.length > 0 ? 12 : 0 }}
                 >
