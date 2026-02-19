@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { StatusAlert } from "../../components/feedback/StatusAlert.js";
+import { CoppaConsentBanner } from "./CoppaConsentBanner.js";
 import { ChildProfilePanel } from "./ChildProfilePanel.js";
 
 function childToForm(child) {
@@ -26,7 +27,10 @@ export function ChildListPanel({
     onDeleteChild,
     loading,
     actionAlert,
-    consentGranted
+    consentGranted,
+    onGrantConsent,
+    consentLoading,
+    consentAlert
 }) {
     const childListHeadingId = useId();
     const [showAddForm, setShowAddForm] = useState(false);
@@ -72,6 +76,14 @@ export function ChildListPanel({
 
     return (
         <section className="card" aria-busy={loading}>
+            {!consentGranted ? (
+                <CoppaConsentBanner
+                    onGrantConsent={onGrantConsent}
+                    loading={consentLoading}
+                    actionAlert={consentAlert}
+                />
+            ) : null}
+
             <h2 id={childListHeadingId} className="section-title">Your children</h2>
             <StatusAlert
                 tone={actionAlert?.tone}
@@ -182,11 +194,7 @@ export function ChildListPanel({
                 </div>
             ) : null}
 
-            {!consentGranted ? (
-                <p className="section-muted" style={{ marginTop: 8 }}>
-                    Complete parental consent to add another child profile.
-                </p>
-            ) : null}
+
 
             {showAddForm ? (
                 <div id="child-create-form" className="child-form-inline">

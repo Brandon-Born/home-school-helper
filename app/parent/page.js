@@ -88,6 +88,9 @@ export default function ParentPage() {
                 loading={state.loading.childMutation}
                 actionAlert={state.actionAlerts.childMutation}
                 consentGranted={state.hasCoppaConsent}
+                onGrantConsent={actions.grantCoppaConsent}
+                consentLoading={state.loading.consent}
+                consentAlert={state.actionAlerts.consent}
               />
             ) : null}
 

@@ -606,6 +606,68 @@
   color: var(--error);
 }
 
+/* ── COPPA consent banner ──────────────────────── */
+
+.consent-banner {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  border-radius: var(--radius);
+  border: 1.5px solid color-mix(in oklab, #f59e0b 35%, var(--border) 65%);
+  border-left: 4px solid #f59e0b;
+  background: color-mix(in oklab, #f59e0b 8%, var(--surface) 92%);
+  padding: 20px 22px;
+  margin-bottom: 16px;
+  animation: consent-banner-enter 400ms ease both;
+}
+
+.consent-banner__icon {
+  font-size: 2rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.consent-banner__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.consent-banner__heading {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: color-mix(in oklab, #b45309 70%, var(--text) 30%);
+}
+
+.consent-banner__text {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.55;
+  font-size: 0.92rem;
+}
+
+@keyframes consent-banner-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+:root[data-theme="dark"] .consent-banner {
+  border-color: color-mix(in oklab, #f59e0b 25%, var(--border) 75%);
+  background: color-mix(in oklab, #f59e0b 6%, var(--surface) 94%);
+}
+
+:root[data-theme="dark"] .consent-banner__heading {
+  color: color-mix(in oklab, #fbbf24 75%, var(--text) 25%);
+}
+
 @media (max-width: 640px) {
   .privacy-summary-grid {
     grid-template-columns: 1fr;
@@ -614,5 +676,10 @@
   .privacy-request-item {
     grid-template-columns: 1fr;
     gap: 2px;
+  }
+
+  .consent-banner {
+    flex-direction: column;
+    gap: 10px;
   }
 }
