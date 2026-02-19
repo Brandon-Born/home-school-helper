@@ -1,6 +1,6 @@
 # Product Backlog (Rolling Open Items)
 
-Last updated: 2026-02-18
+Last updated: 2026-02-19
 
 Purpose:
 - Capture high-impact product and engineering improvements beyond the current "working" baseline.
@@ -50,5 +50,5 @@ Scope:
 ## Parking Lot (Not Scheduled)
 
 - Multi-language tutoring support.
-- COPPA consent/export/deletion self-serve parent portal UX.
+- COPPA consent/export/deletion self-serve parent portal UX (implementation notes: `docs/COPPA_LAUNCH_PLAN.md`).
 - Native mobile wrapper once web UX stabilizes.

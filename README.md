@@ -155,6 +155,7 @@ Playwright starts the app server automatically through `playwright.config.mjs` `
 | [`docs/DB_SCHEMA_AND_RLS.md`](docs/DB_SCHEMA_AND_RLS.md) | Database tables and row-level security |
 | [`docs/IMPLEMENTATION_SPEC.md`](docs/IMPLEMENTATION_SPEC.md) | Architecture decisions |
 | [`docs/SECURITY_AND_COMPLIANCE.md`](docs/SECURITY_AND_COMPLIANCE.md) | Safety, privacy, compliance |
+| [`docs/COPPA_LAUNCH_PLAN.md`](docs/COPPA_LAUNCH_PLAN.md) | Deferred COPPA implementation plan and launch checklist |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Vercel deployment guide |
 | [`AGENT.md`](AGENT.md) | Agent operating contract and guardrail policy |
 
