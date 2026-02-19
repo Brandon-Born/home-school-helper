@@ -34,7 +34,7 @@ Stabilize cloud voice UX (Google STT V2 + Chirp 3), auth robustness, and launch-
 - Realtime transcript updates now stream through `GET /api/session/:id/stream` (SSE).
 
 ## First Tasks To Execute
-1. Pull the top open item from `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`.
+1. Confirm `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md` has no open non-parking items (currently clear as of 2026-02-19).
 2. Verify transcript retention migration (`20260217193000_transcript_retention.sql`) is applied in each Supabase environment and cron job exists.
 3. Verify Google Speech env config in each environment (local/Vercel) and run child cloud voice flow end-to-end.
 4. Keep COPPA launch work tracked in `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md` and execute before production launch freeze.

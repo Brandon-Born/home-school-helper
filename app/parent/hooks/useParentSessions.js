@@ -1,10 +1,13 @@
 "use client";
 
 import { useCallback } from "react";
+import { trackProductEvent } from "../../../src/lib/product-analytics.js";
 import { buildSessionForUi, toList } from "./parent-console-shared.js";
 import { runAsyncActionStatus } from "./parent-action-status.js";
 
-export function createUseParentSessions() {
+export function createUseParentSessions({
+  trackProductEventImpl = trackProductEvent
+} = {}) {
   return function useParentSessions({
     parentRequest,
     children,
@@ -23,7 +26,8 @@ export function createUseParentSessions() {
     const startSession = useCallback(
       async (event) => {
         event.preventDefault();
-        await runAsyncActionStatus({
+        const normalizedSubjects = toList(sessionForm.daily_subjects);
+        const outcome = await runAsyncActionStatus({
           actionKey: "sessionStart",
           setLoadingState,
           setError,
@@ -35,7 +39,7 @@ export function createUseParentSessions() {
               method: "POST",
               body: {
                 child_id: selectedChildId,
-                daily_subjects: toList(sessionForm.daily_subjects),
+                daily_subjects: normalizedSubjects,
                 parent_context: sessionForm.parent_context,
                 goal_notes: sessionForm.goal_notes,
                 additional_context: sessionForm.additional_context
@@ -53,8 +57,14 @@ export function createUseParentSessions() {
             return "Join code is ready to share.";
           }
         });
+
+        trackProductEventImpl("session_start", {
+          status: outcome.ok ? "success" : "failed",
+          subject_count: normalizedSubjects.length,
+          has_parent_context: Boolean(String(sessionForm.parent_context || "").trim())
+        });
       },
-      [children, clearActionAlert, parentRequest, selectedChildId, sessionForm, setActionAlert, setActiveSession, setActiveSessions, setError, setLoadingState, setMessages]
+      [children, clearActionAlert, parentRequest, selectedChildId, sessionForm, setActionAlert, setActiveSession, setActiveSessions, setError, setLoadingState, setMessages, trackProductEventImpl]
     );
 
     const rejoinSession = useCallback(

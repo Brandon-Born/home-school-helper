@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isChildAuthFailure } from "../../../src/lib/auth-failures.js";
 import { apiRequest } from "../../../src/lib/http.js";
+import { trackProductEvent } from "../../../src/lib/product-analytics.js";
 import { useSessionStream } from "../../hooks/useSessionStream.js";
 import { useChildVoiceRuntime } from "./useChildVoiceRuntime.js";
 
@@ -22,7 +23,8 @@ export function mergeMessages(previous, incoming) {
 export function createUseChildConsole({
   apiRequestImpl = apiRequest,
   useSessionStreamHook = useSessionStream,
-  useChildVoiceRuntimeHook = useChildVoiceRuntime
+  useChildVoiceRuntimeHook = useChildVoiceRuntime,
+  trackProductEventImpl = trackProductEvent
 } = {}) {
   return function useChildConsole() {
   const [sessionAccess, setSessionAccess] = useState(null);
@@ -163,8 +165,14 @@ export function createUseChildConsole({
       voiceStreamRef.current.initializeFromSnapshot([]);
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(access));
       setJoinCode("");
+      trackProductEventImpl("child_join", {
+        status: "success"
+      });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "We couldn't join that lesson. Check the code and try again.");
+      trackProductEventImpl("child_join", {
+        status: "failed"
+      });
     } finally {
       setLoadingState("join", false);
     }
@@ -207,14 +215,23 @@ export function createUseChildConsole({
       }
 
       setStudentInput("");
+      trackProductEventImpl("turn_send", {
+        status: "success"
+      });
     } catch (requestError) {
       if (isChildAuthFailure(requestError)) {
         clearChildSession("Your lesson code expired. Please ask your parent for a new code.");
+        trackProductEventImpl("turn_send", {
+          status: "failed"
+        });
         return;
       }
 
       setError(requestError instanceof Error ? requestError.message : "We couldn't send your question. Please try again.");
       voiceActionsRef.current.setPendingTutorReply(false);
+      trackProductEventImpl("turn_send", {
+        status: "failed"
+      });
     } finally {
       setLoadingState("send", false);
     }

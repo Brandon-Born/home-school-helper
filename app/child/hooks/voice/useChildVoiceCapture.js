@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { trackProductEvent } from "../../../../src/lib/product-analytics.js";
 import { detectSpeechSupport } from "./speech-support.js";
 import { createUseBrowserVoiceCaptureStrategy } from "./useBrowserVoiceCaptureStrategy.js";
 import { createUseCloudVoiceCaptureStrategy } from "./useCloudVoiceCaptureStrategy.js";
@@ -20,7 +21,8 @@ export function createUseChildVoiceCapture({
   getUserMediaImpl,
   createMediaRecorderImpl,
   createBlobImpl,
-  getSpeechRecognitionCtorImpl
+  getSpeechRecognitionCtorImpl,
+  trackProductEventImpl = trackProductEvent
 } = {}) {
   const useCloudCaptureHook =
     useCloudVoiceCaptureStrategyHook ||
@@ -28,12 +30,14 @@ export function createUseChildVoiceCapture({
       apiFormRequestImpl,
       getUserMediaImpl,
       createMediaRecorderImpl,
-      createBlobImpl
+      createBlobImpl,
+      trackProductEventImpl
     });
   const useBrowserCaptureHook =
     useBrowserVoiceCaptureStrategyHook ||
     createUseBrowserVoiceCaptureStrategy({
-      getSpeechRecognitionCtorImpl
+      getSpeechRecognitionCtorImpl,
+      trackProductEventImpl
     });
 
   return function useChildVoiceCapture({

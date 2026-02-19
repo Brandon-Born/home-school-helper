@@ -40,6 +40,11 @@ export const RATE_LIMIT_POLICIES = Object.freeze({
     scope: "session_manage",
     maxRequests: 30,
     windowMs: BASE_WINDOW_MS
+  }),
+  analyticsEvent: Object.freeze({
+    scope: "analytics_event",
+    maxRequests: 90,
+    windowMs: BASE_WINDOW_MS
   })
 });
 

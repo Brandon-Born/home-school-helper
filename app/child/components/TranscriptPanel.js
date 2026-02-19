@@ -11,6 +11,9 @@ export function TranscriptPanel({ messages, pendingTutorReply }) {
         emptyText="Nothing here yet — ask your first question!"
         pendingText="Thinking... ✨"
         actorLabels={{ child: "You" }}
+        enableWindowing
+        windowSize={100}
+        windowStep={120}
       />
     </section>
   );

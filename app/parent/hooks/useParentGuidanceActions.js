@@ -1,9 +1,12 @@
 "use client";
 
 import { useCallback } from "react";
+import { trackProductEvent } from "../../../src/lib/product-analytics.js";
 import { runAsyncActionStatus } from "./parent-action-status.js";
 
-export function createUseParentGuidanceActions() {
+export function createUseParentGuidanceActions({
+  trackProductEventImpl = trackProductEvent
+} = {}) {
   return function useParentGuidanceActions({
     parentRequest,
     activeSessionId,
@@ -20,8 +23,9 @@ export function createUseParentGuidanceActions() {
         if (!activeSessionId || !nudgeText.trim()) {
           return;
         }
+        const trimmedNudge = nudgeText.trim();
 
-        await runAsyncActionStatus({
+        const outcome = await runAsyncActionStatus({
           actionKey: "nudge",
           setLoadingState,
           setError,
@@ -32,8 +36,8 @@ export function createUseParentGuidanceActions() {
             return parentRequest(`/api/session/${activeSessionId}/parent-nudge`, {
               method: "POST",
               body: {
-                nudge_text: nudgeText.trim(),
-                parent_guidance: nudgeText.trim()
+                nudge_text: trimmedNudge,
+                parent_guidance: trimmedNudge
               }
             });
           },
@@ -42,8 +46,11 @@ export function createUseParentGuidanceActions() {
             return payload.assistant_text || "Private note sent.";
           }
         });
+        trackProductEventImpl("nudge_send", {
+          status: outcome.ok ? "success" : "failed"
+        });
       },
-      [activeSessionId, clearActionAlert, nudgeText, parentRequest, setActionAlert, setError, setLoadingState, setNudgeText]
+      [activeSessionId, clearActionAlert, nudgeText, parentRequest, setActionAlert, setError, setLoadingState, setNudgeText, trackProductEventImpl]
     );
 
     const setOverride = useCallback(

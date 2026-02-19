@@ -211,6 +211,12 @@
   padding-right: 4px;
 }
 
+.message-feed__window-controls {
+  display: flex;
+  justify-content: center;
+  margin: 6px 0;
+}
+
 .message-row {
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);

@@ -37,7 +37,7 @@ npm run dev                # http://localhost:3000
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-only) |
 
-Optional variables for Anthropic tuning (`ANTHROPIC_MAX_TOKENS`, `ANTHROPIC_TEMPERATURE`, `TUTOR_SYSTEM_PROMPT_VERSION`), stream telemetry/transport (`STREAM_TELEMETRY_DISABLED`, `NEXT_PUBLIC_STREAM_TELEMETRY_DISABLED`, `STREAM_TRANSPORT_MODE`), voice telemetry (`SPEECH_TELEMETRY_DISABLED`, `NEXT_PUBLIC_VOICE_TELEMETRY_DISABLED`), and Google Speech integration are documented in `.env.example`.
+Optional variables for Anthropic tuning (`ANTHROPIC_MAX_TOKENS`, `ANTHROPIC_TEMPERATURE`, `TUTOR_SYSTEM_PROMPT_VERSION`), stream telemetry/transport (`STREAM_TELEMETRY_DISABLED`, `NEXT_PUBLIC_STREAM_TELEMETRY_DISABLED`, `STREAM_TRANSPORT_MODE`), voice telemetry (`SPEECH_TELEMETRY_DISABLED`, `NEXT_PUBLIC_VOICE_TELEMETRY_DISABLED`), product analytics telemetry (`PRODUCT_ANALYTICS_DISABLED`, `NEXT_PUBLIC_PRODUCT_ANALYTICS_DISABLED`), and Google Speech integration are documented in `.env.example`.
 
 For non-interactive Playwright auth in local/test, configure:
 - `ENABLE_TEST_AUTH_BOOTSTRAP=1`
@@ -95,6 +95,11 @@ tests/                         Unit tests
 |--------|-------|------|---------|
 | POST | `/api/session/:id/speech/transcribe` | Child | Speech-to-text |
 | POST | `/api/session/:id/speech/synthesize` | Child | Text-to-speech |
+
+### Analytics (privacy-safe baseline)
+| Method | Route | Auth | Purpose |
+|--------|-------|------|---------|
+| POST | `/api/analytics/event` | Public | Capture allowlisted funnel events (no transcript/audio content) |
 
 Full request/response shapes: [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md)
 
@@ -156,6 +161,7 @@ Playwright starts the app server automatically through `playwright.config.mjs` `
 | [`docs/IMPLEMENTATION_SPEC.md`](docs/IMPLEMENTATION_SPEC.md) | Architecture decisions |
 | [`docs/SECURITY_AND_COMPLIANCE.md`](docs/SECURITY_AND_COMPLIANCE.md) | Safety, privacy, compliance |
 | [`docs/COPPA_LAUNCH_PLAN.md`](docs/COPPA_LAUNCH_PLAN.md) | Deferred COPPA implementation plan and launch checklist |
+| [`docs/ANALYTICS_BASELINE.md`](docs/ANALYTICS_BASELINE.md) | Privacy-safe event baseline and activation/retention metric definitions |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Vercel deployment guide |
 | [`AGENT.md`](AGENT.md) | Agent operating contract and guardrail policy |
 

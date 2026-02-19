@@ -148,7 +148,7 @@ Required internal config module behavior:
 - Update this plan when priorities, constraints, or sequencing materially change.
 
 ## 9. Immediate Next Steps
-1. Execute the highest-priority open item in `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`.
+1. Confirm `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md` has no open non-parking items (currently clear as of 2026-02-19).
 2. Validate Google Speech STT/TTS configuration in local/Vercel and run end-to-end child voice tests.
 3. Verify transcript retention migration (`20260217193000`) is applied in each deployed Supabase environment.
 4. Keep COPPA launch work deferred in `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md` until stabilization goals are met, then execute before production launch freeze.

@@ -506,6 +506,40 @@ Parent toggles direct-answer mode for a bounded duration.
 }
 ```
 
+## POST `/api/analytics/event`
+Ingests privacy-safe product funnel events.
+
+Rate limit:
+- Scoped per client address. Bursts above configured threshold return `429 rate_limited`.
+
+Auth behavior:
+- Public endpoint (supports both pre-join and authenticated flows).
+- Payload is strictly allowlisted and does not accept transcript/audio content.
+
+### Request
+```json
+{
+  "event": "child_join",
+  "payload": {
+    "status": "success"
+  }
+}
+```
+
+Allowed events:
+- `session_start`
+- `child_join`
+- `turn_send`
+- `nudge_send`
+- `voice_usage`
+
+### Response (202)
+```json
+{
+  "accepted": true
+}
+```
+
 ## POST `/api/test-auth/bootstrap` (test-only)
 Creates a one-time auth link for Playwright automation without interactive OAuth.
 

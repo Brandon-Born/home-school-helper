@@ -27,17 +27,7 @@ How to use:
 
 ## P2 (Quality / Delight)
 
-### 12) Performance polish for long sessions
-Status: Open
-Scope:
-- Virtualize transcript rendering for very long message lists.
-- Add message windowing while preserving full-history server access.
-
-### 13) Product analytics baseline
-Status: Open
-Scope:
-- Add privacy-safe funnel events (session start, child join success/fail, turn send, nudge send, voice usage).
-- Define baseline activation and retention metrics for iteration.
+- None currently open.
 
 ---
 

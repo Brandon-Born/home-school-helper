@@ -35,7 +35,13 @@ export function TranscriptPanel({ activeSession, nudgeText, setNudgeText, onSend
         style={{ marginTop: 10 }}
       />
 
-      <TranscriptFeed messages={messages} showVisibilityScope />
+      <TranscriptFeed
+        messages={messages}
+        showVisibilityScope
+        enableWindowing
+        windowSize={120}
+        windowStep={160}
+      />
     </section>
   );
 }

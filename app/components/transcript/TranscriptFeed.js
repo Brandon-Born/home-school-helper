@@ -49,10 +49,22 @@ export function TranscriptFeed({
   pendingText = "Working on it...",
   emptyText = "No messages yet — ask a question to begin!",
   showVisibilityScope = false,
-  actorLabels = null
+  actorLabels = null,
+  enableWindowing = true,
+  windowSize = 120,
+  windowStep = 120
 }) {
+  const normalizedWindowSize = Math.max(20, Number.parseInt(String(windowSize || 0), 10) || 120);
+  const normalizedWindowStep = Math.max(20, Number.parseInt(String(windowStep || 0), 10) || 120);
   const [announcement, setAnnouncement] = useState("");
+  const [visibleCount, setVisibleCount] = useState(() => {
+    if (!enableWindowing) {
+      return messages.length;
+    }
+    return Math.min(messages.length, normalizedWindowSize);
+  });
   const previousMessageCountRef = useRef(messages.length);
+  const windowPreviousCountRef = useRef(messages.length);
   const previousPendingRef = useRef(pending);
 
   const resolveLabel = (actorType) => {
@@ -65,7 +77,7 @@ export function TranscriptFeed({
   };
 
   useEffect(() => {
-    const previousCount = previousMessageCountRef.current;
+    const previousCount = windowPreviousCountRef.current;
     const hasNewMessages = messages.length > previousCount;
 
     if (hasNewMessages && messages.length > 0) {
@@ -81,11 +93,60 @@ export function TranscriptFeed({
     previousPendingRef.current = pending;
   }, [messages, pending, actorLabels]);
 
+  useEffect(() => {
+    const previousCount = previousMessageCountRef.current;
+
+    if (!enableWindowing) {
+      setVisibleCount(messages.length);
+      return;
+    }
+
+    setVisibleCount((previousVisibleCount) => {
+      if (messages.length <= normalizedWindowSize) {
+        return messages.length;
+      }
+
+      if (previousCount === 0) {
+        return normalizedWindowSize;
+      }
+
+      // If user expanded to full history, keep full history visible as new messages arrive.
+      if (previousVisibleCount >= previousCount) {
+        return messages.length;
+      }
+
+      const delta = messages.length - previousCount;
+      if (delta > 0) {
+        // Preserve relative window position by appending newly added rows.
+        return Math.min(messages.length, previousVisibleCount + delta);
+      }
+
+      return Math.min(messages.length, Math.max(normalizedWindowSize, previousVisibleCount));
+    });
+    windowPreviousCountRef.current = messages.length;
+  }, [enableWindowing, messages.length, normalizedWindowSize]);
+
+  const hiddenCount = enableWindowing ? Math.max(0, messages.length - visibleCount) : 0;
+  const visibleMessages = hiddenCount > 0 ? messages.slice(hiddenCount) : messages;
+
   return (
     <>
       <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {announcement}
       </p>
+      {hiddenCount > 0 ? (
+        <div className="message-feed__window-controls">
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={() => {
+              setVisibleCount((previousVisibleCount) => Math.min(messages.length, previousVisibleCount + normalizedWindowStep));
+            }}
+          >
+            Show older messages ({hiddenCount} hidden)
+          </button>
+        </div>
+      ) : null}
       <div
         className="message-feed"
         role="log"
@@ -97,7 +158,7 @@ export function TranscriptFeed({
         {messages.length === 0 ? (
           <p className="empty-state">{emptyText}</p>
         ) : (
-          messages.map((message) => (
+          visibleMessages.map((message) => (
             <article key={message.id} className={`message-row message-row--${message.actor_type}`}>
               <div className="message-row__meta">
                 <span className="pill">{resolveLabel(message.actor_type)}</span>
@@ -111,6 +172,21 @@ export function TranscriptFeed({
         )}
         {pending ? <p className="empty-state">{pendingText}</p> : null}
       </div>
+      {enableWindowing && hiddenCount === 0 && messages.length > normalizedWindowSize && visibleCount > normalizedWindowSize ? (
+        <div className="message-feed__window-controls">
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={() => {
+              const recentCount = Math.min(messages.length, normalizedWindowSize);
+              setVisibleCount(recentCount);
+              setAnnouncement(`Showing most recent ${recentCount} messages.`);
+            }}
+          >
+            Show recent only
+          </button>
+        </div>
+      ) : null}
     </>
   );
 }

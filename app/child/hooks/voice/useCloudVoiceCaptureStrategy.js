@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isChildAuthFailure } from "../../../../src/lib/auth-failures.js";
 import { apiFormRequest } from "../../../../src/lib/http.js";
+import { trackProductEvent } from "../../../../src/lib/product-analytics.js";
 import { getVoiceErrorDetails, logClientVoiceMetric } from "../../../../src/lib/voice-telemetry.js";
 import { classifySpeechFailure } from "./speech-errors.js";
 
@@ -10,7 +11,8 @@ export function createUseCloudVoiceCaptureStrategy({
   apiFormRequestImpl = apiFormRequest,
   getUserMediaImpl = async (constraints) => navigator.mediaDevices.getUserMedia(constraints),
   createMediaRecorderImpl = (stream) => new MediaRecorder(stream),
-  createBlobImpl = (chunks, options) => new Blob(chunks, options)
+  createBlobImpl = (chunks, options) => new Blob(chunks, options),
+  trackProductEventImpl = trackProductEvent
 } = {}) {
   return function useCloudVoiceCaptureStrategy({
     cloudSttEnabled,
@@ -98,8 +100,12 @@ export function createUseCloudVoiceCaptureStrategy({
           transport: "cloud_stt",
           session_id: sessionAccess.session_id
         });
+        trackProductEventImpl("voice_usage", {
+          status: "transcribed",
+          transport: "cloud_stt"
+        });
       },
-      [apiFormRequestImpl, sessionAccess?.child_session_token, sessionAccess?.session_id, setStudentInput]
+      [apiFormRequestImpl, sessionAccess?.child_session_token, sessionAccess?.session_id, setStudentInput, trackProductEventImpl]
     );
 
     const startCloudVoiceCapture = useCallback(async () => {
@@ -195,6 +201,10 @@ export function createUseCloudVoiceCaptureStrategy({
               },
               { level: "warn" }
             );
+            trackProductEventImpl("voice_usage", {
+              status: "failed",
+              transport: "cloud_stt"
+            });
             setError(classifySpeechFailure(speechError, "We could not turn that into text. Hold to talk and try again."));
             setNotice("");
           } finally {
@@ -206,6 +216,10 @@ export function createUseCloudVoiceCaptureStrategy({
         logClientVoiceMetric("cloud_stt_recording_start", {
           transport: "cloud_stt",
           session_id: sessionAccess?.session_id ?? null
+        });
+        trackProductEventImpl("voice_usage", {
+          status: "started",
+          transport: "cloud_stt"
         });
         setError("");
         setNotice("Listening. Release to transcribe.");
@@ -224,6 +238,10 @@ export function createUseCloudVoiceCaptureStrategy({
           },
           { level: "warn" }
         );
+        trackProductEventImpl("voice_usage", {
+          status: denied ? "permission_denied" : "failed",
+          transport: "cloud_stt"
+        });
         setError("Please allow microphone access to use voice input.");
         setNotice("");
       }
@@ -237,6 +255,7 @@ export function createUseCloudVoiceCaptureStrategy({
       sessionAccess?.session_id,
       setError,
       setNotice,
+      trackProductEventImpl,
       transcribeCloudRecording,
       voiceBusy
     ]);

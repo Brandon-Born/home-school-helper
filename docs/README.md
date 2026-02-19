@@ -15,6 +15,7 @@
 ## Operations
 - `/Users/bborn/home-school-helper/docs/SECURITY_AND_COMPLIANCE.md`
 - `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md`
+- `/Users/bborn/home-school-helper/docs/ANALYTICS_BASELINE.md`
 - `/Users/bborn/home-school-helper/docs/DEPLOYMENT.md`
 - `/Users/bborn/home-school-helper/docs/architecture/DECISIONS.md`
 - `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`

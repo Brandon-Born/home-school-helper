@@ -31,6 +31,10 @@ This project is designed with COPPA-first defaults for U.S. minors.
 - Log model name and prompt version per tutor request.
 - Log policy actions (`scaffold_rewrite`, `unsafe_content_blocked`, etc.).
 
+6. Product analytics minimization
+- Allow only privacy-safe funnel events with bounded payloads.
+- Never ingest child transcript content or raw audio in analytics events.
+
 ## Threat Model (Initial)
 - Prompt injection via child or parent text.
 Mitigation: fixed system policy layers + output guardrails.

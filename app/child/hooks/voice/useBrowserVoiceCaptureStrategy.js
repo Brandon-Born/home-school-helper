@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { trackProductEvent } from "../../../../src/lib/product-analytics.js";
 import { getVoiceErrorDetails, logClientVoiceMetric } from "../../../../src/lib/voice-telemetry.js";
 import { getSpeechRecognitionCtor } from "./speech-support.js";
 
 export function createUseBrowserVoiceCaptureStrategy({
-  getSpeechRecognitionCtorImpl = getSpeechRecognitionCtor
+  getSpeechRecognitionCtorImpl = getSpeechRecognitionCtor,
+  trackProductEventImpl = trackProductEvent
 } = {}) {
   return function useBrowserVoiceCaptureStrategy({
     browserSttEnabled,
@@ -20,6 +22,7 @@ export function createUseBrowserVoiceCaptureStrategy({
     const recognitionRef = useRef(null);
     const voiceBaseInputRef = useRef("");
     const voiceFinalTranscriptRef = useRef("");
+    const trackedTranscriptRef = useRef(false);
 
     const stopBrowserVoiceCapture = useCallback(() => {
       const recognition = recognitionRef.current;
@@ -67,6 +70,7 @@ export function createUseBrowserVoiceCaptureStrategy({
 
       voiceBaseInputRef.current = studentInput.trim();
       voiceFinalTranscriptRef.current = "";
+      trackedTranscriptRef.current = false;
 
       recognition.onresult = (event) => {
         let interimTranscript = "";
@@ -83,6 +87,13 @@ export function createUseBrowserVoiceCaptureStrategy({
 
         voiceFinalTranscriptRef.current = finalTranscript;
         setStudentInput([voiceBaseInputRef.current, finalTranscript, interimTranscript].filter(Boolean).join(" "));
+        if (!trackedTranscriptRef.current && finalTranscript) {
+          trackedTranscriptRef.current = true;
+          trackProductEventImpl("voice_usage", {
+            status: "transcribed",
+            transport: "browser_stt"
+          });
+        }
       };
 
       recognition.onerror = (event) => {
@@ -96,6 +107,10 @@ export function createUseBrowserVoiceCaptureStrategy({
             },
             { level: "warn" }
           );
+          trackProductEventImpl("voice_usage", {
+            status: "permission_denied",
+            transport: "browser_stt"
+          });
           setError("Microphone permission is off. Turn it on to use voice input.");
         } else {
           logClientVoiceMetric(
@@ -107,6 +122,10 @@ export function createUseBrowserVoiceCaptureStrategy({
             },
             { level: "warn" }
           );
+          trackProductEventImpl("voice_usage", {
+            status: "failed",
+            transport: "browser_stt"
+          });
           setError(`Voice input stopped: ${event.error}`);
         }
         setNotice("");
@@ -128,6 +147,10 @@ export function createUseBrowserVoiceCaptureStrategy({
           transport: "browser_stt",
           session_id: sessionAccess?.session_id ?? null
         });
+        trackProductEventImpl("voice_usage", {
+          status: "started",
+          transport: "browser_stt"
+        });
       } catch (captureError) {
         recognitionRef.current = null;
         setIsListening(false);
@@ -140,6 +163,10 @@ export function createUseBrowserVoiceCaptureStrategy({
           },
           { level: "warn" }
         );
+        trackProductEventImpl("voice_usage", {
+          status: "failed",
+          transport: "browser_stt"
+        });
         setError("Could not start voice input.");
         setNotice("");
       }
@@ -152,6 +179,7 @@ export function createUseBrowserVoiceCaptureStrategy({
       setNotice,
       setStudentInput,
       studentInput,
+      trackProductEventImpl,
       voiceBusy
     ]);
 

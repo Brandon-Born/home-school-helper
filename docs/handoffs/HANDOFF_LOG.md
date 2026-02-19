@@ -4,6 +4,96 @@ Notes:
 - Compacted on 2026-02-18 to a rolling window.
 - Keep detailed entries for current context; older granular history is summarized below.
 
+## 2026-02-19T16:15:38Z - Codex
+
+### Scope Worked
+- Completed remaining non-parking backlog items `12)` and `13)`:
+  - transcript performance polish for long sessions (windowed rendering),
+  - privacy-safe product analytics baseline (event ingestion + instrumentation + metric definitions).
+
+### Last Agent Accomplished
+- Added transcript windowing while preserving full message history in state:
+  - `app/components/transcript/TranscriptFeed.js`
+  - renders bounded recent window by default with `Show older messages` and `Show recent only` controls.
+  - keeps `role="log"` and live-region behavior for accessibility compatibility.
+- Enabled explicit windowing config in parent/child transcript panels:
+  - `app/parent/components/TranscriptPanel.js`
+  - `app/child/components/TranscriptPanel.js`
+- Added styling for transcript window controls:
+  - `app/styles/components.css`
+- Added privacy-safe analytics ingestion route and server validation:
+  - `app/api/analytics/event/route.js`
+  - `src/server/product-analytics.js`
+  - `src/server/rate-limit-policies.js` (`analyticsEvent` policy)
+- Added client analytics emitter:
+  - `src/lib/product-analytics.js`
+- Instrumented funnel events in parent/child flows:
+  - `app/parent/hooks/useParentSessions.js` (`session_start`)
+  - `app/parent/hooks/useParentGuidanceActions.js` (`nudge_send`)
+  - `app/child/hooks/useChildConsole.js` (`child_join`, `turn_send`)
+  - `app/child/hooks/voice/useChildVoiceCapture.js`
+  - `app/child/hooks/voice/useCloudVoiceCaptureStrategy.js`
+  - `app/child/hooks/voice/useBrowserVoiceCaptureStrategy.js`
+  - `voice_usage` events track started/transcribed/failed/permission_denied.
+- Added analytics coverage tests:
+  - `tests/analytics-event-route.test.js`
+  - `tests/product-analytics.test.js`
+- Added analytics docs and contracts:
+  - `docs/ANALYTICS_BASELINE.md`
+  - `docs/API_CONTRACT.md` (new `POST /api/analytics/event`)
+  - `README.md`, `docs/README.md`, `.env.example`, `docs/SECURITY_AND_COMPLIANCE.md`
+- Removed completed backlog items `12)` and `13)` from:
+  - `docs/PRODUCT_BACKLOG.md`
+- Updated next-step docs to reflect zero open non-parking backlog items:
+  - `docs/START_HERE.md`
+  - `docs/PROJECT_PLAN.md`
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/components/transcript/TranscriptFeed.js`
+- `/Users/bborn/home-school-helper/app/parent/components/TranscriptPanel.js`
+- `/Users/bborn/home-school-helper/app/child/components/TranscriptPanel.js`
+- `/Users/bborn/home-school-helper/app/styles/components.css`
+- `/Users/bborn/home-school-helper/app/api/analytics/event/route.js`
+- `/Users/bborn/home-school-helper/src/server/product-analytics.js`
+- `/Users/bborn/home-school-helper/src/server/rate-limit-policies.js`
+- `/Users/bborn/home-school-helper/src/lib/product-analytics.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentSessions.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentGuidanceActions.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/useChildConsole.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/voice/useChildVoiceCapture.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/voice/useCloudVoiceCaptureStrategy.js`
+- `/Users/bborn/home-school-helper/app/child/hooks/voice/useBrowserVoiceCaptureStrategy.js`
+- `/Users/bborn/home-school-helper/tests/analytics-event-route.test.js`
+- `/Users/bborn/home-school-helper/tests/product-analytics.test.js`
+- `/Users/bborn/home-school-helper/docs/ANALYTICS_BASELINE.md`
+- `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+- `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`
+- `/Users/bborn/home-school-helper/docs/START_HERE.md`
+- `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
+- `/Users/bborn/home-school-helper/docs/SECURITY_AND_COMPLIANCE.md`
+- `/Users/bborn/home-school-helper/docs/README.md`
+- `/Users/bborn/home-school-helper/README.md`
+- `/Users/bborn/home-school-helper/.env.example`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm run test:unit`
+- Result: pass (137 tests, 0 failures).
+- Command: `npm run test:e2e`
+- Result: pass (default suite + transport matrix).
+
+### Open Risks / Issues
+- Playwright/webServer logs still emit non-functional `NO_COLOR` vs `FORCE_COLOR` warnings in this environment.
+- Analytics ingestion currently logs structured events to server logs only (no warehouse/dashboard backend yet).
+
+### Next Steps (Ordered)
+1. Verify transcript-retention migration and cron in each deployed Supabase environment.
+2. Verify Google Speech config and run child cloud voice flow end-to-end in each deployed environment.
+3. Execute `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md` before production launch freeze.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-19T16:00:58Z - Codex
 
 ### Scope Worked
