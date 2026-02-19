@@ -20,5 +20,5 @@ test("resolveParentConsoleSection falls back to children section", () => {
 
 test("resolveParentConsoleSection returns matching section", () => {
   const resolved = resolveParentConsoleSection("managed");
-  assert.equal(resolved.label, "Managed");
+  assert.equal(resolved.label, "Privacy & Data Settings");
 });

@@ -34,8 +34,13 @@ export async function ensureCoppaConsentGranted(page) {
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
     await goToParentSection(page, "children");
-    if ((await addChildButton.count()) > 0 && (await addChildButton.isEnabled())) {
-      return;
+    // If the add button is visible and enabled, or the form is already open (expanded), we have consent.
+    if ((await addChildButton.count()) > 0) {
+      if (await addChildButton.isEnabled()) return;
+      // If there's an active request running it could be disabled briefly, so check if we already have the form open
+      if (await page.locator('#child-create-form').isVisible()) return;
+    } else if (await page.locator('#child-create-form').isVisible()) {
+      return; // form is already rendering, which implies consent
     }
 
     await goToParentSection(page, "managed");
@@ -79,13 +84,17 @@ export async function createChildProfile(
       response.url().includes("/api/children") && response.request().method() === "POST"
   );
 
-  await page.getByTestId("child-add-button").click();
-  await page.getByLabel("First name").fill(childName);
-  await page.getByLabel("Age").fill(age);
-  await page.getByLabel("Grade").fill(grade);
-  await page.getByLabel("Subjects").fill(subjects);
-  await page.getByLabel("How they learn best").fill(personality);
-  await page.getByRole("button", { name: "Save" }).click();
+  const addButton = page.getByTestId("child-add-button");
+  if ((await addButton.count()) > 0 && await addButton.isVisible()) {
+    await addButton.click({ force: true });
+  }
+
+  await page.locator('#child-name').fill(childName);
+  await page.locator('#child-age').fill(age);
+  await page.locator('#child-grade').fill(grade);
+  await page.locator('#child-subjects').fill(subjects);
+  await page.locator('#child-personality').fill(personality);
+  await page.getByRole("button", { name: "Save", exact: true }).click({ force: true });
 
   const createChildResponse = await createChildResponsePromise;
   expect(createChildResponse.status()).toBe(201);

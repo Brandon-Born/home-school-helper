@@ -1,21 +1,21 @@
 export const PARENT_CONSOLE_SECTIONS = [
   {
     id: "children",
-    label: "Children",
+    label: "Children & Learning Profiles",
     title: "Child profiles",
-    description: "Create and update child profiles, learning preferences, and subject focus."
+    description: "Set up your kids, manage their learning levels, and pick what they focus on."
   },
   {
     id: "sessions",
-    label: "Sessions",
+    label: "Active Tutoring & Join Codes",
     title: "Session controls",
-    description: "Start sessions, share join codes, and guide live tutoring."
+    description: "Start a new lesson, send join codes to your kids, and follow along live."
   },
   {
     id: "managed",
-    label: "Managed",
+    label: "Privacy & Data Settings",
     title: "Consent and data controls",
-    description: "Handle COPPA consent and privacy request workflows."
+    description: "Manage your family's privacy settings, review saved data, and control account permissions."
   }
 ];
 
