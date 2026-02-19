@@ -20,6 +20,15 @@ export {
 } from "./session-foundation/session-service.js";
 
 export {
+  COPPA_CONSENT_STATUS,
+  PARENT_PROFILE_SELECT,
+  withCoppaConsentDefaults,
+  getParentCoppaConsentState,
+  setParentCoppaConsentState,
+  ensureParentHasCoppaConsent
+} from "./session-foundation/coppa-consent-service.js";
+
+export {
   ensureParentOwnsSession,
   getSessionTutorContext
 } from "./session-foundation/session-access-service.js";

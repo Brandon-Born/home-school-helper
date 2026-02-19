@@ -194,3 +194,67 @@ test("useParentConsole exposes child mutation error feedback for inline panel me
 
   await renderer.unmount();
 });
+
+test("useParentConsole grantCoppaConsent updates parent profile consent state", async () => {
+  const parentRequest = async (path, options = {}) => {
+    if (path === "/api/parent/me") {
+      return {
+        parent: {
+          id: "parent_1",
+          coppa_consent_status: "pending",
+          coppa_policy_version: "2026-02-19"
+        }
+      };
+    }
+    if (path === "/api/children") {
+      return { children: [] };
+    }
+    if (path === "/api/session/active") {
+      return { sessions: [] };
+    }
+    if (path === "/api/privacy/consent" && options.method === "POST" && options.body?.action === "grant") {
+      return {
+        consent: {
+          required: true,
+          status: "granted",
+          updated_at: "2026-02-19T12:00:00.000Z",
+          policy_version: "2026-02-19",
+          policy_url: "/privacy",
+          method: "parent_self_attestation"
+        }
+      };
+    }
+    throw new Error(`Unexpected request: ${path}`);
+  };
+  const parentSessionValue = {
+    session: { access_token: "parent-token" },
+    needsReauth: false,
+    parentRequest,
+    refreshParentSession: async () => null,
+    invalidateParentSession: async () => {},
+    signInWithGoogle: async () => {},
+    signOut: async () => {}
+  };
+
+  const useParentConsoleHook = createUseParentConsole({
+    useParentSessionHook: () => parentSessionValue,
+    useParentTranscriptStreamHook: () => {}
+  });
+
+  const renderer = await createHookRenderer(() => useParentConsoleHook());
+  await flushEffects();
+
+  assert.equal(renderer.getCurrent().state.hasCoppaConsent, false);
+
+  await act(async () => {
+    await renderer.getCurrent().actions.grantCoppaConsent();
+  });
+
+  const hookValue = renderer.getCurrent();
+  assert.equal(hookValue.state.hasCoppaConsent, true);
+  assert.equal(hookValue.state.loading.consent, false);
+  assert.equal(hookValue.state.actionAlerts.consent.tone, "success");
+  assert.equal(hookValue.state.actionAlerts.consent.message, "Parental consent confirmed.");
+
+  await renderer.unmount();
+});

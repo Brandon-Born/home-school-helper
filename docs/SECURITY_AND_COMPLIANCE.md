@@ -11,6 +11,7 @@ This project is designed with COPPA-first defaults for U.S. minors.
 ## Required Controls
 1. Consent and access
 - Parent must authenticate before creating child profiles.
+- Parent consent checkpoint must be active (`coppa_consent_status='granted'`) before child profile creation or session start.
 - Child joins by parent-issued code only.
 
 2. Data minimization
@@ -56,6 +57,8 @@ Mitigation: server-only LLM module and env validation.
 5. Document in decisions log and handoff log.
 
 ## Open Compliance Work
-- COPPA consent/export/deletion implementation is tracked in `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md` and must be completed before production launch.
+- COPPA consent gating + audit logging are implemented; remaining work is verifiable parental consent method finalization, and parent self-serve export/deletion/revocation UX hardening.
+- COPPA implementation details remain tracked in `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md` and must be completed before production launch.
 - Legal review and provider written-assurance signoff are required before production launch.
 - Configure `RATE_LIMIT_BACKEND=supabase` in deployed environments to require shared/global limits; keep `auto` only for local/dev fallback.
+- Temporary compatibility behavior: if COPPA schema migration is missing in a local/dev environment, consent gating auto-disables to prevent deadlock (`required=false` response).

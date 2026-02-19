@@ -28,16 +28,18 @@ Stabilize cloud voice UX (Google STT V2 + Chirp 3), auth robustness, and launch-
 - Messages are persisted in `messages` table via server routes.
 - Supabase migration exists at `supabase/migrations/20260217040000_session_foundation.sql`.
 - Transcript retention migration exists at `supabase/migrations/20260217193000_transcript_retention.sql` (daily 30-day purge via `pg_cron`).
+- COPPA consent baseline migration exists at `supabase/migrations/20260219141000_coppa_consent_gate.sql`.
 - Minimal UI flows now exist:
   - `/parent` for auth, child profile CRUD (create/edit/delete), session start, active session management (rejoin/end/regenerate code), nudges, and transcript subscription.
   - `/child` for join-code redemption, cloud voice capture/transcription, and cloud tutor speech playback.
 - Realtime transcript updates now stream through `GET /api/session/:id/stream` (SSE).
+- Parent consent checkpoint route exists at `GET|POST /api/privacy/consent`; child profile/session-start routes enforce `coppa_consent_required` when consent is pending/revoked.
 
 ## First Tasks To Execute
 1. Confirm `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md` has no open non-parking items (currently clear as of 2026-02-19).
 2. Verify transcript retention migration (`20260217193000_transcript_retention.sql`) is applied in each Supabase environment and cron job exists.
 3. Verify Google Speech env config in each environment (local/Vercel) and run child cloud voice flow end-to-end.
-4. Keep COPPA launch work tracked in `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md` and execute before production launch freeze.
+4. Continue COPPA Phase C-E work in `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md` (rights workflows + launch evidence/legal packet).
 
 ## Hard Rules
 - Never expose `ANTHROPIC_API_KEY` in client code.

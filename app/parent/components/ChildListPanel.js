@@ -25,7 +25,8 @@ export function ChildListPanel({
     onUpdateChild,
     onDeleteChild,
     loading,
-    actionAlert
+    actionAlert,
+    consentGranted
 }) {
     const childListHeadingId = useId();
     const [showAddForm, setShowAddForm] = useState(false);
@@ -66,6 +67,8 @@ export function ChildListPanel({
             setConfirmDeleteId(null);
         }
     };
+
+    const createDisabled = loading || !consentGranted;
 
     return (
         <section className="card" aria-busy={loading}>
@@ -179,6 +182,12 @@ export function ChildListPanel({
                 </div>
             ) : null}
 
+            {!consentGranted ? (
+                <p className="section-muted" style={{ marginTop: 8 }}>
+                    Complete parental consent to add another child profile.
+                </p>
+            ) : null}
+
             {showAddForm ? (
                 <div id="child-create-form" className="child-form-inline">
                     <ChildProfilePanel
@@ -186,7 +195,7 @@ export function ChildListPanel({
                         setChildForm={setChildForm}
                         onSubmit={handleSaveNew}
                         onCancel={() => setShowAddForm(false)}
-                        loading={loading}
+                        loading={createDisabled}
                         autoFocusFirstField
                     />
                 </div>
@@ -197,6 +206,7 @@ export function ChildListPanel({
                     data-testid="child-add-button"
                     aria-expanded={showAddForm}
                     aria-controls="child-create-form"
+                    disabled={createDisabled}
                     onClick={() => setShowAddForm(true)}
                     style={{ marginTop: children.length > 0 ? 12 : 0 }}
                 >

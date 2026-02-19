@@ -4,6 +4,124 @@ Notes:
 - Compacted on 2026-02-18 to a rolling window.
 - Keep detailed entries for current context; older granular history is summarized below.
 
+## 2026-02-19T19:20:32Z - Codex
+
+### Scope Worked
+- Started COPPA implementation with a lightweight, background-first consent checkpoint:
+  - consent state + audit schema,
+  - server-side collection gating,
+  - parent console consent controls,
+  - docs/tests/ADR updates.
+
+### Last Agent Accomplished
+- Added COPPA schema migration:
+  - `supabase/migrations/20260219141000_coppa_consent_gate.sql`
+  - adds `parents` consent columns and `parent_consents` audit table + RLS policy.
+- Added consent service and exports:
+  - `src/server/session-foundation/coppa-consent-service.js`
+  - `src/server/session-foundation-service.js`
+  - provides status read/write, server enforcement, and compatibility fallback when consent schema is missing in local/dev.
+- Wired auth + server enforcement:
+  - `src/server/auth.js` now returns consent fields in parent profile and gracefully falls back when consent schema is absent.
+  - `src/server/session-foundation/children-service.js` and `src/server/session-foundation/session-service.js` now enforce consent before child creation/session start.
+- Added consent API route:
+  - `app/api/privacy/consent/route.js` (`GET` + `POST` with `grant`/`revoke`).
+- Added parent consent UI checkpoint:
+  - `app/parent/components/CoppaConsentPanel.js`
+  - `app/parent/page.js`
+  - `app/parent/hooks/useParentConsole.js`
+  - `app/parent/hooks/parent-console-shared.js`
+  - `app/parent/components/ChildListPanel.js`
+  - `app/parent/components/SessionControlPanel.js`
+  - `app/styles/components.css`
+- Updated privacy-policy copy for consent/revocation statements:
+  - `app/privacy/page.js`
+- Added/updated tests:
+  - `tests/privacy-consent-route.test.js`
+  - `tests/session-auth-integration.test.js`
+  - `tests/e2e-critical-path.test.js`
+  - `tests/use-parent-console-hook.test.js`
+  - `tests/playwright/helpers/parent-console.js` (auto-consent for fixture setup).
+- Updated docs and planning artifacts:
+  - `docs/API_CONTRACT.md`
+  - `docs/DB_SCHEMA_AND_RLS.md`
+  - `docs/SECURITY_AND_COMPLIANCE.md`
+  - `docs/COPPA_LAUNCH_PLAN.md`
+  - `docs/PROJECT_PLAN.md`
+  - `docs/START_HERE.md`
+  - `docs/PRODUCT_BACKLOG.md`
+  - `docs/architecture/DECISIONS.md` (ADR-007)
+  - `README.md`
+  - `.env.example`
+
+### Files Touched
+- `/Users/bborn/home-school-helper/supabase/migrations/20260219141000_coppa_consent_gate.sql`
+- `/Users/bborn/home-school-helper/src/server/session-foundation/coppa-consent-service.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation-service.js`
+- `/Users/bborn/home-school-helper/src/server/auth.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation/children-service.js`
+- `/Users/bborn/home-school-helper/src/server/session-foundation/session-service.js`
+- `/Users/bborn/home-school-helper/app/api/privacy/consent/route.js`
+- `/Users/bborn/home-school-helper/app/parent/components/CoppaConsentPanel.js`
+- `/Users/bborn/home-school-helper/app/parent/page.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js`
+- `/Users/bborn/home-school-helper/app/parent/hooks/parent-console-shared.js`
+- `/Users/bborn/home-school-helper/app/parent/components/ChildListPanel.js`
+- `/Users/bborn/home-school-helper/app/parent/components/SessionControlPanel.js`
+- `/Users/bborn/home-school-helper/app/styles/components.css`
+- `/Users/bborn/home-school-helper/app/privacy/page.js`
+- `/Users/bborn/home-school-helper/tests/privacy-consent-route.test.js`
+- `/Users/bborn/home-school-helper/tests/session-auth-integration.test.js`
+- `/Users/bborn/home-school-helper/tests/e2e-critical-path.test.js`
+- `/Users/bborn/home-school-helper/tests/use-parent-console-hook.test.js`
+- `/Users/bborn/home-school-helper/tests/playwright/helpers/parent-console.js`
+- `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+- `/Users/bborn/home-school-helper/docs/DB_SCHEMA_AND_RLS.md`
+- `/Users/bborn/home-school-helper/docs/SECURITY_AND_COMPLIANCE.md`
+- `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md`
+- `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
+- `/Users/bborn/home-school-helper/docs/START_HERE.md`
+- `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md`
+- `/Users/bborn/home-school-helper/docs/architecture/DECISIONS.md`
+- `/Users/bborn/home-school-helper/README.md`
+- `/Users/bborn/home-school-helper/.env.example`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm run test:unit`
+- Result: pass (145 tests, 0 failures).
+- Command: `npm run test:e2e -- tests/playwright/parent-session-lifecycle.spec.js tests/playwright/child-join-code-redemption.spec.js`
+- Result: pass (2/2).
+- Command: `npm run test:e2e -- tests/playwright/parent-auth-bootstrap.spec.js`
+- Result: pass (1/1).
+- Command: `npm run test:e2e:headed -- tests/playwright/parent-session-lifecycle.spec.js`
+- Result: pass (1/1, headed Chromium).
+- Command: `npm run test:e2e -- tests/playwright/transport-mode-stream.spec.js`
+- Result: fail (stream append assertion timeout; only `snapshot` event observed in this environment).
+- Command: `supabase db push`
+- Result: pass; applied `20260219141000_coppa_consent_gate.sql` to linked project.
+- Command: `npm run test:e2e`
+- Result: pass (default suite + transport matrix both modes).
+- Command: `npm run check:handoff`
+- Result: fail in local working tree context (`scripts/check-handoff.sh` compares commit range `BASE..HEAD`; current edits are uncommitted).
+- Command: `npm run build`
+- Result: pass.
+
+### Open Risks / Issues
+- COPPA consent checkpoint currently uses parent self-attestation method; legal/VPC method finalization is still required before production launch.
+- Local/dev environments missing the COPPA migration fall back to `required=false` to avoid operational deadlock; deploys should run migration and keep enforcement active.
+- Playwright/webServer `NO_COLOR` vs `FORCE_COLOR` warnings still appear in this environment (non-functional noise).
+- Prior stream transport flake observed before migration; post-migration full e2e (including transport matrix) passed in this environment.
+
+### Next Steps (Ordered)
+1. Apply `20260219141000_coppa_consent_gate.sql` in each Supabase environment and verify `parent_consents` writes.
+2. Finalize VPC method + direct notice/legal text with counsel; update `/privacy` and onboarding copy.
+3. Implement Phase C parent-rights APIs (`child-data-summary`, export, delete) and parent console surfaces.
+4. Assemble launch evidence pack (consent records, provider assurances, test artifacts, incident workflow).
+
+### Blocking Questions
+- None.
+
 ## 2026-02-19T16:15:38Z - Codex
 
 ### Scope Worked

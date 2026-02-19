@@ -4,6 +4,7 @@ import { StatusAlert } from "../../components/feedback/StatusAlert.js";
 
 export function SessionControlPanel({
   selectedChild,
+  consentGranted,
   sessionForm,
   setSessionForm,
   onStartSession,
@@ -90,8 +91,18 @@ export function SessionControlPanel({
             value={sessionForm.additional_context}
             onChange={(event) => setSessionForm((prev) => ({ ...prev, additional_context: event.target.value }))}
           />
+          {!consentGranted ? (
+            <p className="section-muted" style={{ fontSize: "0.88rem" }}>
+              Complete parental consent above before starting a new session.
+            </p>
+          ) : null}
           <div className="btn-row">
-            <button type="submit" disabled={loading} className="btn btn--primary" data-testid="session-start-submit">
+            <button
+              type="submit"
+              disabled={loading || !consentGranted}
+              className="btn btn--primary"
+              data-testid="session-start-submit"
+            >
               Create join code
             </button>
           </div>

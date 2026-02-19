@@ -10,6 +10,7 @@ import {
   persistSessionMessage,
   persistTutorAuditEvents,
   redeemSessionCode,
+  setParentCoppaConsentState,
   startSessionForParent
 } from "../src/server/session-foundation-service.js";
 import { runSessionTutorTurn } from "../src/server/session-turn-orchestrator.js";
@@ -44,6 +45,8 @@ test("critical path covers parent onboarding through child tutoring turn", async
     anonClient,
     serviceClient
   });
+
+  await setParentCoppaConsentState(parentContext.parent.id, { status: "granted" }, { serviceClient });
 
   const child = await createChildForParent(
     parentContext.parent.id,

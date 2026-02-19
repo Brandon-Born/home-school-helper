@@ -403,6 +403,19 @@
   backdrop-filter: blur(12px);
 }
 
+.consent-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.consent-panel__meta {
+  margin-top: 6px;
+  font-size: 0.84rem;
+}
+
 .child-card__header {
   display: flex;
   align-items: center;

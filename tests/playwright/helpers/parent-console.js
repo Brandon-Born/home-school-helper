@@ -14,6 +14,39 @@ export async function openParentConsole(page) {
   await page.goto("/parent", { waitUntil: "domcontentloaded" });
   await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
   await expect(page.getByRole("heading", { name: "Your children" })).toBeVisible({ timeout: 30000 });
+  await ensureCoppaConsentGranted(page);
+}
+
+export async function ensureCoppaConsentGranted(page) {
+  const addChildButton = page.getByTestId("child-add-button");
+  const grantButton = page.getByRole("button", { name: "I am the parent or legal guardian" });
+
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    if ((await addChildButton.count()) > 0 && (await addChildButton.isEnabled())) {
+      return;
+    }
+
+    if ((await grantButton.count()) > 0 && (await grantButton.isVisible())) {
+      const consentResponsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/privacy/consent") &&
+          response.request().method() === "POST"
+      );
+      await grantButton.click();
+      const consentResponse = await consentResponsePromise;
+      expect(consentResponse.status()).toBe(200);
+      await expect(page.getByRole("button", { name: "Revoke consent" })).toBeVisible({
+        timeout: 30000
+      });
+      await expect(addChildButton).toBeEnabled({ timeout: 30000 });
+      return;
+    }
+
+    await page.waitForTimeout(250);
+  }
+
+  throw new Error("Timed out waiting for parental consent to allow child profile creation.");
 }
 
 export async function createChildProfile(

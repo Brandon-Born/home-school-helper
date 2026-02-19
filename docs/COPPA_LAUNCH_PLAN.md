@@ -1,12 +1,12 @@
-# COPPA Launch Plan (Deferred Until Product Stabilization)
+# COPPA Launch Plan (In Progress)
 
 Last updated: 2026-02-19
 Owner: Product + Engineering + Legal
-Status: Planned, not started
+Status: In progress (Phase B baseline shipped)
 
 ## Purpose
 - Capture the concrete COPPA work needed before U.S. production launch.
-- Keep implementation details ready while core product stability work is prioritized first.
+- Keep implementation lightweight around existing workflows without changing tutor-loop core behavior.
 
 ## Direct Answer To Product Impact
 Your assumption is partly right:
@@ -23,9 +23,9 @@ Already aligned:
 - No raw audio storage in v1.
 
 Known gaps already documented:
-- Formal parental consent records and policy text.
-- Data export and deletion endpoint UX.
-- Legal review before production launch.
+- Verifiable parental consent (VPC) method finalization with legal counsel.
+- Parent export/deletion workflows and UI.
+- Legal/provider signoff before production launch.
 
 ## COPPA Scope For This Product
 This product is child-directed and processes child personal information, including:
@@ -39,9 +39,10 @@ Therefore COPPA launch readiness requires:
 - Written provider assurances for child data handling.
 - Security and retention controls documented and enforced.
 
-## Deferred Implementation Plan
+## Implementation Plan
 
 ### Phase A: Legal And Policy Foundations
+Status: In progress
 1. Publish a COPPA-compliant privacy policy page.
 2. Draft parent direct notice copy and delivery flow.
 3. Decide and document verifiable parental consent (VPC) method(s).
@@ -53,16 +54,27 @@ Deliverables:
 - Internal legal packet with approved text and VPC method.
 
 ### Phase B: Consent Gating In Product
+Status: Baseline implemented
 1. Add parent consent state model (for example: `pending`, `granted`, `revoked`).
 2. Gate child profile creation and session start on active consent.
 3. Log consent events (method, timestamp, policy version, actor, revocation details).
 4. Add parent UI to view consent status and revoke consent.
 
 Suggested schema additions:
-- `parent_consents` table with versioned records.
-- Optional denormalized `parents.consent_status` for quick checks.
+- `parent_consents` table with versioned records. Implemented.
+- Denormalized parent consent columns for quick checks. Implemented.
+
+Implemented endpoints:
+- `GET /api/privacy/consent`
+- `POST /api/privacy/consent` (`grant` | `revoke`)
+
+Implemented behavior:
+- Child profile creation and session start reject with `403 coppa_consent_required` unless consent is granted.
+- Parent UI shows a consent checkpoint card and disables add/start controls until consent is granted.
+- Backward compatibility fallback: if consent schema migration is missing in local/dev, consent gating auto-disables (`required=false`) to prevent deadlock.
 
 ### Phase C: Parent Rights Workflows
+Status: Not started
 1. Parent review surface for child data categories collected.
 2. Parent-initiated export flow for child-related data.
 3. Parent-initiated deletion flow for child account/session/transcript data.
@@ -72,9 +84,10 @@ Suggested API additions:
 - `GET /api/privacy/child-data-summary`
 - `POST /api/privacy/export`
 - `POST /api/privacy/delete`
-- `POST /api/privacy/consent/revoke`
+- `POST /api/privacy/consent` with `action='revoke'` (already implemented baseline)
 
 ### Phase D: Vendor And Security Controls
+Status: Not started
 1. Maintain written assurances and data processing terms with providers:
    - Anthropic
    - Google Speech
@@ -85,6 +98,7 @@ Suggested API additions:
 4. Add documented incident workflow for child-data events.
 
 ### Phase E: Verification And Launch Evidence
+Status: In progress (consent gating tests added)
 1. Add integration tests for consent gating and revoked states.
 2. Add tests for export/delete flow authorization and completeness.
 3. Produce compliance evidence pack for go-live signoff:
@@ -105,12 +119,8 @@ No major structural change expected:
 - Hidden parent guidance model.
 - Existing transcript stream architecture.
 
-## Suggested Trigger To Start This Work
-Start Phase A/B when:
-- P0/P1 backlog is clear (currently already clear).
-- Current stabilization goals are met (voice UX/auth/testing hardening).
-
-Do not defer beyond pre-production launch freeze.
+## Suggested Trigger To Continue
+Continue Phase C-E now that baseline Phase B controls are in place.
 
 ## Open Decisions Needed Later
 1. Which VPC method(s) to implement first.
@@ -120,7 +130,7 @@ Do not defer beyond pre-production launch freeze.
 
 ## Source Notes
 Primary legal references to validate with counsel during implementation:
-- FTC COPPA Rule and FAQs.
-- 16 CFR Part 312, including updated provider-assurance and security obligations.
+- FTC COPPA Rule and FAQs: https://www.ftc.gov/business-guidance/privacy-security/childrens-privacy
+- 16 CFR Part 312 (COPPA rule text): https://www.ecfr.gov/current/title-16/chapter-I/subchapter-C/part-312
 
 This document is an engineering planning artifact, not legal advice.

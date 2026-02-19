@@ -83,6 +83,11 @@ export default function PrivacyPage() {
                         collect personal information directly from children. All data
                         collection is initiated and controlled by the parent.
                     </p>
+                    <p>
+                        Before creating a child profile or starting a session, the parent
+                        must complete our parental consent checkpoint. Parents can review
+                        consent status and revoke consent from the parent console.
+                    </p>
                 </section>
 
                 <section>
@@ -127,6 +132,10 @@ export default function PrivacyPage() {
                         You may request access to, correction of, or deletion of your
                         personal data at any time. To make a request, please contact us
                         using the information below.
+                    </p>
+                    <p>
+                        Parents may also revoke consent to new child-data collection at any
+                        time from the parent console.
                     </p>
                 </section>
 

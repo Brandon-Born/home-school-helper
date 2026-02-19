@@ -62,5 +62,5 @@ Scope:
 ## Parking Lot (Not Scheduled)
 
 - Multi-language tutoring support.
-- COPPA consent/export/deletion self-serve parent portal UX (implementation notes: `docs/COPPA_LAUNCH_PLAN.md`).
+- COPPA parent-rights self-serve UX (data summary/export/deletion hardening) (implementation notes: `docs/COPPA_LAUNCH_PLAN.md`).
 - Native mobile wrapper once web UX stabilizes.

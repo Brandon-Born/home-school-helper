@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { runAsyncActionStatus } from "./parent-action-status.js";
 import {
   buildSessionForUi,
   initialActionAlerts,
@@ -145,6 +146,27 @@ export function createUseParentConsole({
       setMessages((previous) => mergeMessages(previous, incomingMessages));
     }, []);
 
+    const applyConsentToParentProfile = useCallback((consent) => {
+      if (!consent) {
+        return;
+      }
+
+      setParentProfile((previous) => {
+        if (!previous) {
+          return previous;
+        }
+
+        return {
+          ...previous,
+          coppa_consent_required: consent.required,
+          coppa_consent_status: consent.status,
+          coppa_consent_updated_at: consent.updated_at,
+          coppa_policy_version: consent.policy_version,
+          coppa_consent_method: consent.method
+        };
+      });
+    }, []);
+
     useParentTranscriptStreamHook({
       activeSessionId: activeSession?.session_id ?? null,
       accessToken: session?.access_token ?? null,
@@ -213,6 +235,58 @@ export function createUseParentConsole({
       setActionAlert
     });
 
+    const grantCoppaConsent = useCallback(async () => {
+      const outcome = await runAsyncActionStatus({
+        actionKey: "consent",
+        setLoadingState,
+        setError,
+        clearActionAlert,
+        setActionAlert,
+        fallbackErrorMessage: "We couldn't record parental consent. Please try again.",
+        run: async () =>
+          parentRequest("/api/privacy/consent", {
+            method: "POST",
+            body: {
+              action: "grant"
+            }
+          }),
+        onSuccess: (payload) => {
+          applyConsentToParentProfile(payload?.consent);
+          return "Parental consent confirmed.";
+        }
+      });
+
+      return outcome.ok;
+    }, [applyConsentToParentProfile, clearActionAlert, parentRequest, setActionAlert, setError, setLoadingState]);
+
+    const revokeCoppaConsent = useCallback(async () => {
+      const outcome = await runAsyncActionStatus({
+        actionKey: "consent",
+        setLoadingState,
+        setError,
+        clearActionAlert,
+        setActionAlert,
+        fallbackErrorMessage: "We couldn't revoke parental consent. Please try again.",
+        run: async () =>
+          parentRequest("/api/privacy/consent", {
+            method: "POST",
+            body: {
+              action: "revoke"
+            }
+          }),
+        onSuccess: (payload) => {
+          applyConsentToParentProfile(payload?.consent);
+          return "Parental consent revoked. New child profiles and sessions are now blocked.";
+        }
+      });
+
+      return outcome.ok;
+    }, [applyConsentToParentProfile, clearActionAlert, parentRequest, setActionAlert, setError, setLoadingState]);
+
+    const coppaConsentRequired = parentProfile?.coppa_consent_required !== false;
+    const coppaConsentStatus = String(parentProfile?.coppa_consent_status || "pending").toLowerCase();
+    const hasCoppaConsent = !coppaConsentRequired || coppaConsentStatus === "granted";
+
     return {
       state: {
         session,
@@ -226,6 +300,9 @@ export function createUseParentConsole({
         error,
         loading,
         actionAlerts,
+        coppaConsentRequired,
+        coppaConsentStatus,
+        hasCoppaConsent,
         busy: Object.values(loading).some(Boolean),
         childForm,
         sessionForm,
@@ -243,6 +320,8 @@ export function createUseParentConsole({
         regenerateCode,
         sendNudge,
         setOverride,
+        grantCoppaConsent,
+        revokeCoppaConsent,
         refreshParentData: fetchParentData,
         setSelectedChildId,
         setChildForm,

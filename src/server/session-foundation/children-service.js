@@ -1,6 +1,7 @@
 import { ApiError } from "../api-error.js";
 import { getServiceSupabaseClient } from "../supabase-clients.js";
 import { normalizeChildProfilePayload } from "./payload-normalizers.js";
+import { ensureParentHasCoppaConsent } from "./coppa-consent-service.js";
 
 export async function listChildrenForParent(parentId, options = {}) {
   const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
@@ -20,6 +21,8 @@ export async function listChildrenForParent(parentId, options = {}) {
 export async function createChildForParent(parentId, payload, options = {}) {
   const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
   const normalized = normalizeChildProfilePayload(payload);
+
+  await ensureParentHasCoppaConsent(parentId, { serviceClient, env: options.env });
 
   const { data, error } = await serviceClient
     .from("children")
@@ -101,4 +104,3 @@ export async function deleteChildForParent(parentId, childId, options = {}) {
     throw new ApiError(500, "child_delete_failed", "Unable to delete child profile.");
   }
 }
-

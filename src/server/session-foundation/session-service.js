@@ -9,6 +9,7 @@ import {
   normalizeSessionJoinPayload,
   normalizeSessionStartPayload
 } from "./payload-normalizers.js";
+import { ensureParentHasCoppaConsent } from "./coppa-consent-service.js";
 
 const JOIN_CODE_TTL_MINUTES = 10;
 const CHILD_SESSION_TTL_HOURS = 12;
@@ -21,6 +22,8 @@ function hasMissingActiveJoinCodeColumns(error) {
 export async function startSessionForParent(parentId, payload, options = {}) {
   const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
   const normalized = normalizeSessionStartPayload(payload);
+  await ensureParentHasCoppaConsent(parentId, { serviceClient, env: options.env });
+
   const joinCode = generateJoinCode(8);
   const codeHash = hashOpaqueToken(joinCode);
   const expiresAt = new Date(Date.now() + JOIN_CODE_TTL_MINUTES * 60 * 1000).toISOString();

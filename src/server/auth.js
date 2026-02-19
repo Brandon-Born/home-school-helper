@@ -4,6 +4,11 @@ import {
   getAnonSupabaseClient,
   getServiceSupabaseClient
 } from "./supabase-clients.js";
+import {
+  PARENT_PROFILE_SELECT,
+  isCoppaSchemaMissingError,
+  withCoppaConsentDefaults
+} from "./session-foundation/coppa-consent-service.js";
 
 export function getBearerToken(request) {
   const header = request.headers.get("authorization") || "";
@@ -33,11 +38,33 @@ export async function requireParentContext(request, options = {}) {
     full_name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? null
   };
 
-  const { data: parent, error: parentError } = await serviceClient
+  let parent;
+  let parentError;
+
+  ({ data: parent, error: parentError } = await serviceClient
     .from("parents")
     .upsert(parentPayload, { onConflict: "auth_user_id" })
-    .select("id, auth_user_id, email, full_name, onboarding_completed, created_at")
-    .single();
+    .select(PARENT_PROFILE_SELECT)
+    .single());
+
+  if (parentError && isCoppaSchemaMissingError(parentError)) {
+    ({ data: parent, error: parentError } = await serviceClient
+      .from("parents")
+      .upsert(parentPayload, { onConflict: "auth_user_id" })
+      .select("id, auth_user_id, email, full_name, onboarding_completed, created_at")
+      .single());
+
+    if (!parentError && parent) {
+      parent = {
+        ...parent,
+        coppa_consent_required: false,
+        coppa_consent_status: "granted",
+        coppa_consent_updated_at: null,
+        coppa_policy_version: null,
+        coppa_consent_method: null
+      };
+    }
+  }
 
   if (parentError || !parent) {
     throw new ApiError(500, "parent_sync_failed", "Unable to create or fetch parent profile.");
@@ -46,7 +73,7 @@ export async function requireParentContext(request, options = {}) {
   return {
     accessToken,
     user,
-    parent
+    parent: withCoppaConsentDefaults(parent)
   };
 }
 

@@ -37,6 +37,11 @@ Returns parent profile (and creates/syncs parent row from authenticated Supabase
     "email": "parent@example.com",
     "full_name": "Parent Name",
     "onboarding_completed": false,
+    "coppa_consent_required": true,
+    "coppa_consent_status": "pending",
+    "coppa_consent_updated_at": null,
+    "coppa_policy_version": "2026-02-19",
+    "coppa_consent_method": null,
     "created_at": "timestamp"
   },
   "user": {
@@ -45,6 +50,59 @@ Returns parent profile (and creates/syncs parent row from authenticated Supabase
   }
 }
 ```
+
+## GET `/api/privacy/consent`
+Returns consent checkpoint state for the authenticated parent.
+
+### Response (200)
+```json
+{
+  "consent": {
+    "required": true,
+    "status": "pending",
+    "updated_at": null,
+    "policy_version": "2026-02-19",
+    "policy_url": "/privacy",
+    "method": null
+  }
+}
+```
+
+Notes:
+- If database consent columns are not migrated yet, response may return `required=false` with `status=granted` as a temporary local/dev fallback.
+
+## POST `/api/privacy/consent`
+Sets parent consent status.
+
+### Request
+```json
+{
+  "action": "grant"
+}
+```
+
+Allowed `action` values:
+- `grant`
+- `revoke`
+
+### Response (200)
+```json
+{
+  "consent": {
+    "required": true,
+    "status": "granted",
+    "updated_at": "timestamp",
+    "policy_version": "2026-02-19",
+    "policy_url": "/privacy",
+    "method": "parent_self_attestation"
+  }
+}
+```
+
+### Errors
+- `400 validation_error`: Action must be `grant` or `revoke`.
+- `500 coppa_consent_update_failed`: Consent state could not be persisted.
+- `500 coppa_consent_audit_failed`: Consent audit event could not be persisted.
 
 ## GET `/api/children`
 Lists children for authenticated parent.
@@ -97,6 +155,9 @@ Creates a child profile for authenticated parent.
   }
 }
 ```
+
+### Errors
+- `403 coppa_consent_required`: Parent consent must be granted first.
 
 ## PUT `/api/children/:id`
 Updates a child profile for authenticated parent. Parent must own the child.
@@ -253,6 +314,9 @@ Rate limit:
   }
 }
 ```
+
+### Errors
+- `403 coppa_consent_required`: Parent consent must be granted first.
 
 ## POST `/api/session/join`
 Redeems one-time join code and returns child session token.

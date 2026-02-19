@@ -73,3 +73,20 @@
 - Consequences:
   - Current implementation polls DB server-side and emits incremental events over SSE.
   - Direct Supabase Realtime channel fan-out can be adopted later if needed for higher scale.
+
+## ADR-007: COPPA Consent Gate At Collection Boundaries
+- Status: Accepted
+- Date: 2026-02-19
+- Decision:
+  - Add parent consent state (`pending`, `granted`, `revoked`) on `parents` plus append-only consent audit rows in `parent_consents`.
+  - Enforce consent gate at child-data collection boundaries:
+    - child profile creation (`POST /api/children`)
+    - session start (`POST /api/session/start`)
+  - Expose parent consent checkpoint API (`GET|POST /api/privacy/consent`) and parent-console controls.
+- Rationale:
+  - Meets COPPA-first requirement with minimal workflow change and no tutor-loop rewrite.
+  - Keeps gating centralized on server-side trust boundaries where data collection begins.
+- Consequences:
+  - Adds one lightweight parent setup checkpoint before first child profile/session.
+  - Requires schema migration before strict enforcement in deployed environments.
+  - Local/dev compatibility fallback auto-disables gate when consent schema objects are absent.

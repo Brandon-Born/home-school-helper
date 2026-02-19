@@ -12,6 +12,10 @@
 - `email text`
 - `full_name text`
 - `onboarding_completed boolean default false`
+- `coppa_consent_status text not null default 'pending'` (`pending` | `granted` | `revoked`)
+- `coppa_consent_updated_at timestamptz`
+- `coppa_policy_version text`
+- `coppa_consent_method text`
 - `created_at timestamptz default now()`
 
 2. `children`
@@ -78,6 +82,18 @@
 - `metadata jsonb not null default '{}'::jsonb`
 - `created_at timestamptz default now()`
 
+9. `parent_consents`
+- `id uuid pk`
+- `parent_id uuid not null references parents(id)`
+- `status text not null` (`granted` | `revoked`)
+- `method text not null`
+- `policy_version text not null`
+- `policy_url text not null`
+- `actor_parent_id uuid references parents(id)`
+- `client_address text`
+- `user_agent text`
+- `created_at timestamptz default now()`
+
 ## Indexes
 - `children(parent_id)`
 - `sessions(parent_id, child_id, status)`
@@ -85,6 +101,7 @@
 - `session_codes(session_id, expires_at)`
 - `child_session_tokens(session_id, expires_at)`
 - `policy_events(session_id, created_at)`
+- `parent_consents(parent_id, created_at desc)`
 
 ## RLS Model
 Enable RLS on all user-facing tables.
@@ -113,4 +130,5 @@ using (auth.uid() = auth_user_id);
 - Current core migrations:
   - `20260217040000_session_foundation.sql`
   - `20260217193000_transcript_retention.sql` (adds 30-day transcript purge function + daily `pg_cron` schedule)
+  - `20260219141000_coppa_consent_gate.sql` (adds consent state columns + `parent_consents` audit table)
 - Every schema or policy change requires docs and handoff updates.

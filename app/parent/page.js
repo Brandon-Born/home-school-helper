@@ -3,6 +3,7 @@
 import { ActiveSessionsPanel } from "./components/ActiveSessionsPanel.js";
 import { AuthPanel } from "./components/AuthPanel.js";
 import { ChildListPanel } from "./components/ChildListPanel.js";
+import { CoppaConsentPanel } from "./components/CoppaConsentPanel.js";
 import { SessionControlPanel } from "./components/SessionControlPanel.js";
 import { TranscriptPanel } from "./components/TranscriptPanel.js";
 import { StatusAlert } from "../components/feedback/StatusAlert.js";
@@ -35,6 +36,16 @@ export default function ParentPage() {
       {state.session ? (
         <div className="console-grid console-grid--parent">
           <div className="stack">
+            <CoppaConsentPanel
+              parentProfile={state.parentProfile}
+              consentRequired={state.coppaConsentRequired}
+              hasCoppaConsent={state.hasCoppaConsent}
+              loading={state.loading.consent}
+              actionAlert={state.actionAlerts.consent}
+              onGrantConsent={actions.grantCoppaConsent}
+              onRevokeConsent={actions.revokeCoppaConsent}
+            />
+
             <ChildListPanel
               children={state.children}
               selectedChildId={state.selectedChildId}
@@ -46,6 +57,7 @@ export default function ParentPage() {
               onDeleteChild={actions.deleteChild}
               loading={state.loading.childMutation}
               actionAlert={state.actionAlerts.childMutation}
+              consentGranted={state.hasCoppaConsent}
             />
 
             <ActiveSessionsPanel
@@ -65,6 +77,7 @@ export default function ParentPage() {
               setSessionForm={actions.setSessionForm}
               onStartSession={actions.startSession}
               activeSession={state.activeSession}
+              consentGranted={state.hasCoppaConsent}
               loading={state.loading.sessionStart || state.loading.override || state.loading.sessionManage}
               onEnableOverride={() => actions.setOverride(true)}
               onDisableOverride={() => actions.setOverride(false)}

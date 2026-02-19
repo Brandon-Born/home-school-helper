@@ -39,6 +39,11 @@ npm run dev                # http://localhost:3000
 
 Optional variables for Anthropic tuning (`ANTHROPIC_MAX_TOKENS`, `ANTHROPIC_TEMPERATURE`, `TUTOR_SYSTEM_PROMPT_VERSION`), stream telemetry/transport (`STREAM_TELEMETRY_DISABLED`, `NEXT_PUBLIC_STREAM_TELEMETRY_DISABLED`, `STREAM_TRANSPORT_MODE`), voice telemetry (`SPEECH_TELEMETRY_DISABLED`, `NEXT_PUBLIC_VOICE_TELEMETRY_DISABLED`), product analytics telemetry (`PRODUCT_ANALYTICS_DISABLED`, `NEXT_PUBLIC_PRODUCT_ANALYTICS_DISABLED`), and Google Speech integration are documented in `.env.example`.
 
+COPPA consent controls are configurable via optional env vars:
+- `COPPA_CONSENT_REQUIRED` (`1` default, set `0` for local/dev fallback environments).
+- `COPPA_POLICY_VERSION` (recorded in consent audit events).
+- `COPPA_POLICY_URL` (returned in consent API payloads).
+
 For non-interactive Playwright auth in local/test, configure:
 - `ENABLE_TEST_AUTH_BOOTSTRAP=1`
 - `PLAYWRIGHT_TEST_AUTH_SECRET=<shared secret for setup + route header>`
@@ -72,6 +77,8 @@ tests/                         Unit tests
 | Method | Route | Auth | Purpose |
 |--------|-------|------|---------|
 | GET | `/api/parent/me` | Parent | Get/sync parent profile |
+| GET | `/api/privacy/consent` | Parent | Get parent consent checkpoint state |
+| POST | `/api/privacy/consent` | Parent | Grant/revoke parent consent checkpoint |
 | GET | `/api/children` | Parent | List children |
 | POST | `/api/children` | Parent | Create child profile |
 | PUT | `/api/children/:id` | Parent | Update child profile |
@@ -118,6 +125,7 @@ Full request/response shapes: [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md)
 
 - **Scaffold-first tutoring** — hints and guiding questions before direct answers
 - **Parent steering is invisible** — children never see nudges or parent context
+- **Consent before collection** — child profile creation and new session start require granted parent consent
 - **Secrets stay server-side** — no API keys in browser code, ever
 - **Guardrails always on** — unsafe content blocked even when direct-answer mode is enabled
 - **Anthropic-only** — single LLM provider in v1 for auditability

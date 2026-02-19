@@ -51,6 +51,10 @@ Implemented:
 - Initial web UI routes for parent and child operational flows (`/parent`, `/child`, `/auth/callback`).
   - Parent: auth, child profile CRUD (create/edit/delete), active session management (rejoin/end/regenerate code), session start, nudges, transcript.
   - Child: join-code redemption, cloud voice input/output, transcript.
+- COPPA consent baseline implemented:
+  - `parents` consent state columns + `parent_consents` audit table migration.
+  - `GET|POST /api/privacy/consent`.
+  - Child profile and session-start gating on granted consent.
 - Session transcript SSE subscription flow implemented for parent/child clients.
 - Agent operations docs (`AGENT.md`) and handoff system.
 - CI guard for handoff log updates on runtime code changes.
@@ -58,7 +62,7 @@ Implemented:
 Remaining non-backlog items:
 - Verify transcript retention migration (`20260217193000`) and cron job in each deployed Supabase environment.
 - Validate Google Speech STT/TTS configuration in each deployed environment.
-- COPPA-first consent/deletion/export flows and legal launch review (tracked in `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md`).
+- Complete remaining COPPA work: VPC/legal signoff + parent export/deletion workflows (tracked in `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md`).
 - Optional parent-surface voice controls (child cloud voice loop is implemented).
 
 ## 5. Execution Roadmap
@@ -151,4 +155,4 @@ Required internal config module behavior:
 1. Confirm `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md` has no open non-parking items (currently clear as of 2026-02-19).
 2. Validate Google Speech STT/TTS configuration in local/Vercel and run end-to-end child voice tests.
 3. Verify transcript retention migration (`20260217193000`) is applied in each deployed Supabase environment.
-4. Keep COPPA launch work deferred in `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md` until stabilization goals are met, then execute before production launch freeze.
+4. Continue Phase C-E in `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md` (parent rights workflows + launch evidence).

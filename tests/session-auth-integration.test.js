@@ -4,15 +4,33 @@ import assert from "node:assert/strict";
 import { ApiError } from "../src/server/api-error.js";
 import { requireChildSessionContext, requireParentContext } from "../src/server/auth.js";
 import {
+  createChildForParent,
   ensureParentOwnsSession,
   listActiveSessionsForParent,
   listSessionMessages,
   regenerateJoinCodeForSession,
   redeemSessionCode,
+  setParentCoppaConsentState,
   startSessionForParent
 } from "../src/server/session-foundation-service.js";
 import { hashOpaqueToken } from "../src/server/session-codes.js";
 import { createFakeServiceClient } from "./helpers/fake-service-client.js";
+
+function buildConsentReadyParent(overrides = {}) {
+  return {
+    id: "parent_1",
+    auth_user_id: "auth_parent_1",
+    email: "parent@example.com",
+    full_name: "Parent One",
+    onboarding_completed: false,
+    coppa_consent_status: "granted",
+    coppa_consent_updated_at: "2026-02-19T00:00:00.000Z",
+    coppa_policy_version: "2026-02-19",
+    coppa_consent_method: "parent_self_attestation",
+    created_at: "2026-02-19T00:00:00.000Z",
+    ...overrides
+  };
+}
 
 test("redeemSessionCode redeems exactly once and creates child session token", async () => {
   const now = Date.now();
@@ -63,6 +81,7 @@ test("redeemSessionCode redeems exactly once and creates child session token", a
 
 test("startSessionForParent returns UI metadata needed for active-session cards", async () => {
   const serviceClient = createFakeServiceClient({
+    parents: [buildConsentReadyParent()],
     children: [
       {
         id: "child_1",
@@ -268,6 +287,7 @@ test("requireParentContext validates bearer token and upserts parent record", as
 
 test("listActiveSessionsForParent returns active join code metadata", async () => {
   const serviceClient = createFakeServiceClient({
+    parents: [buildConsentReadyParent()],
     children: [
       {
         id: "child_1",
@@ -294,6 +314,7 @@ test("listActiveSessionsForParent returns active join code metadata", async () =
 
 test("regenerateJoinCodeForSession refreshes session metadata and expires prior code", async () => {
   const serviceClient = createFakeServiceClient({
+    parents: [buildConsentReadyParent()],
     children: [
       {
         id: "child_1",
@@ -330,6 +351,7 @@ test("regenerateJoinCodeForSession refreshes session metadata and expires prior 
 
 test("redeemSessionCode clears active join-code metadata from session list", async () => {
   const serviceClient = createFakeServiceClient({
+    parents: [buildConsentReadyParent()],
     children: [
       {
         id: "child_1",
@@ -354,4 +376,79 @@ test("redeemSessionCode clears active join-code metadata from session list", asy
   assert.equal(sessions.length, 1);
   assert.equal(sessions[0].join_code, null);
   assert.equal(sessions[0].expires_at, null);
+});
+
+test("startSessionForParent blocks when parental consent is pending", async () => {
+  const serviceClient = createFakeServiceClient({
+    parents: [buildConsentReadyParent({ coppa_consent_status: "pending", coppa_consent_method: null })],
+    children: [
+      {
+        id: "child_1",
+        parent_id: "parent_1",
+        first_name: "Ava"
+      }
+    ]
+  });
+
+  await assert.rejects(
+    () =>
+      startSessionForParent(
+        "parent_1",
+        {
+          child_id: "child_1",
+          daily_subjects: ["Math"]
+        },
+        { serviceClient }
+      ),
+    (error) =>
+      error instanceof ApiError && error.status === 403 && error.code === "coppa_consent_required"
+  );
+});
+
+test("setParentCoppaConsentState writes parent status and audit event", async () => {
+  const serviceClient = createFakeServiceClient({
+    parents: [buildConsentReadyParent({ coppa_consent_status: "pending", coppa_consent_method: null })]
+  });
+
+  const consent = await setParentCoppaConsentState(
+    "parent_1",
+    { status: "granted" },
+    {
+      serviceClient,
+      request: new Request("https://example.test/api/privacy/consent", {
+        headers: {
+          "user-agent": "unit-test-agent",
+          "x-forwarded-for": "203.0.113.1"
+        }
+      })
+    }
+  );
+
+  assert.equal(consent.status, "granted");
+  assert.equal(serviceClient.tables.parents[0].coppa_consent_status, "granted");
+  assert.equal(serviceClient.tables.parent_consents.length, 1);
+  assert.equal(serviceClient.tables.parent_consents[0].status, "granted");
+  assert.equal(serviceClient.tables.parent_consents[0].client_address, "203.0.113.1");
+});
+
+test("createChildForParent blocks when parental consent is revoked", async () => {
+  const serviceClient = createFakeServiceClient({
+    parents: [buildConsentReadyParent({ coppa_consent_status: "revoked" })]
+  });
+
+  await assert.rejects(
+    () =>
+      createChildForParent(
+        "parent_1",
+        {
+          child_name: "Ava",
+          age: 9,
+          grade: "4",
+          subjects: ["Math"]
+        },
+        { serviceClient }
+      ),
+    (error) =>
+      error instanceof ApiError && error.status === 403 && error.code === "coppa_consent_required"
+  );
 });
