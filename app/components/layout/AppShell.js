@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "../theme/ThemeToggle.js";
+import { Footer } from "./Footer.js";
 
 const NAV_LINKS = [
   { href: "/parent", label: "Parents" },
@@ -45,6 +46,8 @@ export function AppShell({ title, subtitle, role = "home", actions = null, child
       </section>
 
       <section className="app-shell__content">{children}</section>
+
+      <Footer />
     </div>
   );
 }

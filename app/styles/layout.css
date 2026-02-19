@@ -153,3 +153,48 @@
     justify-content: flex-start;
   }
 }
+
+/* ── Footer ──────────────────────────────────────── */
+
+.app-shell__footer {
+  margin-top: 48px;
+  padding: 28px 0 12px;
+  text-align: center;
+}
+
+.footer__accent-line {
+  width: 60px;
+  height: 3px;
+  margin: 0 auto 20px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg,
+      var(--role-accent),
+      color-mix(in oklab, var(--role-accent) 60%, var(--brand) 40%));
+}
+
+.footer__nav {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-bottom: 16px;
+}
+
+.footer__link {
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: color 160ms ease;
+}
+
+.footer__link:hover {
+  color: var(--role-accent);
+}
+
+.footer__copyright {
+  margin: 0;
+  font-size: 0.78rem;
+  color: color-mix(in oklab, var(--text-muted) 70%, transparent);
+  letter-spacing: 0.01em;
+}

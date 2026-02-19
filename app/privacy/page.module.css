@@ -1,0 +1,60 @@
+/* ── Privacy page ──────────────────────────────────── */
+
+.prose {
+    max-width: 68ch;
+}
+
+.prose section {
+    margin-bottom: 28px;
+}
+
+.prose p,
+.prose ul {
+    margin: 0 0 12px;
+    color: var(--text-muted);
+    line-height: 1.75;
+}
+
+.prose ul {
+    padding-left: 20px;
+}
+
+.prose li {
+    margin-bottom: 6px;
+}
+
+.prose strong {
+    color: var(--text);
+}
+
+.prose code {
+    font-size: 0.88em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+}
+
+.heading {
+    margin: 0 0 10px;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.link {
+    color: var(--brand);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color 160ms ease;
+}
+
+.link:hover {
+    color: var(--brand-strong);
+}
+
+.company {
+    font-weight: 600;
+    color: var(--text);
+}

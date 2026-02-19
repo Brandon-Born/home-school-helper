@@ -168,3 +168,7 @@ Playwright starts the app server automatically through `playwright.config.mjs` `
 ## Theme
 
 System-aware dark/light mode with user override (`System` / `Light` / `Dark`). Preference persists in `localStorage` under `hsh_theme_mode`. Design uses Inter (body) + Outfit (display) with an indigo/purple palette and teal/coral role accents.
+
+## Legal
+
+© 2026 Freyr And Sons LLC. All rights reserved.

@@ -1,0 +1,13 @@
+/* ── Contact page ──────────────────────────────────── */
+
+.formWrapper {
+    display: flex;
+    justify-content: center;
+}
+
+.contactForm {
+    display: grid;
+    gap: 16px;
+    width: 100%;
+    max-width: 520px;
+}
