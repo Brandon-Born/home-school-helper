@@ -90,3 +90,4 @@
   - Adds one lightweight parent setup checkpoint before first child profile/session.
   - Requires schema migration before strict enforcement in deployed environments.
   - Local/dev compatibility fallback auto-disables gate when consent schema objects are absent.
+  - Parent review baseline is exposed as aggregate metadata (`GET /api/privacy/child-data-summary`) rather than raw transcript export in this phase.

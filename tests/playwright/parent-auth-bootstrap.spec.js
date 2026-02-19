@@ -5,6 +5,7 @@ test("parent console is accessible with bootstrap auth state", async ({ page }) 
 
   await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
   await expect(page.getByRole("heading", { name: "Your children" })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole("heading", { name: "Child data summary" })).toBeVisible({ timeout: 30000 });
   await expect(page.getByRole("button", { name: /Sign in with Google|Sign in again/i })).toHaveCount(0);
   const profileResponsePromise = page.waitForResponse(
     (response) => response.url().includes("/api/parent/me") && response.request().method() === "GET"

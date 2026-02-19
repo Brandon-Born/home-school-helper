@@ -4,6 +4,67 @@ Notes:
 - Compacted on 2026-02-18 to a rolling window.
 - Keep detailed entries for current context; older granular history is summarized below.
 
+## 2026-02-19T19:33:08Z - Codex
+
+### Scope Worked
+- Continued COPPA Phase C with a lightweight parent data-review baseline:
+  - aggregate child-data summary API,
+  - read-only parent summary panel,
+  - tests + docs updates.
+
+### Last Agent Accomplished
+- Added server privacy summary service:
+  - `/Users/bborn/home-school-helper/src/server/session-foundation/privacy-service.js`
+  - returns aggregate category counts and time windows (no transcript content).
+- Exported summary service from foundation surface:
+  - `/Users/bborn/home-school-helper/src/server/session-foundation-service.js`
+- Added parent privacy summary route:
+  - `/Users/bborn/home-school-helper/app/api/privacy/child-data-summary/route.js`
+  - includes parent-scoped rate limiting.
+- Added new rate-limit policy:
+  - `/Users/bborn/home-school-helper/src/server/rate-limit-policies.js`
+  - `privacyChildDataSummary`.
+- Added parent UI review panel and wiring:
+  - `/Users/bborn/home-school-helper/app/parent/components/PrivacyDataSummaryPanel.js`
+  - `/Users/bborn/home-school-helper/app/parent/page.js`
+  - `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js`
+  - `/Users/bborn/home-school-helper/app/styles/components.css`
+- Added/updated coverage:
+  - `/Users/bborn/home-school-helper/tests/privacy-service.test.js`
+  - `/Users/bborn/home-school-helper/tests/privacy-child-data-summary-route.test.js`
+  - `/Users/bborn/home-school-helper/tests/use-parent-console-hook.test.js` (new summary API mock path)
+  - `/Users/bborn/home-school-helper/tests/playwright/parent-auth-bootstrap.spec.js` (asserts summary panel visibility).
+- Updated docs:
+  - `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+  - `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md`
+  - `/Users/bborn/home-school-helper/docs/PROJECT_PLAN.md`
+  - `/Users/bborn/home-school-helper/docs/START_HERE.md`
+  - `/Users/bborn/home-school-helper/docs/SECURITY_AND_COMPLIANCE.md`
+  - `/Users/bborn/home-school-helper/docs/architecture/DECISIONS.md`
+  - `/Users/bborn/home-school-helper/README.md`
+
+### Tests / Checks Run
+- Command: `node --test tests/privacy-service.test.js tests/privacy-child-data-summary-route.test.js tests/use-parent-console-hook.test.js`
+- Result: pass.
+- Command: `npm run test:unit`
+- Result: pass (149 tests, 0 failures).
+- Command: `npm run test:e2e -- tests/playwright/parent-auth-bootstrap.spec.js tests/playwright/parent-session-lifecycle.spec.js`
+- Result: pass (2/2).
+- Command: `npm run test:e2e:headed -- tests/playwright/parent-auth-bootstrap.spec.js`
+- Result: pass (1/1, headed Chromium).
+
+### Open Risks / Issues
+- Parent summary endpoint is aggregate metadata only; export/delete workflows are still pending.
+- VPC method/legal direct-notice finalization still required before production launch.
+
+### Next Steps (Ordered)
+1. Implement `POST /api/privacy/export` with parent-auth + async delivery contract.
+2. Implement `POST /api/privacy/delete` with guarded deletion job + confirmations.
+3. Add parent console controls for export/delete and completion telemetry.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-19T19:20:32Z - Codex
 
 ### Scope Worked

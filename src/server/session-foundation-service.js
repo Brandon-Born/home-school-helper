@@ -46,6 +46,8 @@ export {
   persistTutorAuditEvents
 } from "./session-foundation/policy-event-service.js";
 
+export { getChildDataSummaryForParent } from "./session-foundation/privacy-service.js";
+
 export {
   computeTranscriptRetentionCutoffIso,
   purgeExpiredTranscripts

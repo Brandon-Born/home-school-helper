@@ -74,14 +74,14 @@ Implemented behavior:
 - Backward compatibility fallback: if consent schema migration is missing in local/dev, consent gating auto-disables (`required=false`) to prevent deadlock.
 
 ### Phase C: Parent Rights Workflows
-Status: Not started
+Status: In progress (summary surface baseline)
 1. Parent review surface for child data categories collected.
 2. Parent-initiated export flow for child-related data.
 3. Parent-initiated deletion flow for child account/session/transcript data.
 4. Revocation flow that stops further collection and disables new sessions.
 
 Suggested API additions:
-- `GET /api/privacy/child-data-summary`
+- `GET /api/privacy/child-data-summary` (implemented baseline)
 - `POST /api/privacy/export`
 - `POST /api/privacy/delete`
 - `POST /api/privacy/consent` with `action='revoke'` (already implemented baseline)

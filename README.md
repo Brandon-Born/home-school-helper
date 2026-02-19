@@ -79,6 +79,7 @@ tests/                         Unit tests
 | GET | `/api/parent/me` | Parent | Get/sync parent profile |
 | GET | `/api/privacy/consent` | Parent | Get parent consent checkpoint state |
 | POST | `/api/privacy/consent` | Parent | Grant/revoke parent consent checkpoint |
+| GET | `/api/privacy/child-data-summary` | Parent | Get aggregate child-data category summary |
 | GET | `/api/children` | Parent | List children |
 | POST | `/api/children` | Parent | Create child profile |
 | PUT | `/api/children/:id` | Parent | Update child profile |

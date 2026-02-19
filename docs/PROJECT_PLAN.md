@@ -54,6 +54,7 @@ Implemented:
 - COPPA consent baseline implemented:
   - `parents` consent state columns + `parent_consents` audit table migration.
   - `GET|POST /api/privacy/consent`.
+  - `GET /api/privacy/child-data-summary` parent review baseline.
   - Child profile and session-start gating on granted consent.
 - Session transcript SSE subscription flow implemented for parent/child clients.
 - Agent operations docs (`AGENT.md`) and handoff system.

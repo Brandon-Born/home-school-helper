@@ -28,6 +28,7 @@ export function createUseParentConsole({
   return function useParentConsole() {
     const [parentProfile, setParentProfile] = useState(null);
     const [children, setChildren] = useState([]);
+    const [privacySummary, setPrivacySummary] = useState(null);
     const [selectedChildId, setSelectedChildId] = useState("");
     const [activeSession, setActiveSession] = useState(null);
     const [activeSessions, setActiveSessions] = useState([]);
@@ -66,6 +67,7 @@ export function createUseParentConsole({
     const clearParentData = useCallback(() => {
       setParentProfile(null);
       setChildren([]);
+      setPrivacySummary(null);
       setSelectedChildId("");
       setActiveSession(null);
       setActiveSessions([]);
@@ -96,10 +98,11 @@ export function createUseParentConsole({
       setError("");
 
       try {
-        const [profilePayload, childrenPayload, sessionsPayload] = await Promise.all([
+        const [profilePayload, childrenPayload, sessionsPayload, privacyPayload] = await Promise.all([
           parentRequest("/api/parent/me"),
           parentRequest("/api/children"),
-          parentRequest("/api/session/active")
+          parentRequest("/api/session/active"),
+          parentRequest("/api/privacy/child-data-summary")
         ]);
 
         setParentProfile(profilePayload.parent);
@@ -107,6 +110,7 @@ export function createUseParentConsole({
         setChildren(nextChildren);
         const nextActiveSessions = sessionsPayload.sessions ?? [];
         setActiveSessions(nextActiveSessions);
+        setPrivacySummary(privacyPayload.summary ?? null);
 
         setSelectedChildId((previous) => {
           if (previous && nextChildren.some((child) => child.id === previous)) {
@@ -292,6 +296,7 @@ export function createUseParentConsole({
         session,
         needsReauth,
         parentProfile,
+        privacySummary,
         children,
         selectedChildId,
         activeSession,

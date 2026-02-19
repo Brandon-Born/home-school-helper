@@ -4,6 +4,7 @@ import { ActiveSessionsPanel } from "./components/ActiveSessionsPanel.js";
 import { AuthPanel } from "./components/AuthPanel.js";
 import { ChildListPanel } from "./components/ChildListPanel.js";
 import { CoppaConsentPanel } from "./components/CoppaConsentPanel.js";
+import { PrivacyDataSummaryPanel } from "./components/PrivacyDataSummaryPanel.js";
 import { SessionControlPanel } from "./components/SessionControlPanel.js";
 import { TranscriptPanel } from "./components/TranscriptPanel.js";
 import { StatusAlert } from "../components/feedback/StatusAlert.js";
@@ -45,6 +46,8 @@ export default function ParentPage() {
               onGrantConsent={actions.grantCoppaConsent}
               onRevokeConsent={actions.revokeCoppaConsent}
             />
+
+            <PrivacyDataSummaryPanel summary={state.privacySummary} />
 
             <ChildListPanel
               children={state.children}

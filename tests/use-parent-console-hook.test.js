@@ -29,6 +29,9 @@ test("useParentConsole merges snapshot+append stream events", async () => {
     if (path === "/api/session/active") {
       return { sessions: [createSessionFixture()] };
     }
+    if (path === "/api/privacy/child-data-summary") {
+      return { summary: { generated_at: "2026-02-19T00:00:00.000Z", counts: { children: 1, sessions: 1 } } };
+    }
     throw new Error(`Unexpected path: ${path}`);
   };
   const parentSessionValue = {
@@ -90,6 +93,9 @@ test("useParentConsole regenerateCode updates active session data and loading st
     if (path === "/api/session/active") {
       return { sessions: [createSessionFixture()] };
     }
+    if (path === "/api/privacy/child-data-summary") {
+      return { summary: { generated_at: "2026-02-19T00:00:00.000Z", counts: { children: 1, sessions: 1 } } };
+    }
     if (path === "/api/session/session_1/manage" && options.body?.action === "regenerate_code") {
       return {
         session_id: "session_1",
@@ -146,6 +152,9 @@ test("useParentConsole exposes child mutation error feedback for inline panel me
     }
     if (path === "/api/session/active") {
       return { sessions: [] };
+    }
+    if (path === "/api/privacy/child-data-summary") {
+      return { summary: { generated_at: "2026-02-19T00:00:00.000Z", counts: { children: 1, sessions: 0 } } };
     }
     if (path === "/api/children" && options.method === "POST") {
       throw new Error("Child save failed.");
@@ -211,6 +220,9 @@ test("useParentConsole grantCoppaConsent updates parent profile consent state", 
     }
     if (path === "/api/session/active") {
       return { sessions: [] };
+    }
+    if (path === "/api/privacy/child-data-summary") {
+      return { summary: { generated_at: "2026-02-19T00:00:00.000Z", counts: { children: 0, sessions: 0 } } };
     }
     if (path === "/api/privacy/consent" && options.method === "POST" && options.body?.action === "grant") {
       return {

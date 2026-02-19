@@ -71,6 +71,59 @@ Returns consent checkpoint state for the authenticated parent.
 Notes:
 - If database consent columns are not migrated yet, response may return `required=false` with `status=granted` as a temporary local/dev fallback.
 
+## GET `/api/privacy/child-data-summary`
+Returns parent-readable summary of child-data categories and aggregate counts.
+
+Rate limit:
+- Scoped per client address + parent id. Bursts above configured threshold return `429 rate_limited`.
+
+### Response (200)
+```json
+{
+  "summary": {
+    "generated_at": "timestamp",
+    "parent_id": "uuid",
+    "retention": {
+      "transcript_days": 30,
+      "raw_audio_stored": false
+    },
+    "counts": {
+      "children": 1,
+      "sessions": 3,
+      "active_sessions": 1,
+      "ended_sessions": 2,
+      "paused_sessions": 0,
+      "transcript_messages": 42,
+      "child_visible_messages": 36,
+      "parent_only_messages": 6
+    },
+    "windows": {
+      "first_child_created_at": "timestamp",
+      "last_child_created_at": "timestamp",
+      "first_session_started_at": "timestamp",
+      "last_session_started_at": "timestamp",
+      "first_message_created_at": "timestamp",
+      "last_message_created_at": "timestamp"
+    },
+    "children": [
+      {
+        "id": "uuid",
+        "first_name": "Ava",
+        "created_at": "timestamp",
+        "has_profile_notes": true,
+        "has_special_needs": false
+      }
+    ],
+    "categories": [
+      "parent account",
+      "child profiles",
+      "session metadata",
+      "transcript metadata"
+    ]
+  }
+}
+```
+
 ## POST `/api/privacy/consent`
 Sets parent consent status.
 

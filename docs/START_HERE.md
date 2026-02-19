@@ -34,6 +34,7 @@ Stabilize cloud voice UX (Google STT V2 + Chirp 3), auth robustness, and launch-
   - `/child` for join-code redemption, cloud voice capture/transcription, and cloud tutor speech playback.
 - Realtime transcript updates now stream through `GET /api/session/:id/stream` (SSE).
 - Parent consent checkpoint route exists at `GET|POST /api/privacy/consent`; child profile/session-start routes enforce `coppa_consent_required` when consent is pending/revoked.
+- Parent data-review baseline route exists at `GET /api/privacy/child-data-summary`.
 
 ## First Tasks To Execute
 1. Confirm `/Users/bborn/home-school-helper/docs/PRODUCT_BACKLOG.md` has no open non-parking items (currently clear as of 2026-02-19).
