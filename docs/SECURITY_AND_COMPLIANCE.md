@@ -57,8 +57,8 @@ Mitigation: server-only LLM module and env validation.
 5. Document in decisions log and handoff log.
 
 ## Open Compliance Work
-- COPPA consent gating + audit logging are implemented; remaining work is verifiable parental consent method finalization, and parent self-serve export/deletion/revocation UX hardening.
-- Parent data-category review baseline is implemented via `GET /api/privacy/child-data-summary`; export/delete remain pending.
+- COPPA consent gating + audit logging are implemented; remaining work is verifiable parental consent method finalization and launch-evidence/legal signoff.
+- Parent rights APIs are implemented (`GET /api/privacy/child-data-summary`, `GET /api/privacy/requests`, `POST /api/privacy/export`, `POST /api/privacy/delete`); UX hardening and delivery/SLA decisions remain.
 - COPPA implementation details remain tracked in `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md` and must be completed before production launch.
 - Legal review and provider written-assurance signoff are required before production launch.
 - Configure `RATE_LIMIT_BACKEND=supabase` in deployed environments to require shared/global limits; keep `auto` only for local/dev fallback.

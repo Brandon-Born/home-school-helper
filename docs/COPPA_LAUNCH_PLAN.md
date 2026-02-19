@@ -2,7 +2,7 @@
 
 Last updated: 2026-02-19
 Owner: Product + Engineering + Legal
-Status: In progress (Phase B baseline shipped)
+Status: In progress (Phase B + Phase C baseline shipped)
 
 ## Purpose
 - Capture the concrete COPPA work needed before U.S. production launch.
@@ -24,7 +24,7 @@ Already aligned:
 
 Known gaps already documented:
 - Verifiable parental consent (VPC) method finalization with legal counsel.
-- Parent export/deletion workflows and UI.
+- Export delivery model and deletion SLA decisions (currently synchronous baseline UX).
 - Legal/provider signoff before production launch.
 
 ## COPPA Scope For This Product
@@ -74,7 +74,7 @@ Implemented behavior:
 - Backward compatibility fallback: if consent schema migration is missing in local/dev, consent gating auto-disables (`required=false`) to prevent deadlock.
 
 ### Phase C: Parent Rights Workflows
-Status: In progress (summary surface baseline)
+Status: Baseline implemented
 1. Parent review surface for child data categories collected.
 2. Parent-initiated export flow for child-related data.
 3. Parent-initiated deletion flow for child account/session/transcript data.
@@ -82,8 +82,9 @@ Status: In progress (summary surface baseline)
 
 Suggested API additions:
 - `GET /api/privacy/child-data-summary` (implemented baseline)
-- `POST /api/privacy/export`
-- `POST /api/privacy/delete`
+- `GET /api/privacy/requests` (implemented baseline)
+- `POST /api/privacy/export` (implemented baseline)
+- `POST /api/privacy/delete` (implemented baseline)
 - `POST /api/privacy/consent` with `action='revoke'` (already implemented baseline)
 
 ### Phase D: Vendor And Security Controls
@@ -98,7 +99,7 @@ Status: Not started
 4. Add documented incident workflow for child-data events.
 
 ### Phase E: Verification And Launch Evidence
-Status: In progress (consent gating tests added)
+Status: In progress (consent + parent-rights tests added)
 1. Add integration tests for consent gating and revoked states.
 2. Add tests for export/delete flow authorization and completeness.
 3. Produce compliance evidence pack for go-live signoff:

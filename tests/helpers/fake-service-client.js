@@ -30,6 +30,11 @@ class FakeQuery {
     return this;
   }
 
+  delete() {
+    this.operation = "delete";
+    return this;
+  }
+
   upsert(payload, options = {}) {
     this.operation = "upsert";
     this.payload = payload;
@@ -115,6 +120,10 @@ class FakeQuery {
 
       if (this.operation === "upsert") {
         return this.executeUpsert(rows);
+      }
+
+      if (this.operation === "delete") {
+        return this.executeDelete(rows);
       }
 
       return this.executeSelect(rows);
@@ -205,6 +214,19 @@ class FakeQuery {
 
     return {
       data: this.selectClause ? this.projectRows(written) : written,
+      error: null
+    };
+  }
+
+  executeDelete(rows) {
+    const matches = this.applyFilters(rows);
+    const matchIds = new Set(matches.map((row) => row.id));
+    const remaining = rows.filter((row) => !matchIds.has(row.id));
+    rows.length = 0;
+    rows.push(...remaining);
+
+    return {
+      data: this.selectClause ? this.projectRows(matches) : matches.map((row) => ({ ...row })),
       error: null
     };
   }

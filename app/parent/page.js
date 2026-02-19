@@ -37,17 +37,26 @@ export default function ParentPage() {
       {state.session ? (
         <div className="console-grid console-grid--parent">
           <div className="stack">
-            <CoppaConsentPanel
-              parentProfile={state.parentProfile}
-              consentRequired={state.coppaConsentRequired}
-              hasCoppaConsent={state.hasCoppaConsent}
-              loading={state.loading.consent}
-              actionAlert={state.actionAlerts.consent}
-              onGrantConsent={actions.grantCoppaConsent}
-              onRevokeConsent={actions.revokeCoppaConsent}
-            />
+            {!state.hasCoppaConsent ? (
+              <CoppaConsentPanel
+                parentProfile={state.parentProfile}
+                consentRequired={state.coppaConsentRequired}
+                hasCoppaConsent={state.hasCoppaConsent}
+                loading={state.loading.consent}
+                actionAlert={state.actionAlerts.consent}
+                onGrantConsent={actions.grantCoppaConsent}
+                onRevokeConsent={actions.revokeCoppaConsent}
+              />
+            ) : null}
 
-            <PrivacyDataSummaryPanel summary={state.privacySummary} />
+            <PrivacyDataSummaryPanel
+              summary={state.privacySummary}
+              requests={state.privacyRequests}
+              loading={state.loading.privacyAction}
+              actionAlert={state.actionAlerts.privacyAction}
+              onRequestExport={actions.requestPrivacyExport}
+              onRequestDelete={actions.requestPrivacyDelete}
+            />
 
             <ChildListPanel
               children={state.children}
@@ -71,6 +80,18 @@ export default function ParentPage() {
               loading={state.loading.sessionManage}
               actionAlert={state.actionAlerts.sessionManage}
             />
+
+            {state.hasCoppaConsent ? (
+              <CoppaConsentPanel
+                parentProfile={state.parentProfile}
+                consentRequired={state.coppaConsentRequired}
+                hasCoppaConsent={state.hasCoppaConsent}
+                loading={state.loading.consent}
+                actionAlert={state.actionAlerts.consent}
+                onGrantConsent={actions.grantCoppaConsent}
+                onRevokeConsent={actions.revokeCoppaConsent}
+              />
+            ) : null}
           </div>
 
           <div className="stack">

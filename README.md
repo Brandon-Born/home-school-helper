@@ -80,6 +80,9 @@ tests/                         Unit tests
 | GET | `/api/privacy/consent` | Parent | Get parent consent checkpoint state |
 | POST | `/api/privacy/consent` | Parent | Grant/revoke parent consent checkpoint |
 | GET | `/api/privacy/child-data-summary` | Parent | Get aggregate child-data category summary |
+| GET | `/api/privacy/requests` | Parent | List recent privacy export/delete requests |
+| POST | `/api/privacy/export` | Parent | Generate a child-data export snapshot |
+| POST | `/api/privacy/delete` | Parent | Delete all child profile/session/transcript data (confirmed) |
 | GET | `/api/children` | Parent | List children |
 | POST | `/api/children` | Parent | Create child profile |
 | PUT | `/api/children/:id` | Parent | Update child profile |

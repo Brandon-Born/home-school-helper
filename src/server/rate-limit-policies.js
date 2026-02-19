@@ -50,6 +50,21 @@ export const RATE_LIMIT_POLICIES = Object.freeze({
     scope: "privacy_child_data_summary",
     maxRequests: 30,
     windowMs: BASE_WINDOW_MS
+  }),
+  privacyRequestsList: Object.freeze({
+    scope: "privacy_requests_list",
+    maxRequests: 30,
+    windowMs: BASE_WINDOW_MS
+  }),
+  privacyExportRequest: Object.freeze({
+    scope: "privacy_export_request",
+    maxRequests: 6,
+    windowMs: BASE_WINDOW_MS
+  }),
+  privacyDeleteRequest: Object.freeze({
+    scope: "privacy_delete_request",
+    maxRequests: 4,
+    windowMs: BASE_WINDOW_MS
   })
 });
 

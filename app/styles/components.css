@@ -442,6 +442,39 @@
   line-height: 1.1;
 }
 
+.privacy-request-list {
+  display: grid;
+  gap: 6px;
+}
+
+.privacy-request-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  padding: 8px 10px;
+  font-size: 0.84rem;
+}
+
+.privacy-request-item__type {
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.privacy-request-item__status {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.privacy-request-item__time {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
 .child-card__header {
   display: flex;
   align-items: center;
@@ -556,5 +589,10 @@
 @media (max-width: 640px) {
   .privacy-summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .privacy-request-item {
+    grid-template-columns: 1fr;
+    gap: 2px;
   }
 }

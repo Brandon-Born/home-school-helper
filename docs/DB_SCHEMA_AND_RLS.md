@@ -94,6 +94,20 @@
 - `user_agent text`
 - `created_at timestamptz default now()`
 
+10. `privacy_requests`
+- `id uuid pk`
+- `parent_id uuid not null references parents(id)`
+- `actor_parent_id uuid references parents(id)`
+- `request_type text not null` (`export` | `delete`)
+- `status text not null` (`queued` | `processing` | `completed` | `failed`)
+- `reason text`
+- `error_message text`
+- `client_address text`
+- `user_agent text`
+- `result_json jsonb not null default '{}'::jsonb`
+- `requested_at timestamptz default now()`
+- `completed_at timestamptz`
+
 ## Indexes
 - `children(parent_id)`
 - `sessions(parent_id, child_id, status)`
@@ -102,6 +116,7 @@
 - `child_session_tokens(session_id, expires_at)`
 - `policy_events(session_id, created_at)`
 - `parent_consents(parent_id, created_at desc)`
+- `privacy_requests(parent_id, requested_at desc)`
 
 ## RLS Model
 Enable RLS on all user-facing tables.
@@ -131,4 +146,5 @@ using (auth.uid() = auth_user_id);
   - `20260217040000_session_foundation.sql`
   - `20260217193000_transcript_retention.sql` (adds 30-day transcript purge function + daily `pg_cron` schedule)
   - `20260219141000_coppa_consent_gate.sql` (adds consent state columns + `parent_consents` audit table)
+  - `20260219193000_privacy_requests.sql` (adds privacy export/delete request tracking table + RLS)
 - Every schema or policy change requires docs and handoff updates.

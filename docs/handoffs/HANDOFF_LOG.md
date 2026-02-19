@@ -4,6 +4,75 @@ Notes:
 - Compacted on 2026-02-18 to a rolling window.
 - Keep detailed entries for current context; older granular history is summarized below.
 
+## 2026-02-19T19:45:58Z - Codex
+
+### Scope Worked
+- Continued COPPA Phase C implementation and completed parent self-serve privacy request flows (export/delete/request history), including migration, API routes, UI wiring, tests, and docs.
+
+### Last Agent Accomplished
+- Added privacy request endpoints:
+  - `GET /api/privacy/requests`
+  - `POST /api/privacy/export`
+  - `POST /api/privacy/delete`
+  - Files:
+    - `/Users/bborn/home-school-helper/app/api/privacy/requests/route.js`
+    - `/Users/bborn/home-school-helper/app/api/privacy/export/route.js`
+    - `/Users/bborn/home-school-helper/app/api/privacy/delete/route.js`
+- Expanded privacy service surface for request lifecycle + export/delete operations:
+  - `/Users/bborn/home-school-helper/src/server/session-foundation/privacy-service.js`
+  - `/Users/bborn/home-school-helper/src/server/session-foundation-service.js`
+- Added rate limit policies for new privacy routes:
+  - `/Users/bborn/home-school-helper/src/server/rate-limit-policies.js`
+  - `privacyRequestsList`, `privacyExportRequest`, `privacyDeleteRequest`.
+- Added migration for request tracking table:
+  - `/Users/bborn/home-school-helper/supabase/migrations/20260219193000_privacy_requests.sql`
+  - Applied via `supabase db push`.
+- Updated parent console privacy UX:
+  - `/Users/bborn/home-school-helper/app/parent/components/PrivacyDataSummaryPanel.js`
+  - `/Users/bborn/home-school-helper/app/parent/hooks/useParentConsole.js`
+  - `/Users/bborn/home-school-helper/app/parent/hooks/parent-console-shared.js`
+  - `/Users/bborn/home-school-helper/app/parent/page.js`
+  - `/Users/bborn/home-school-helper/app/styles/components.css`
+- Implemented requested consent-card layout behavior:
+  - Before consent: consent card stays at top of left column.
+  - After consent is granted: consent card moves to the bottom of the left column.
+- Added/updated coverage:
+  - `/Users/bborn/home-school-helper/tests/privacy-service.test.js`
+  - `/Users/bborn/home-school-helper/tests/privacy-requests-route.test.js`
+  - `/Users/bborn/home-school-helper/tests/privacy-export-route.test.js`
+  - `/Users/bborn/home-school-helper/tests/privacy-delete-route.test.js`
+  - `/Users/bborn/home-school-helper/tests/use-parent-console-hook.test.js`
+  - `/Users/bborn/home-school-helper/tests/helpers/fake-service-client.js`
+- Updated docs:
+  - `/Users/bborn/home-school-helper/docs/API_CONTRACT.md`
+  - `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md`
+  - `/Users/bborn/home-school-helper/docs/SECURITY_AND_COMPLIANCE.md`
+  - `/Users/bborn/home-school-helper/docs/DB_SCHEMA_AND_RLS.md`
+  - `/Users/bborn/home-school-helper/README.md`
+
+### Tests / Checks Run
+- Command: `supabase db push`
+- Result: pass; applied `20260219193000_privacy_requests.sql`.
+- Command: `npm run test:unit`
+- Result: pass (161 tests, 0 failures).
+- Command: `npm run test:e2e`
+- Result: pass (default suite + transport matrix).
+- Command: `npm run build`
+- Result: pass.
+
+### Open Risks / Issues
+- Export/delete currently execute synchronously in request/response path; async job + delivery channel/SLA still needs product/legal decision for production scale.
+- VPC method/legal direct-notice finalization and provider written-assurance signoff remain launch blockers.
+- Playwright/webServer `NO_COLOR` vs `FORCE_COLOR` warnings still appear in this environment (non-functional).
+
+### Next Steps (Ordered)
+1. Decide export delivery mechanism and retention window for generated export artifacts.
+2. Decide deletion SLA/ops policy and whether to move deletion into queued background jobs.
+3. Finalize VPC/legal copy and launch evidence packet with counsel.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-19T19:33:08Z - Codex
 
 ### Scope Worked

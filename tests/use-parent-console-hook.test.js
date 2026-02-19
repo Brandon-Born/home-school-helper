@@ -32,6 +32,9 @@ test("useParentConsole merges snapshot+append stream events", async () => {
     if (path === "/api/privacy/child-data-summary") {
       return { summary: { generated_at: "2026-02-19T00:00:00.000Z", counts: { children: 1, sessions: 1 } } };
     }
+    if (path === "/api/privacy/requests") {
+      return { requests: [] };
+    }
     throw new Error(`Unexpected path: ${path}`);
   };
   const parentSessionValue = {
@@ -96,6 +99,9 @@ test("useParentConsole regenerateCode updates active session data and loading st
     if (path === "/api/privacy/child-data-summary") {
       return { summary: { generated_at: "2026-02-19T00:00:00.000Z", counts: { children: 1, sessions: 1 } } };
     }
+    if (path === "/api/privacy/requests") {
+      return { requests: [] };
+    }
     if (path === "/api/session/session_1/manage" && options.body?.action === "regenerate_code") {
       return {
         session_id: "session_1",
@@ -155,6 +161,9 @@ test("useParentConsole exposes child mutation error feedback for inline panel me
     }
     if (path === "/api/privacy/child-data-summary") {
       return { summary: { generated_at: "2026-02-19T00:00:00.000Z", counts: { children: 1, sessions: 0 } } };
+    }
+    if (path === "/api/privacy/requests") {
+      return { requests: [] };
     }
     if (path === "/api/children" && options.method === "POST") {
       throw new Error("Child save failed.");
@@ -224,6 +233,9 @@ test("useParentConsole grantCoppaConsent updates parent profile consent state", 
     if (path === "/api/privacy/child-data-summary") {
       return { summary: { generated_at: "2026-02-19T00:00:00.000Z", counts: { children: 0, sessions: 0 } } };
     }
+    if (path === "/api/privacy/requests") {
+      return { requests: [] };
+    }
     if (path === "/api/privacy/consent" && options.method === "POST" && options.body?.action === "grant") {
       return {
         consent: {
@@ -267,6 +279,124 @@ test("useParentConsole grantCoppaConsent updates parent profile consent state", 
   assert.equal(hookValue.state.loading.consent, false);
   assert.equal(hookValue.state.actionAlerts.consent.tone, "success");
   assert.equal(hookValue.state.actionAlerts.consent.message, "Parental consent confirmed.");
+
+  await renderer.unmount();
+});
+
+test("useParentConsole privacy export/delete actions refresh summary and request history", async () => {
+  let summary = {
+    generated_at: "2026-02-19T00:00:00.000Z",
+    retention: { transcript_days: 30, raw_audio_stored: false },
+    counts: { children: 1, sessions: 1, transcript_messages: 2, parent_only_messages: 0 },
+    windows: { first_message_created_at: null, last_message_created_at: null },
+    categories: ["child profiles"]
+  };
+  let requests = [];
+
+  const parentRequest = async (path, options = {}) => {
+    if (path === "/api/parent/me") {
+      return {
+        parent: {
+          id: "parent_1",
+          coppa_consent_status: "granted",
+          coppa_policy_version: "2026-02-19"
+        }
+      };
+    }
+    if (path === "/api/children") {
+      return { children: [{ id: "child_1", first_name: "Ava" }] };
+    }
+    if (path === "/api/session/active") {
+      return { sessions: [] };
+    }
+    if (path === "/api/privacy/child-data-summary") {
+      return { summary };
+    }
+    if (path === "/api/privacy/requests") {
+      return { requests };
+    }
+    if (path === "/api/privacy/export" && options.method === "POST") {
+      const request = {
+        id: "request_export_1",
+        request_type: "export",
+        status: "completed",
+        requested_at: "2026-02-19T12:00:00.000Z"
+      };
+      requests = [request];
+      return {
+        request,
+        export_snapshot: {
+          generated_at: "2026-02-19T12:00:00.000Z",
+          summary
+        }
+      };
+    }
+    if (path === "/api/privacy/delete" && options.method === "POST") {
+      const request = {
+        id: "request_delete_1",
+        request_type: "delete",
+        status: "completed",
+        requested_at: "2026-02-19T12:10:00.000Z"
+      };
+      requests = [request, ...requests];
+      summary = {
+        ...summary,
+        counts: { ...summary.counts, children: 0, sessions: 0, transcript_messages: 0, parent_only_messages: 0 }
+      };
+      return {
+        request,
+        deletion: {
+          deleted_children: 1,
+          deleted_sessions: 1,
+          deleted_messages: 2,
+          requested_at: "2026-02-19T12:10:00.000Z"
+        }
+      };
+    }
+
+    throw new Error(`Unexpected request: ${path}`);
+  };
+
+  const parentSessionValue = {
+    session: { access_token: "parent-token" },
+    needsReauth: false,
+    parentRequest,
+    refreshParentSession: async () => null,
+    invalidateParentSession: async () => {},
+    signInWithGoogle: async () => {},
+    signOut: async () => {}
+  };
+
+  const useParentConsoleHook = createUseParentConsole({
+    useParentSessionHook: () => parentSessionValue,
+    useParentTranscriptStreamHook: () => {}
+  });
+
+  const renderer = await createHookRenderer(() => useParentConsoleHook());
+  await flushEffects();
+
+  await act(async () => {
+    await renderer.getCurrent().actions.requestPrivacyExport({ reason: "records" });
+  });
+
+  let hookValue = renderer.getCurrent();
+  assert.equal(hookValue.state.actionAlerts.privacyAction.tone, "success");
+  assert.equal(hookValue.state.actionAlerts.privacyAction.message, "Export snapshot generated.");
+  assert.equal(hookValue.state.privacyRequests[0].request_type, "export");
+
+  await act(async () => {
+    await renderer.getCurrent().actions.requestPrivacyDelete({
+      reason: "cleanup",
+      confirmPhrase: "DELETE CHILD DATA"
+    });
+  });
+
+  hookValue = renderer.getCurrent();
+  assert.equal(hookValue.state.actionAlerts.privacyAction.tone, "success");
+  assert.equal(hookValue.state.actionAlerts.privacyAction.message, "Child data deleted.");
+  assert.equal(hookValue.state.privacyRequests[0].request_type, "delete");
+  assert.equal(hookValue.state.privacySummary.counts.children, 0);
+  assert.equal(hookValue.state.selectedChildId, "");
 
   await renderer.unmount();
 });

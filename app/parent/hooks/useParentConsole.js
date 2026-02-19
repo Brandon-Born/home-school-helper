@@ -29,6 +29,7 @@ export function createUseParentConsole({
     const [parentProfile, setParentProfile] = useState(null);
     const [children, setChildren] = useState([]);
     const [privacySummary, setPrivacySummary] = useState(null);
+    const [privacyRequests, setPrivacyRequests] = useState([]);
     const [selectedChildId, setSelectedChildId] = useState("");
     const [activeSession, setActiveSession] = useState(null);
     const [activeSessions, setActiveSessions] = useState([]);
@@ -68,6 +69,7 @@ export function createUseParentConsole({
       setParentProfile(null);
       setChildren([]);
       setPrivacySummary(null);
+      setPrivacyRequests([]);
       setSelectedChildId("");
       setActiveSession(null);
       setActiveSessions([]);
@@ -98,11 +100,12 @@ export function createUseParentConsole({
       setError("");
 
       try {
-        const [profilePayload, childrenPayload, sessionsPayload, privacyPayload] = await Promise.all([
+        const [profilePayload, childrenPayload, sessionsPayload, privacyPayload, privacyRequestsPayload] = await Promise.all([
           parentRequest("/api/parent/me"),
           parentRequest("/api/children"),
           parentRequest("/api/session/active"),
-          parentRequest("/api/privacy/child-data-summary")
+          parentRequest("/api/privacy/child-data-summary"),
+          parentRequest("/api/privacy/requests")
         ]);
 
         setParentProfile(profilePayload.parent);
@@ -111,6 +114,7 @@ export function createUseParentConsole({
         const nextActiveSessions = sessionsPayload.sessions ?? [];
         setActiveSessions(nextActiveSessions);
         setPrivacySummary(privacyPayload.summary ?? null);
+        setPrivacyRequests(privacyRequestsPayload.requests ?? []);
 
         setSelectedChildId((previous) => {
           if (previous && nextChildren.some((child) => child.id === previous)) {
@@ -287,6 +291,67 @@ export function createUseParentConsole({
       return outcome.ok;
     }, [applyConsentToParentProfile, clearActionAlert, parentRequest, setActionAlert, setError, setLoadingState]);
 
+    const requestPrivacyExport = useCallback(
+      async ({ reason = "" } = {}) => {
+        const outcome = await runAsyncActionStatus({
+          actionKey: "privacyAction",
+          setLoadingState,
+          setError,
+          clearActionAlert,
+          setActionAlert,
+          fallbackErrorMessage: "We couldn't prepare your export. Please try again.",
+          run: async () =>
+            parentRequest("/api/privacy/export", {
+              method: "POST",
+              body: {
+                reason
+              }
+            }),
+          onSuccess: async (payload) => {
+            if (payload?.export_snapshot?.summary) {
+              setPrivacySummary(payload.export_snapshot.summary);
+            }
+            await fetchParentData();
+            return "Export snapshot generated.";
+          }
+        });
+
+        return outcome.ok ? outcome.result : null;
+      },
+      [clearActionAlert, fetchParentData, parentRequest, setActionAlert, setError, setLoadingState]
+    );
+
+    const requestPrivacyDelete = useCallback(
+      async ({ reason = "", confirmPhrase = "" } = {}) => {
+        const outcome = await runAsyncActionStatus({
+          actionKey: "privacyAction",
+          setLoadingState,
+          setError,
+          clearActionAlert,
+          setActionAlert,
+          fallbackErrorMessage: "We couldn't delete child data. Please try again.",
+          run: async () =>
+            parentRequest("/api/privacy/delete", {
+              method: "POST",
+              body: {
+                reason,
+                confirm_phrase: confirmPhrase
+              }
+            }),
+          onSuccess: async () => {
+            await fetchParentData();
+            setSelectedChildId("");
+            setActiveSession(null);
+            setMessages([]);
+            return "Child data deleted.";
+          }
+        });
+
+        return outcome.ok ? outcome.result : null;
+      },
+      [clearActionAlert, fetchParentData, parentRequest, setActionAlert, setError, setLoadingState]
+    );
+
     const coppaConsentRequired = parentProfile?.coppa_consent_required !== false;
     const coppaConsentStatus = String(parentProfile?.coppa_consent_status || "pending").toLowerCase();
     const hasCoppaConsent = !coppaConsentRequired || coppaConsentStatus === "granted";
@@ -297,6 +362,7 @@ export function createUseParentConsole({
         needsReauth,
         parentProfile,
         privacySummary,
+        privacyRequests,
         children,
         selectedChildId,
         activeSession,
@@ -327,6 +393,8 @@ export function createUseParentConsole({
         setOverride,
         grantCoppaConsent,
         revokeCoppaConsent,
+        requestPrivacyExport,
+        requestPrivacyDelete,
         refreshParentData: fetchParentData,
         setSelectedChildId,
         setChildForm,

@@ -124,6 +124,37 @@ Rate limit:
 }
 ```
 
+## GET `/api/privacy/requests`
+Returns recent parent privacy requests (export/delete) and statuses.
+
+Rate limit:
+- Scoped per client address + parent id. Bursts above configured threshold return `429 rate_limited`.
+
+### Response (200)
+```json
+{
+  "requests": [
+    {
+      "id": "uuid",
+      "request_type": "export",
+      "status": "completed",
+      "reason": "Need records",
+      "requested_at": "timestamp",
+      "completed_at": "timestamp",
+      "error_message": null,
+      "result_json": {
+        "counts": {
+          "children": 1,
+          "sessions": 3,
+          "transcript_messages": 42
+        },
+        "generated_at": "timestamp"
+      }
+    }
+  ]
+}
+```
+
 ## POST `/api/privacy/consent`
 Sets parent consent status.
 
@@ -156,6 +187,107 @@ Allowed `action` values:
 - `400 validation_error`: Action must be `grant` or `revoke`.
 - `500 coppa_consent_update_failed`: Consent state could not be persisted.
 - `500 coppa_consent_audit_failed`: Consent audit event could not be persisted.
+
+## POST `/api/privacy/export`
+Creates and processes a parent export request, then returns a snapshot payload for immediate review/download workflows.
+
+Rate limit:
+- Scoped per client address + parent id. Bursts above configured threshold return `429 rate_limited`.
+
+### Request
+```json
+{
+  "reason": "Need records for review"
+}
+```
+
+### Response (200)
+```json
+{
+  "request": {
+    "id": "uuid",
+    "request_type": "export",
+    "status": "completed",
+    "reason": "Need records for review",
+    "requested_at": "timestamp",
+    "completed_at": "timestamp",
+    "error_message": null,
+    "result_json": {
+      "counts": {
+        "children": 1,
+        "sessions": 3,
+        "transcript_messages": 42
+      },
+      "generated_at": "timestamp"
+    }
+  },
+  "export_snapshot": {
+    "generated_at": "timestamp",
+    "parent_id": "uuid",
+    "summary": {
+      "counts": {
+        "children": 1,
+        "sessions": 3,
+        "transcript_messages": 42
+      }
+    },
+    "data": {
+      "children": [],
+      "sessions": [],
+      "messages": []
+    }
+  }
+}
+```
+
+### Errors
+- `500 privacy_request_create_failed`: Request row could not be created.
+- `500 privacy_export_*`: Snapshot generation failed.
+
+## POST `/api/privacy/delete`
+Creates and processes a parent deletion request that removes all child profiles and cascade-linked session/transcript data.
+
+Rate limit:
+- Scoped per client address + parent id. Bursts above configured threshold return `429 rate_limited`.
+
+### Request
+```json
+{
+  "reason": "Delete all child records",
+  "confirm_phrase": "DELETE CHILD DATA"
+}
+```
+
+### Response (200)
+```json
+{
+  "request": {
+    "id": "uuid",
+    "request_type": "delete",
+    "status": "completed",
+    "reason": "Delete all child records",
+    "requested_at": "timestamp",
+    "completed_at": "timestamp",
+    "error_message": null,
+    "result_json": {
+      "deleted_children": 1,
+      "deleted_sessions": 3,
+      "deleted_messages": 42,
+      "requested_at": "timestamp"
+    }
+  },
+  "deletion": {
+    "deleted_children": 1,
+    "deleted_sessions": 3,
+    "deleted_messages": 42,
+    "requested_at": "timestamp"
+  }
+}
+```
+
+### Errors
+- `400 validation_error`: `confirm_phrase` must match the expected confirmation phrase.
+- `500 privacy_delete_failed`: Child data could not be deleted.
 
 ## GET `/api/children`
 Lists children for authenticated parent.

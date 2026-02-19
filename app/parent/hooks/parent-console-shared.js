@@ -54,6 +54,7 @@ export const initialLoadingState = {
   auth: false,
   refreshParentData: false,
   consent: false,
+  privacyAction: false,
   childMutation: false,
   sessionStart: false,
   nudge: false,
@@ -63,6 +64,7 @@ export const initialLoadingState = {
 
 export const initialActionAlerts = {
   consent: null,
+  privacyAction: null,
   childMutation: null,
   sessionStart: null,
   nudge: null,
