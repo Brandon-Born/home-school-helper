@@ -93,7 +93,7 @@ export function SessionControlPanel({
           />
           {!consentGranted ? (
             <p className="section-muted" style={{ fontSize: "0.88rem" }}>
-              Complete parental consent above before starting a new session.
+              Complete parental consent in Managed before starting a new session.
             </p>
           ) : null}
           <div className="btn-row">

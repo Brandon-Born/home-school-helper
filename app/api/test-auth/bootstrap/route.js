@@ -17,6 +17,28 @@ function isDuplicateUserError(error) {
   );
 }
 
+function isValidEmailAddress(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value ?? "").trim());
+}
+
+async function readEmailOverrideFromRequest(request) {
+  const contentType = String(request.headers.get("content-type") ?? "").trim().toLowerCase();
+  if (!contentType.includes("application/json")) {
+    return "";
+  }
+
+  try {
+    const payload = await request.json();
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return "";
+    }
+
+    return String(payload.email ?? "").trim();
+  } catch {
+    return "";
+  }
+}
+
 function buildBootstrapRedirectUrl(request, env = process.env) {
   const explicitRedirect = String(env.PLAYWRIGHT_TEST_AUTH_REDIRECT_TO ?? "").trim();
   if (explicitRedirect) {
@@ -110,12 +132,25 @@ export function createTestAuthBootstrapPostHandler(dependencies = {}) {
         throw new ApiError(401, "invalid_test_auth_secret", "Invalid test auth secret.");
       }
 
-      const testEmail = String(env.PLAYWRIGHT_TEST_AUTH_EMAIL ?? "").trim();
+      const overrideEmail = await readEmailOverrideFromRequest(request);
+      if (overrideEmail && !isValidEmailAddress(overrideEmail)) {
+        throw new ApiError(400, "invalid_test_auth_email", "Email override must be a valid email address.");
+      }
+
+      const defaultEmail = String(env.PLAYWRIGHT_TEST_AUTH_EMAIL ?? "").trim();
+      const testEmail = overrideEmail || defaultEmail;
       if (!testEmail) {
         throw new ApiError(
           500,
           "test_auth_misconfigured",
           "PLAYWRIGHT_TEST_AUTH_EMAIL is required when test auth bootstrap is enabled."
+        );
+      }
+      if (!isValidEmailAddress(testEmail)) {
+        throw new ApiError(
+          500,
+          "test_auth_misconfigured",
+          "PLAYWRIGHT_TEST_AUTH_EMAIL must be a valid email address."
         );
       }
 

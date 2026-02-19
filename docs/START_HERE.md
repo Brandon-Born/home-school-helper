@@ -30,7 +30,10 @@ Stabilize cloud voice UX (Google STT V2 + Chirp 3), auth robustness, and launch-
 - Transcript retention migration exists at `supabase/migrations/20260217193000_transcript_retention.sql` (daily 30-day purge via `pg_cron`).
 - COPPA consent baseline migration exists at `supabase/migrations/20260219141000_coppa_consent_gate.sql`.
 - Minimal UI flows now exist:
-  - `/parent` for auth, child profile CRUD (create/edit/delete), session start, active session management (rejoin/end/regenerate code), nudges, and transcript subscription.
+  - `/parent` for auth and sectioned workspace navigation:
+    - `Children`: child profile CRUD (create/edit/delete)
+    - `Sessions`: session start, active session management (rejoin/end/regenerate code), nudges, transcript subscription
+    - `Managed`: COPPA consent and privacy request/data-summary controls
   - `/child` for join-code redemption, cloud voice capture/transcription, and cloud tutor speech playback.
 - Realtime transcript updates now stream through `GET /api/session/:id/stream` (SSE).
 - Parent consent checkpoint route exists at `GET|POST /api/privacy/consent`; child profile/session-start routes enforce `coppa_consent_required` when consent is pending/revoked.

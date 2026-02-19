@@ -54,7 +54,7 @@ For non-interactive Playwright auth in local/test, configure:
 ```
 app/
 ├── page.js                    Landing page
-├── parent/                    Parent console (auth, child management, sessions)
+├── parent/                    Parent console with sectioned workspace (Children/Sessions/Managed)
 ├── child/                     Child join + tutor chat
 ├── auth/callback/             OAuth callback
 ├── api/                       API routes (see below)
@@ -121,7 +121,7 @@ Full request/response shapes: [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md)
 | Route | Who | What |
 |-------|-----|------|
 | `/` | Everyone | Landing page with parent/child entry points |
-| `/parent` | Parents | Command center — manage children, start sessions, monitor and nudge |
+| `/parent` | Parents | Command center with left section nav (`Children`, `Sessions`, `Managed`) |
 | `/child` | Children | Enter join code → chat with tutor |
 | `/auth/callback` | System | OAuth completion redirect |
 

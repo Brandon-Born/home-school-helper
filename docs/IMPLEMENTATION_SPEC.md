@@ -33,7 +33,10 @@ This spec covers the first production-capable version of the Homeschool Sidekick
 - Tutor pipeline calls Anthropic and enforces guardrails before response.
 
 ## Implemented UI Surfaces (Current)
-- `/parent`: auth + child profile CRUD (create/edit/delete) + active session management (rejoin/end/regenerate code) + session start + hidden nudge + transcript subscription.
+- `/parent`: auth + sectioned workspace navigation:
+  - `Children`: child profile CRUD (create/edit/delete)
+  - `Sessions`: session start, active session management (rejoin/end/regenerate code), hidden nudges, transcript subscription
+  - `Managed`: COPPA consent and privacy data review/request workflows
 - `/child`: join by code + turn submission + transcript subscription.
 - `/auth/callback`: OAuth code exchange completion.
 

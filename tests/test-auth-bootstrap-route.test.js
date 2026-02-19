@@ -5,9 +5,20 @@ import { createTestAuthBootstrapPostHandler } from "../app/api/test-auth/bootstr
 import { assertApiErrorResponse } from "./helpers/route-test-helpers.js";
 
 function createBootstrapRequest(headers = {}) {
+  return createBootstrapRequestWithBody(headers, undefined);
+}
+
+function createBootstrapRequestWithBody(headers = {}, payload) {
+  const hasPayload = payload !== undefined;
   return new Request("http://localhost:3000/api/test-auth/bootstrap", {
     method: "POST",
-    headers
+    headers: hasPayload
+      ? {
+          "content-type": "application/json",
+          ...headers
+        }
+      : headers,
+    body: hasPayload ? JSON.stringify(payload) : null
   });
 }
 
@@ -164,4 +175,90 @@ test("test auth bootstrap route tolerates already-registered user errors", async
 
   assert.equal(response.status, 200);
   assert.equal(generated, true);
+});
+
+test("test auth bootstrap route allows per-request email override for first-time UX testing", async () => {
+  let createUserArgs = null;
+  let generateLinkArgs = null;
+
+  const handler = createTestAuthBootstrapPostHandler({
+    env: {
+      NODE_ENV: "development",
+      ENABLE_TEST_AUTH_BOOTSTRAP: "1",
+      PLAYWRIGHT_TEST_AUTH_SECRET: "top-secret",
+      PLAYWRIGHT_TEST_AUTH_EMAIL: "playwright-parent@example.test"
+    },
+    getServiceSupabaseClient: () => ({
+      auth: {
+        admin: {
+          createUser: async (args) => {
+            createUserArgs = args;
+            return {
+              data: { user: { id: "user_2" } },
+              error: null
+            };
+          },
+          generateLink: async (args) => {
+            generateLinkArgs = args;
+            return {
+              data: {
+                properties: {
+                  action_link: "https://example.supabase.co/auth/v1/verify?token=override"
+                },
+                user: {
+                  id: "user_2"
+                }
+              },
+              error: null
+            };
+          }
+        }
+      }
+    })
+  });
+
+  const response = await handler(
+    createBootstrapRequestWithBody(
+      {
+        "x-test-auth-secret": "top-secret"
+      },
+      {
+        email: "new-user@example.test"
+      }
+    )
+  );
+
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.auth.email, "new-user@example.test");
+  assert.equal(createUserArgs.email, "new-user@example.test");
+  assert.equal(generateLinkArgs.email, "new-user@example.test");
+});
+
+test("test auth bootstrap route rejects invalid email override payload", async () => {
+  const handler = createTestAuthBootstrapPostHandler({
+    env: {
+      NODE_ENV: "development",
+      ENABLE_TEST_AUTH_BOOTSTRAP: "1",
+      PLAYWRIGHT_TEST_AUTH_SECRET: "top-secret",
+      PLAYWRIGHT_TEST_AUTH_EMAIL: "playwright-parent@example.test"
+    }
+  });
+
+  const response = await handler(
+    createBootstrapRequestWithBody(
+      {
+        "x-test-auth-secret": "top-secret"
+      },
+      {
+        email: "not-an-email"
+      }
+    )
+  );
+
+  await assertApiErrorResponse(response, {
+    status: 400,
+    error: "invalid_test_auth_email",
+    message: "Email override must be a valid email address."
+  });
 });

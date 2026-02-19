@@ -1774,3 +1774,44 @@ Notes:
 
 ### Blocking Questions
 - None.
+
+## 2026-02-19T20:35:33Z - Codex
+
+### Scope Worked
+- Added a dedicated Playwright first-time parent onboarding test that uses a unique test email per run.
+- Extended the test-auth bootstrap route to optionally accept a per-request email override (still secret-gated, non-production only).
+
+### Last Agent Accomplished
+- Added `tests/playwright/new-user-experience.spec.js` to validate true new-user flow end-to-end:
+  - bootstrap auth for a unique parent email,
+  - verify initial empty children state,
+  - grant COPPA consent,
+  - create first child profile,
+  - start first session and confirm join code/share panel.
+- Updated `POST /api/test-auth/bootstrap` to support optional JSON payload `{ "email": "..." }`:
+  - validates override email format,
+  - falls back to `PLAYWRIGHT_TEST_AUTH_EMAIL` when override is absent,
+  - preserves existing secret guardrails.
+- Added route unit tests for override happy path and invalid override rejection.
+
+### Files Touched
+- `/Users/bborn/home-school-helper/app/api/test-auth/bootstrap/route.js`
+- `/Users/bborn/home-school-helper/tests/test-auth-bootstrap-route.test.js`
+- `/Users/bborn/home-school-helper/tests/playwright/new-user-experience.spec.js`
+- `/Users/bborn/home-school-helper/docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm run test:unit -- tests/test-auth-bootstrap-route.test.js`
+- Result: pass (6 tests, 0 failures).
+- Command: `npm run test:e2e -- tests/playwright/new-user-experience.spec.js`
+- Result: pass (1 test, 0 failures).
+
+### Open Risks / Issues
+- New-user e2e creates one new auth user record per run; child/session records are cleaned up, but auth users accumulate in Supabase auth admin.
+
+### Next Steps (Ordered)
+1. Decide whether to add periodic cleanup for old `playwright-new-*` users in non-production projects.
+2. Optionally add a mobile viewport variant for the new-user workflow.
+
+### Blocking Questions
+- None.

@@ -10,11 +10,21 @@ function resolveBaseOrigin(page) {
   return new URL(page.url()).origin;
 }
 
-export async function openParentConsole(page) {
+export async function goToParentSection(page, sectionId) {
+  const normalizedSection = String(sectionId || "").trim().toLowerCase();
+  const sectionButton = page.getByTestId(`parent-section-link-${normalizedSection}`);
+  await expect(sectionButton).toBeVisible({ timeout: 30000 });
+  await sectionButton.click();
+  await expect(sectionButton).toHaveAttribute("aria-current", "page", { timeout: 30000 });
+}
+
+export async function openParentConsole(page, { section = "children" } = {}) {
   await page.goto("/parent", { waitUntil: "domcontentloaded" });
   await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByTestId("parent-section-link-children")).toBeVisible({ timeout: 30000 });
   await expect(page.getByRole("heading", { name: "Your children" })).toBeVisible({ timeout: 30000 });
   await ensureCoppaConsentGranted(page);
+  await goToParentSection(page, section);
 }
 
 export async function ensureCoppaConsentGranted(page) {
@@ -23,10 +33,12 @@ export async function ensureCoppaConsentGranted(page) {
 
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
+    await goToParentSection(page, "children");
     if ((await addChildButton.count()) > 0 && (await addChildButton.isEnabled())) {
       return;
     }
 
+    await goToParentSection(page, "managed");
     if ((await grantButton.count()) > 0 && (await grantButton.isVisible())) {
       const consentResponsePromise = page.waitForResponse(
         (response) =>
@@ -39,6 +51,7 @@ export async function ensureCoppaConsentGranted(page) {
       await expect(page.getByRole("button", { name: "Revoke consent" })).toBeVisible({
         timeout: 30000
       });
+      await goToParentSection(page, "children");
       await expect(addChildButton).toBeEnabled({ timeout: 30000 });
       return;
     }
@@ -59,6 +72,8 @@ export async function createChildProfile(
     personality = "Learns best with short steps."
   }
 ) {
+  await goToParentSection(page, "children");
+
   const createChildResponsePromise = page.waitForResponse(
     (response) =>
       response.url().includes("/api/children") && response.request().method() === "POST"
@@ -93,6 +108,8 @@ export async function startSessionForChild(
     parentContext = "Ask guiding questions first."
   }
 ) {
+  await goToParentSection(page, "sessions");
+
   const startSessionResponsePromise = page.waitForResponse(
     (response) =>
       response.url().includes("/api/session/start") && response.request().method() === "POST"
@@ -127,6 +144,8 @@ export async function startSessionForChild(
 }
 
 export async function regenerateCodeFromActiveCard(page, { sessionId, previousCode }) {
+  await goToParentSection(page, "sessions");
+
   const regenerateResponsePromise = page.waitForResponse(
     (response) =>
       response.url().includes(`/api/session/${sessionId}/manage`) &&
@@ -151,6 +170,7 @@ export async function regenerateCodeFromActiveCard(page, { sessionId, previousCo
 }
 
 export async function rejoinSessionFromActiveCard(page, { sessionId, expectedCode }) {
+  await goToParentSection(page, "sessions");
   await page.getByTestId(`active-session-rejoin-${sessionId}`).click();
 
   await expect(page.getByTestId("session-lesson-join-code")).toHaveText(expectedCode, {
@@ -159,6 +179,7 @@ export async function rejoinSessionFromActiveCard(page, { sessionId, expectedCod
 }
 
 export async function endSessionFromActiveCard(page, { sessionId }) {
+  await goToParentSection(page, "sessions");
   const activeCard = page.getByTestId(`active-session-card-${sessionId}`);
   if ((await activeCard.count()) === 0) {
     return;
