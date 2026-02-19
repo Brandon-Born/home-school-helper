@@ -47,7 +47,7 @@ export default function AboutPage() {
                     Unfortunately, we have daily struggles with school and learning like other kids. We created
                     this to help our child have a second voice reinforcing
                     what we are teaching them. As most parents know, kids tend to listen to other adults
-                    better than their parents, like coaches. We aren't comfortable with just hiring over the reigns
+                    better than their parents, like coaches. We aren't comfortable with just handing over the reigns
                     to AI fully, and hiring a tutor is not an option for us. So we built this tool where parents
                     are still in the drivers seat and can see and steer the conversation with the tutor.
                 </p>
