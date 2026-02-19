@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ActiveSessionsPanel } from "./components/ActiveSessionsPanel.js";
 import { AuthPanel } from "./components/AuthPanel.js";
 import { ChildListPanel } from "./components/ChildListPanel.js";
@@ -17,6 +17,14 @@ export default function ParentPage() {
   const { state, actions } = useParentConsole();
   const [activeSectionId, setActiveSectionId] = useState(PARENT_CONSOLE_SECTIONS[0].id);
 
+  const switchSection = useCallback((id) => {
+    setActiveSectionId(id);
+    if (id === "sessions") {
+      actions.setSelectedChildId("");
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [actions]);
+
   const selectedChild = state.children.find((c) => c.id === state.selectedChildId) ?? null;
   const activeSection = resolveParentConsoleSection(activeSectionId);
 
@@ -24,7 +32,7 @@ export default function ParentPage() {
     <AppShell
       role="parent"
       title="Your command center"
-      subtitle="Set up lessons, share a code, and quietly guide the session while your child learns."
+      subtitle="Set up sessions, share a code, and quietly guide the session while your child learns."
     >
       <StatusAlert tone="error" message={state.error} />
 
@@ -41,8 +49,6 @@ export default function ParentPage() {
       {state.session ? (
         <div className="parent-workspace">
           <aside className="parent-workspace__sidebar card card--glass" aria-label="Parent console sections">
-            <h2 className="section-title">Sections</h2>
-            <p className="section-muted">Keep focus by working in one area at a time.</p>
             <nav className="parent-section-nav" aria-label="Parent workspace">
               {PARENT_CONSOLE_SECTIONS.map((section) => {
                 const isActive = section.id === activeSection.id;
@@ -53,10 +59,9 @@ export default function ParentPage() {
                     className={`parent-section-nav__button${isActive ? " is-active" : ""}`}
                     data-testid={`parent-section-link-${section.id}`}
                     aria-current={isActive ? "page" : undefined}
-                    onClick={() => setActiveSectionId(section.id)}
+                    onClick={() => switchSection(section.id)}
                   >
-                    <span className="parent-section-nav__label">{section.label}</span>
-                    <span className="parent-section-nav__description">{section.description}</span>
+                    {section.label}
                   </button>
                 );
               })}
@@ -88,22 +93,11 @@ export default function ParentPage() {
 
             {activeSection.id === "sessions" ? (
               <>
-                <SessionControlPanel
-                  selectedChild={selectedChild}
-                  sessionForm={state.sessionForm}
-                  setSessionForm={actions.setSessionForm}
-                  onStartSession={actions.startSession}
-                  activeSession={state.activeSession}
-                  consentGranted={state.hasCoppaConsent}
-                  loading={state.loading.sessionStart || state.loading.override || state.loading.sessionManage}
-                  onEnableOverride={() => actions.setOverride(true)}
-                  onDisableOverride={() => actions.setOverride(false)}
-                  sessionStartAlert={state.actionAlerts.sessionStart}
-                  overrideAlert={state.actionAlerts.override}
-                />
-
                 <ActiveSessionsPanel
+                  children={state.children}
                   activeSessions={state.activeSessions}
+                  selectedChildId={state.selectedChildId}
+                  onSelectChild={actions.setSelectedChildId}
                   onRejoin={actions.rejoinSession}
                   onEnd={actions.endSession}
                   onRegenerateCode={actions.regenerateCode}
@@ -111,15 +105,33 @@ export default function ParentPage() {
                   actionAlert={state.actionAlerts.sessionManage}
                 />
 
-                <TranscriptPanel
-                  activeSession={state.activeSession}
-                  nudgeText={state.nudgeText}
-                  setNudgeText={actions.setNudgeText}
-                  onSendNudge={actions.sendNudge}
-                  loading={state.loading.nudge}
-                  nudgeAlert={state.actionAlerts.nudge}
-                  messages={state.messages}
-                />
+                {selectedChild ? (
+                  <>
+                    <SessionControlPanel
+                      selectedChild={selectedChild}
+                      sessionForm={state.sessionForm}
+                      setSessionForm={actions.setSessionForm}
+                      onStartSession={actions.startSession}
+                      activeSession={state.activeSession}
+                      consentGranted={state.hasCoppaConsent}
+                      loading={state.loading.sessionStart || state.loading.override || state.loading.sessionManage}
+                      onEnableOverride={() => actions.setOverride(true)}
+                      onDisableOverride={() => actions.setOverride(false)}
+                      sessionStartAlert={state.actionAlerts.sessionStart}
+                      overrideAlert={state.actionAlerts.override}
+                    />
+
+                    <TranscriptPanel
+                      activeSession={state.activeSession}
+                      nudgeText={state.nudgeText}
+                      setNudgeText={actions.setNudgeText}
+                      onSendNudge={actions.sendNudge}
+                      loading={state.loading.nudge}
+                      nudgeAlert={state.actionAlerts.nudge}
+                      messages={state.messages}
+                    />
+                  </>
+                ) : null}
               </>
             ) : null}
 

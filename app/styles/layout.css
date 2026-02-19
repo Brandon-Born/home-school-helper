@@ -157,7 +157,7 @@
 
 .parent-section-nav {
   display: grid;
-  gap: 10px;
+  gap: 4px;
 }
 
 .parent-section-nav__button {
@@ -168,9 +168,9 @@
   color: inherit;
   text-align: left;
   cursor: pointer;
-  padding: 12px 14px 12px 18px;
-  display: grid;
-  gap: 4px;
+  padding: 10px 14px 10px 18px;
+  font-weight: 600;
+  font-size: 0.93rem;
   position: relative;
   overflow: hidden;
   transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
@@ -208,17 +208,6 @@
 .parent-section-nav__button.is-active::before {
   opacity: 1;
   transform: scaleY(1) translateX(0);
-}
-
-.parent-section-nav__label {
-  font-weight: 700;
-  font-size: 0.95rem;
-}
-
-.parent-section-nav__description {
-  color: var(--text-muted);
-  font-size: 0.86rem;
-  line-height: 1.35;
 }
 
 .console-centered {
@@ -259,15 +248,21 @@
   }
 
   .parent-section-nav {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(220px, 1fr);
-    overflow-x: auto;
-    padding-bottom: 2px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
   .parent-section-nav__button {
-    min-height: 92px;
+    width: auto;
+    padding: 8px 14px;
+    border-radius: var(--radius-full);
+    font-size: 0.86rem;
+    text-align: center;
+  }
+
+  .parent-section-nav__button::before {
+    display: none;
   }
 }
 

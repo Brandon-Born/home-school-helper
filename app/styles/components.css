@@ -524,14 +524,34 @@
 }
 
 .active-session-card {
+  all: unset;
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 12px 14px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   background: var(--surface);
-  transition: border-color 120ms ease;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.active-session-card:hover {
+  background: color-mix(in oklab, var(--role-accent) 6%, var(--surface) 94%);
+}
+
+.active-session-card:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--role-accent) 18%, transparent);
+}
+
+.active-session-card.is-selected {
+  border-color: color-mix(in oklab, var(--role-accent) 50%, var(--border) 50%);
+  background: color-mix(in oklab, var(--role-accent) 10%, var(--surface) 90%);
+}
+
+.active-session-card.has-session {
+  border-left: 3px solid var(--role-accent);
 }
 
 .active-session-card__header {

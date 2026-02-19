@@ -31,7 +31,10 @@ function timeUntil(isoString) {
 }
 
 export function ActiveSessionsPanel({
+    children,
     activeSessions,
+    selectedChildId,
+    onSelectChild,
     onRejoin,
     onEnd,
     onRegenerateCode,
@@ -40,9 +43,37 @@ export function ActiveSessionsPanel({
 }) {
     const [confirmEndId, setConfirmEndId] = useState(null);
 
-    if (!activeSessions || activeSessions.length === 0) {
-        return null;
+    if (!children || children.length === 0) {
+        return (
+            <section className="card" data-testid="active-sessions-panel">
+                <h2 className="section-title">Your children</h2>
+                <p className="empty-state">No children added yet — add one in the Children section.</p>
+            </section>
+        );
     }
+
+    const sessionsByChildId = new Map();
+    for (const s of (activeSessions || [])) {
+        sessionsByChildId.set(s.child_id, s);
+    }
+
+    const handleCardClick = (child) => {
+        const session = sessionsByChildId.get(child.id);
+        if (session) {
+            onRejoin({
+                session_id: session.session_id,
+                child_id: session.child_id,
+                child_name: session.child_name,
+                status: session.status,
+                daily_context: session.daily_context,
+                started_at: session.started_at,
+                join_code: session.join_code ?? null,
+                expires_at: session.expires_at ?? null
+            });
+        } else {
+            onSelectChild(child.id);
+        }
+    };
 
     const handleRegenerate = async (sessionId) => {
         await onRegenerateCode(sessionId);
@@ -55,7 +86,7 @@ export function ActiveSessionsPanel({
 
     return (
         <section className="card" data-testid="active-sessions-panel" aria-busy={loading}>
-            <h2 className="section-title">Active sessions</h2>
+            <h2 className="section-title">Your children</h2>
             <StatusAlert
                 tone={actionAlert?.tone}
                 message={actionAlert?.message}
@@ -63,22 +94,29 @@ export function ActiveSessionsPanel({
             />
 
             <div className="active-sessions-list">
-                {activeSessions.map((s) => {
-                    const joinCode = s.join_code;
-                    const joinCodeExpiry = s.expires_at;
-                    const subjects = s.daily_context?.daily_subjects;
+                {children.map((child) => {
+                    const session = sessionsByChildId.get(child.id);
+                    const isSelected = child.id === selectedChildId;
+                    const joinCode = session?.join_code;
+                    const joinCodeExpiry = session?.expires_at;
+                    const subjects = session?.daily_context?.daily_subjects;
 
                     return (
-                        <div
-                            key={s.session_id}
-                            className="active-session-card"
-                            data-testid={`active-session-card-${s.session_id}`}
+                        <button
+                            key={child.id}
+                            type="button"
+                            className={`active-session-card${isSelected ? " is-selected" : ""}${session ? " has-session" : ""}`}
+                            data-testid={session ? `active-session-card-${session.session_id}` : `child-session-card-${child.id}`}
+                            onClick={() => handleCardClick(child)}
+                            disabled={loading}
                         >
                             <div className="active-session-card__header">
-                                <span className="active-session-card__name">{s.child_name}</span>
-                                <span className="active-session-card__time">
-                                    Started {timeAgo(s.started_at)}
-                                </span>
+                                <span className="active-session-card__name">{child.first_name}</span>
+                                {session ? (
+                                    <span className="pill">Active</span>
+                                ) : (
+                                    <span className="pill pill--muted">No session</span>
+                                )}
                             </div>
 
                             {subjects?.length > 0 ? (
@@ -87,84 +125,76 @@ export function ActiveSessionsPanel({
                                 </span>
                             ) : null}
 
-                            {joinCode ? (
-                                <div className="active-session-card__code">
-                                    <span className="join-code" data-testid={`active-session-code-${s.session_id}`}>
-                                        {joinCode}
-                                    </span>
-                                    <span className="section-muted" style={{ fontSize: "0.8rem" }}>
-                                        expires {timeUntil(joinCodeExpiry)}
-                                    </span>
-                                </div>
-                            ) : null}
+                            {session ? (
+                                <>
+                                    {joinCode ? (
+                                        <div className="active-session-card__code">
+                                            <span className="join-code" data-testid={`active-session-code-${session.session_id}`}>
+                                                {joinCode}
+                                            </span>
+                                            <span className="section-muted" style={{ fontSize: "0.8rem" }}>
+                                                expires {timeUntil(joinCodeExpiry)}
+                                            </span>
+                                        </div>
+                                    ) : null}
 
-                            <div className="active-session-card__actions">
-                                <button
-                                    type="button"
-                                    className="btn btn--ghost btn--sm"
-                                    data-testid={`active-session-rejoin-${s.session_id}`}
-                                    disabled={loading}
-                                    onClick={() => onRejoin({
-                                        session_id: s.session_id,
-                                        child_id: s.child_id,
-                                        child_name: s.child_name,
-                                        status: s.status,
-                                        daily_context: s.daily_context,
-                                        started_at: s.started_at,
-                                        join_code: joinCode ?? null,
-                                        expires_at: joinCodeExpiry ?? null
-                                    })}
-                                >
-                                    📺 Rejoin
-                                </button>
-                                <button
-                                    type="button"
-                                    className="btn btn--ghost btn--sm"
-                                    data-testid={`active-session-regenerate-${s.session_id}`}
-                                    disabled={loading}
-                                    onClick={() => handleRegenerate(s.session_id)}
-                                >
-                                    🔄 New code
-                                </button>
-                                {confirmEndId === s.session_id ? (
-                                    <span id={`active-session-end-confirm-${s.session_id}`} className="active-session-card__confirm">
-                                        <span className="section-muted" style={{ fontSize: "0.82rem" }}>End?</span>
-                                        <button
-                                            type="button"
-                                            className="btn--icon btn--icon-danger"
-                                            data-testid={`active-session-end-confirm-${s.session_id}`}
-                                            aria-label={`Confirm end session for ${s.child_name}`}
-                                            disabled={loading}
-                                            onClick={() => handleConfirmEnd(s.session_id)}
-                                        >
-                                            Yes
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="btn--icon"
-                                            aria-label={`Cancel ending session for ${s.child_name}`}
-                                            disabled={loading}
-                                            onClick={() => setConfirmEndId(null)}
-                                        >
-                                            No
-                                        </button>
+                                    <span className="active-session-card__time">
+                                        Started {timeAgo(session.started_at)}
                                     </span>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        className="btn btn--ghost btn--sm btn--danger-text"
-                                        data-testid={`active-session-end-${s.session_id}`}
-                                        aria-label={`End session for ${s.child_name}`}
-                                        aria-expanded={confirmEndId === s.session_id}
-                                        aria-controls={`active-session-end-confirm-${s.session_id}`}
-                                        disabled={loading}
-                                        onClick={() => setConfirmEndId(s.session_id)}
-                                    >
-                                        ⏹ End
-                                    </button>
-                                )}
-                            </div>
-                        </div>
+
+                                    {/* Stop propagation so action buttons don't trigger card click */}
+                                    {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
+                                    <div className="active-session-card__actions" onClick={(e) => e.stopPropagation()} role="toolbar" aria-label={`Session actions for ${child.first_name}`}>
+                                        <button
+                                            type="button"
+                                            className="btn btn--ghost btn--sm"
+                                            data-testid={`active-session-regenerate-${session.session_id}`}
+                                            disabled={loading}
+                                            onClick={() => handleRegenerate(session.session_id)}
+                                        >
+                                            🔄 New code
+                                        </button>
+                                        {confirmEndId === session.session_id ? (
+                                            <span id={`active-session-end-confirm-${session.session_id}`} className="active-session-card__confirm">
+                                                <span className="section-muted" style={{ fontSize: "0.82rem" }}>End?</span>
+                                                <button
+                                                    type="button"
+                                                    className="btn--icon btn--icon-danger"
+                                                    data-testid={`active-session-end-confirm-${session.session_id}`}
+                                                    aria-label={`Confirm end session for ${child.first_name}`}
+                                                    disabled={loading}
+                                                    onClick={() => handleConfirmEnd(session.session_id)}
+                                                >
+                                                    Yes
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn--icon"
+                                                    aria-label={`Cancel ending session for ${child.first_name}`}
+                                                    disabled={loading}
+                                                    onClick={() => setConfirmEndId(null)}
+                                                >
+                                                    No
+                                                </button>
+                                            </span>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className="btn btn--ghost btn--sm btn--danger-text"
+                                                data-testid={`active-session-end-${session.session_id}`}
+                                                aria-label={`End session for ${child.first_name}`}
+                                                aria-expanded={confirmEndId === session.session_id}
+                                                aria-controls={`active-session-end-confirm-${session.session_id}`}
+                                                disabled={loading}
+                                                onClick={() => setConfirmEndId(session.session_id)}
+                                            >
+                                                ⏹ End
+                                            </button>
+                                        )}
+                                    </div>
+                                </>
+                            ) : null}
+                        </button>
                     );
                 })}
             </div>

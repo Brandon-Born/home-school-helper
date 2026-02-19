@@ -28,7 +28,7 @@ test("parent section navigation works on mobile viewport", async ({ page }) => {
   await expect(page.getByTestId("parent-section-link-managed")).toBeVisible({ timeout: 30000 });
 
   await goToParentSection(page, "sessions");
-  await expect(page.getByRole("heading", { name: "Start a lesson" })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole("heading", { name: "Session controls" })).toBeVisible({ timeout: 30000 });
 
   await goToParentSection(page, "managed");
   await expect(page.getByRole("heading", { name: "Parental consent" })).toBeVisible({ timeout: 30000 });

@@ -18,7 +18,7 @@ export function SessionControlPanel({
   if (!selectedChild) {
     return (
       <section className="card">
-        <h2 className="section-title">Start a lesson</h2>
+        <h2 className="section-title">Start a session</h2>
         <p className="section-muted">Select a child from the list to begin.</p>
       </section>
     );
@@ -27,7 +27,7 @@ export function SessionControlPanel({
   return (
     <section className="card" aria-busy={loading}>
       <h2 className="section-title">
-        Lesson for {selectedChild.first_name}
+        Session for {selectedChild.first_name}
       </h2>
       <StatusAlert
         tone={sessionStartAlert?.tone}
@@ -36,9 +36,9 @@ export function SessionControlPanel({
       />
 
       {activeSession && activeSession.child_id === selectedChild.id ? (
-        <div className="card card--accent" data-testid="session-lesson-share-panel" role="status" aria-live="polite">
+        <div className="card card--accent" data-testid="session-share-panel" role="status" aria-live="polite">
           <p className="section-muted">Share this code with {selectedChild.first_name}:</p>
-          <div className="join-code" data-testid="session-lesson-join-code">{activeSession.join_code}</div>
+          <div className="join-code" data-testid="session-join-code">{activeSession.join_code}</div>
           <p className="section-muted" style={{ marginTop: 8, fontSize: "0.88rem" }}>
             Expires at {activeSession.expires_at}
           </p>
@@ -67,7 +67,6 @@ export function SessionControlPanel({
             placeholder="Math"
             value={sessionForm.daily_subjects}
             onChange={(event) => setSessionForm((prev) => ({ ...prev, daily_subjects: event.target.value }))}
-            autoFocus
             required
           />
           <TextAreaField

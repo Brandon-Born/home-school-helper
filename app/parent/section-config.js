@@ -1,19 +1,19 @@
 export const PARENT_CONSOLE_SECTIONS = [
   {
     id: "children",
-    label: "Children & Learning Profiles",
+    label: "Children",
     title: "Child profiles",
     description: "Set up your kids, manage their learning levels, and pick what they focus on."
   },
   {
     id: "sessions",
-    label: "Active Tutoring & Join Codes",
+    label: "Sessions",
     title: "Session controls",
-    description: "Start a new lesson, send join codes to your kids, and follow along live."
+    description: "Start a new session, send join codes to your kids, and follow along live."
   },
   {
     id: "managed",
-    label: "Privacy & Data Settings",
+    label: "Privacy & Data",
     title: "Consent and data controls",
     description: "Manage your family's privacy settings, review saved data, and control account permissions."
   }

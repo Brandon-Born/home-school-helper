@@ -119,6 +119,14 @@ export async function startSessionForChild(
 ) {
   await goToParentSection(page, "sessions");
 
+  // Select the child in the child-picker (no child is pre-selected on sessions tab)
+  const childCard = page.getByRole("button", { name: new RegExp(childName, "i") });
+  await expect(childCard).toBeVisible({ timeout: 30000 });
+  await childCard.click();
+
+  // Wait for session form to appear
+  await expect(page.getByLabel("Today's subject")).toBeVisible({ timeout: 30000 });
+
   const startSessionResponsePromise = page.waitForResponse(
     (response) =>
       response.url().includes("/api/session/start") && response.request().method() === "POST"
@@ -135,12 +143,12 @@ export async function startSessionForChild(
   const sessionId = session.session_id;
   expect(sessionId).toBeTruthy();
 
-  const lessonCard = page.getByTestId("session-lesson-share-panel");
-  await expect(lessonCard).toBeVisible({ timeout: 30000 });
-  const lessonCode = page.getByTestId("session-lesson-join-code");
-  await expect(lessonCode).toBeVisible({ timeout: 30000 });
+  const sharePanel = page.getByTestId("session-share-panel");
+  await expect(sharePanel).toBeVisible({ timeout: 30000 });
+  const joinCodeEl = page.getByTestId("session-join-code");
+  await expect(joinCodeEl).toBeVisible({ timeout: 30000 });
 
-  const joinCode = (await lessonCode.innerText()).trim();
+  const joinCode = (await joinCodeEl.innerText()).trim();
   expect(joinCode).toMatch(/^[A-Z0-9]{8}$/);
 
   const activeCard = page.getByTestId(`active-session-card-${sessionId}`);
@@ -149,11 +157,16 @@ export async function startSessionForChild(
     timeout: 30000
   });
 
-  return { joinCode, lessonCard, activeCard, sessionId };
+  return { joinCode, sharePanel, activeCard, sessionId };
 }
 
 export async function regenerateCodeFromActiveCard(page, { sessionId, previousCode }) {
   await goToParentSection(page, "sessions");
+
+  // Click the session card to select the child (makes session-join-code visible)
+  const sessionCard = page.getByTestId(`active-session-card-${sessionId}`);
+  await expect(sessionCard).toBeVisible({ timeout: 30000 });
+  await sessionCard.click();
 
   const regenerateResponsePromise = page.waitForResponse(
     (response) =>
@@ -173,16 +186,16 @@ export async function regenerateCodeFromActiveCard(page, { sessionId, previousCo
   expect(payloadCode).not.toBe(previousCode);
 
   await expect(cardCode).toHaveText(payloadCode, { timeout: 30000 });
-  await expect(page.getByTestId("session-lesson-join-code")).toHaveText(payloadCode, { timeout: 30000 });
+  await expect(page.getByTestId("session-join-code")).toHaveText(payloadCode, { timeout: 30000 });
 
   return payloadCode;
 }
 
 export async function rejoinSessionFromActiveCard(page, { sessionId, expectedCode }) {
   await goToParentSection(page, "sessions");
-  await page.getByTestId(`active-session-rejoin-${sessionId}`).click();
+  await page.getByTestId(`active-session-card-${sessionId}`).click();
 
-  await expect(page.getByTestId("session-lesson-join-code")).toHaveText(expectedCode, {
+  await expect(page.getByTestId("session-join-code")).toHaveText(expectedCode, {
     timeout: 30000
   });
 }

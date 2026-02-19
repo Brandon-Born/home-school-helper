@@ -79,9 +79,9 @@ test("new parent can complete first-time onboarding workflow", async ({ baseURL,
     });
     fixture.sessionId = started.sessionId;
     expect(started.joinCode).toMatch(/^[A-Z0-9]{8}$/);
-    await expect(page.getByTestId("session-lesson-share-panel")).toBeVisible({ timeout: 30000 });
+    await expect(page.getByTestId("session-share-panel")).toBeVisible({ timeout: 30000 });
   } finally {
-    await cleanupFixtureData(page, fixture).catch(() => {});
-    await context.close().catch(() => {});
+    await cleanupFixtureData(page, fixture).catch(() => { });
+    await context.close().catch(() => { });
   }
 });
