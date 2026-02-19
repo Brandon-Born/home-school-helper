@@ -17,7 +17,7 @@ export default function ContactPage() {
             <div className={styles.formWrapper}>
                 <form
                     className={`${styles.contactForm} card card--elevated`}
-                    action="https://formspree.io/f/YOUR_FORM_ID"
+                    action="https://formspree.io/f/xaqddnly"
                     method="POST"
                 >
                     <div className="field">
