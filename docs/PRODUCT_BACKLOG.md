@@ -21,7 +21,35 @@ How to use:
 
 ## P1 (High Value)
 
-- None currently open.
+### 14) Parent/child console orchestration refactor
+Status: Open
+Scope:
+- Decompose `useParentConsole` and `useChildConsole` orchestration into clearer state domains (or reducer/state-machine boundaries).
+- Reduce cross-cutting side effects and tighten testability of async/session transitions.
+
+### 15) Transcript feed logic split
+Status: Open
+Scope:
+- Extract transcript windowing/state behavior from `TranscriptFeed` into a focused hook (for example `useTranscriptWindowing`).
+- Keep accessibility live-region behavior isolated and regression-tested independently.
+
+### 16) Voice strategy telemetry/error unification
+Status: Open
+Scope:
+- Consolidate duplicated analytics/telemetry/error mapping patterns across cloud and browser voice capture strategies.
+- Preserve transport-specific behavior while centralizing shared event/status handling.
+
+### 17) Shared env-loader utility for scripts
+Status: Open
+Scope:
+- Replace duplicated `.env` parsing/loading logic in script entrypoints with one shared utility.
+- Ensure script behavior stays deterministic across local and CI runs.
+
+### 18) Playwright runtime env normalization cleanup
+Status: Open
+Scope:
+- Remove remaining `NO_COLOR`/`FORCE_COLOR` warning noise by normalizing env propagation across Playwright + webServer subprocesses.
+- Keep logs clean without altering test behavior.
 
 ---
 
