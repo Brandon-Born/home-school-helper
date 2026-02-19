@@ -23,9 +23,22 @@ Already aligned:
 - No raw audio storage in v1.
 
 Known gaps already documented:
-- Verifiable parental consent (VPC) method finalization with legal counsel.
+- Verifiable parental consent (VPC) implementation is pending; current product flow records parent self-attestation only.
 - Export delivery model and deletion SLA decisions (currently synchronous baseline UX).
 - Legal/provider signoff before production launch.
+
+## VPC Direction (2026-02-19)
+Selected direction for first production VPC method:
+- Use subscription billing (payment method transaction/authorization to a parent-controlled account) as the primary VPC method.
+
+Implementation requirements before launch:
+- Present COPPA direct notice before billing-backed consent completion.
+- Record consent as `granted` only after successful billing verification callback.
+- Store auditable linkage from consent record to billing verification event.
+- Keep child profile creation and session start blocked until billing-backed consent is verified.
+
+Important constraint:
+- Current implementation still uses parent self-attestation in the consent checkpoint and is not yet billing-verified VPC.
 
 ## COPPA Scope For This Product
 This product is child-directed and processes child personal information, including:
@@ -45,13 +58,13 @@ Therefore COPPA launch readiness requires:
 Status: In progress
 1. Publish a COPPA-compliant privacy policy page.
 2. Draft parent direct notice copy and delivery flow.
-3. Decide and document verifiable parental consent (VPC) method(s).
+3. Finalize legal review for the selected subscription-backed VPC method and notice copy.
 4. Document provider/subprocessor list and data-sharing descriptions.
 5. Record retention and deletion policy in parent-facing language.
 
 Deliverables:
 - `/privacy` content ready for production.
-- Internal legal packet with approved text and VPC method.
+- Internal legal packet with approved direct notice text, selected VPC method, and launch signoff.
 
 ### Phase B: Consent Gating In Product
 Status: Baseline implemented
@@ -72,6 +85,9 @@ Implemented behavior:
 - Child profile creation and session start reject with `403 coppa_consent_required` unless consent is granted.
 - Parent UI shows a consent checkpoint card and disables add/start controls until consent is granted.
 - Backward compatibility fallback: if consent schema migration is missing in local/dev, consent gating auto-disables (`required=false`) to prevent deadlock.
+
+Remaining Phase B upgrade for launch:
+- Replace self-attestation grant path with billing-verified VPC grant path (subscription-backed).
 
 ### Phase C: Parent Rights Workflows
 Status: Baseline implemented
@@ -124,7 +140,7 @@ No major structural change expected:
 Continue Phase C-E now that baseline Phase B controls are in place.
 
 ## Open Decisions Needed Later
-1. Which VPC method(s) to implement first.
+1. Which backup VPC method to support if subscription billing is unavailable (for example, manual verification flow).
 2. How export should be delivered (download vs emailed secure link).
 3. Deletion SLA and async-job design for large transcript sets.
 4. Whether to geo-segment privacy behavior for non-U.S. users in v1.
