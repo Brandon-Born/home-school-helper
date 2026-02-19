@@ -42,7 +42,7 @@ export default function AboutPage() {
                     Homeschool Sidekick is a product of{" "}
                     <strong>Freyr And Sons LLC</strong>, a family run business who homeschools
                     our child outside of Dallas, TX. This site was built first as a hobby project for our
-                    family and after seeing success with it, we decided to share it with the world.
+                    family and after seeing success with it, we decided to share it with the world.<br />
 
                     Unfortunately, we have daily struggles with school and learning like other kids. We created
                     this to help our child have a second voice reinforcing
