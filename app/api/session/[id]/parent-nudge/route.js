@@ -1,3 +1,4 @@
+import { ApiError } from "../../../../../src/server/api-error.js";
 import { requireParentContext } from "../../../../../src/server/auth.js";
 import { handleRouteError } from "../../../../../src/server/route-errors.js";
 import {
@@ -8,6 +9,34 @@ import { enforceRateLimit } from "../../../../../src/server/rate-limit.js";
 import { buildRateLimitPolicy } from "../../../../../src/server/rate-limit-policies.js";
 import { runSessionRoute } from "../../../../../src/server/session-route-helpers.js";
 import { runSessionTutorTurn } from "../../../../../src/server/session-turn-orchestrator.js";
+
+const MAX_PARENT_NUDGE_LENGTH = 2000;
+
+function parseParentNudge(payload) {
+  const nudgeText = String(payload?.nudge_text ?? "").trim();
+  if (!nudgeText) {
+    throw new ApiError(400, "validation_error", "nudge_text is required.");
+  }
+
+  if (nudgeText.length > MAX_PARENT_NUDGE_LENGTH) {
+    throw new ApiError(
+      413,
+      "payload_too_large",
+      `nudge_text must be at most ${MAX_PARENT_NUDGE_LENGTH} characters.`
+    );
+  }
+
+  const parentGuidanceRaw = String(payload?.parent_guidance ?? nudgeText).trim();
+  const parentGuidance =
+    parentGuidanceRaw.length > MAX_PARENT_NUDGE_LENGTH
+      ? parentGuidanceRaw.slice(0, MAX_PARENT_NUDGE_LENGTH)
+      : parentGuidanceRaw;
+
+  return {
+    nudgeText,
+    parentGuidance
+  };
+}
 
 export function createParentNudgePostHandler(dependencies = {}) {
   const applyRateLimit = dependencies.enforceRateLimit ?? enforceRateLimit;
@@ -27,6 +56,7 @@ export function createParentNudgePostHandler(dependencies = {}) {
       await applyRateLimit(request, buildRateLimitPolicy("parentNudge", sessionId));
 
       const payload = await request.json();
+      const { nudgeText, parentGuidance } = parseParentNudge(payload);
       const { parent } = await requireParent(request);
 
       await ensureOwnsSession(parent.id, sessionId);
@@ -38,8 +68,8 @@ export function createParentNudgePostHandler(dependencies = {}) {
       const result = await runTurn({
         sessionId,
         source: "parent-nudge",
-        studentInput: payload.nudge_text,
-        parentGuidance: payload.parent_guidance ?? payload.nudge_text,
+        studentInput: nudgeText,
+        parentGuidance,
         profile: tutorContext.profile,
         dailyContext: tutorContext.dailyContext,
         allowDirectAnswer: tutorContext.allowDirectAnswer,

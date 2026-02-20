@@ -8,7 +8,7 @@ import { createSpeechTranscribePostHandler } from "../app/api/session/[id]/speec
 import { createChildTurnPostHandler } from "../app/api/session/[id]/child-turn/route.js";
 import { createParentNudgePostHandler } from "../app/api/session/[id]/parent-nudge/route.js";
 import { createOverridePostHandler } from "../app/api/session/[id]/override/route.js";
-import { createAudioFormRequest, createJsonRequest } from "./helpers/route-test-helpers.js";
+import { assertApiErrorResponse, createAudioFormRequest, createJsonRequest } from "./helpers/route-test-helpers.js";
 
 const originalSpeechTelemetrySetting = process.env.SPEECH_TELEMETRY_DISABLED;
 process.env.SPEECH_TELEMETRY_DISABLED = "1";
@@ -50,13 +50,16 @@ test("dynamic route handlers accept promised params for messages and stream rout
 test("speech routes accept promised params", async () => {
   const recorded = {
     transcribeSessionId: null,
-    synthSessionId: null
+    synthSessionId: null,
+    transcribeOptions: null,
+    synthOptions: null
   };
 
   const transcribeHandler = createSpeechTranscribePostHandler({
     enforceRateLimit: () => {},
-    requireChildSessionContext: async (_request, sessionId) => {
+    requireChildSessionContext: async (_request, sessionId, options) => {
       recorded.transcribeSessionId = sessionId;
+      recorded.transcribeOptions = options;
       return { tokenRow: { child_id: "child_1" } };
     },
     transcribeSpeech: async () => ({ transcript: "hello" })
@@ -68,11 +71,13 @@ test("speech routes accept promised params", async () => {
   );
   assert.equal(transcribeResponse.status, 200);
   assert.equal(recorded.transcribeSessionId, "s3");
+  assert.equal(recorded.transcribeOptions?.requireActiveSession, true);
 
   const synthHandler = createSpeechSynthesizePostHandler({
     enforceRateLimit: () => {},
-    requireChildSessionContext: async (_request, sessionId) => {
+    requireChildSessionContext: async (_request, sessionId, options) => {
       recorded.synthSessionId = sessionId;
+      recorded.synthOptions = options;
       return { tokenRow: { child_id: "child_1" } };
     },
     synthesizeSpeech: async () => new Uint8Array([1, 2, 3])
@@ -84,6 +89,7 @@ test("speech routes accept promised params", async () => {
   );
   assert.equal(synthResponse.status, 200);
   assert.equal(recorded.synthSessionId, "s4");
+  assert.equal(recorded.synthOptions?.requireActiveSession, true);
 });
 
 test("child-turn route accepts promised params", async () => {
@@ -132,6 +138,37 @@ test("child-turn route accepts promised params", async () => {
     childId: "child_1"
   });
   assert.equal(recorded.runTurnArgs.sessionId, "s5");
+});
+
+test("child-turn route rejects oversized student input", async () => {
+  const handler = createChildTurnPostHandler({
+    enforceRateLimit: () => {},
+    requireChildSessionContext: async () => ({
+      tokenRow: {
+        child_id: "child_1"
+      }
+    }),
+    getSessionTutorContext: async () => ({
+      latestParentGuidance: null,
+      profile: {},
+      dailyContext: {},
+      allowDirectAnswer: false
+    }),
+    runSessionTutorTurn: async () => ({
+      assistant_text: "ok"
+    })
+  });
+
+  const response = await handler(
+    createJsonRequest("https://example.test/api/session/s5/child-turn", { student_input: "a".repeat(4001) }),
+    { params: Promise.resolve({ id: "s5" }) }
+  );
+
+  await assertApiErrorResponse(response, {
+    status: 413,
+    error: "payload_too_large",
+    message: "student_input must be at most 4000 characters."
+  });
 });
 
 test("parent-nudge and override routes accept promised params", async () => {
@@ -214,5 +251,38 @@ test("parent-nudge and override routes accept promised params", async () => {
     parentId: "parent_1",
     enabled: true,
     durationMinutes: 15
+  });
+});
+
+test("parent-nudge route rejects oversized nudge text", async () => {
+  const handler = createParentNudgePostHandler({
+    enforceRateLimit: () => {},
+    requireParentContext: async () => ({
+      parent: {
+        id: "parent_1"
+      }
+    }),
+    ensureParentOwnsSession: async () => {},
+    getSessionTutorContext: async () => ({
+      profile: {},
+      dailyContext: {},
+      allowDirectAnswer: false
+    }),
+    runSessionTutorTurn: async () => ({
+      assistant_text: "queued"
+    })
+  });
+
+  const response = await handler(
+    createJsonRequest("https://example.test/api/session/s6/parent-nudge", {
+      nudge_text: "a".repeat(2001)
+    }),
+    { params: Promise.resolve({ id: "s6" }) }
+  );
+
+  await assertApiErrorResponse(response, {
+    status: 413,
+    error: "payload_too_large",
+    message: "nudge_text must be at most 2000 characters."
   });
 });

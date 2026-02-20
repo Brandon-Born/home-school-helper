@@ -5,6 +5,7 @@ import { ApiError } from "../src/server/api-error.js";
 import { requireChildSessionContext, requireParentContext } from "../src/server/auth.js";
 import {
   createChildForParent,
+  endSessionForParent,
   ensureParentOwnsSession,
   listActiveSessionsForParent,
   listSessionMessages,
@@ -227,6 +228,41 @@ test("requireChildSessionContext validates token hash, session scope, and expiry
   );
 });
 
+test("requireChildSessionContext enforces active session when requested", async () => {
+  const token = "child-secret-token";
+  const serviceClient = createFakeServiceClient({
+    sessions: [
+      {
+        id: "session_1",
+        child_id: "child_1",
+        parent_id: "parent_1",
+        status: "ended"
+      }
+    ],
+    child_session_tokens: [
+      {
+        id: "token_1",
+        session_id: "session_1",
+        child_id: "child_1",
+        token_hash: hashOpaqueToken(token),
+        expires_at: new Date(Date.now() + 60 * 1000).toISOString(),
+        revoked_at: null
+      }
+    ]
+  });
+
+  const request = new Request("https://example.test/api/session/session_1/speech/transcribe", {
+    headers: {
+      authorization: `Bearer ${token}`
+    }
+  });
+
+  await assert.rejects(
+    () => requireChildSessionContext(request, "session_1", { serviceClient, requireActiveSession: true }),
+    (error) => error instanceof ApiError && error.status === 409 && error.code === "session_not_active"
+  );
+});
+
 test("requireParentContext validates bearer token and upserts parent record", async () => {
   const serviceClient = createFakeServiceClient();
   const anonClient = {
@@ -347,6 +383,57 @@ test("regenerateJoinCodeForSession refreshes session metadata and expires prior 
 
   const sessions = await listActiveSessionsForParent("parent_1", { serviceClient });
   assert.equal(sessions[0].join_code, regenerated.join_code);
+});
+
+test("endSessionForParent revokes non-expired child session tokens", async () => {
+  const now = Date.now();
+  const serviceClient = createFakeServiceClient({
+    sessions: [
+      {
+        id: "session_1",
+        child_id: "child_1",
+        parent_id: "parent_1",
+        status: "active"
+      }
+    ],
+    child_session_tokens: [
+      {
+        id: "token_active",
+        session_id: "session_1",
+        child_id: "child_1",
+        token_hash: "hash-active",
+        expires_at: new Date(now + 60 * 1000).toISOString(),
+        revoked_at: null
+      },
+      {
+        id: "token_expired",
+        session_id: "session_1",
+        child_id: "child_1",
+        token_hash: "hash-expired",
+        expires_at: new Date(now - 60 * 1000).toISOString(),
+        revoked_at: null
+      },
+      {
+        id: "token_already_revoked",
+        session_id: "session_1",
+        child_id: "child_1",
+        token_hash: "hash-revoked",
+        expires_at: new Date(now + 120 * 1000).toISOString(),
+        revoked_at: new Date(now - 10 * 1000).toISOString()
+      }
+    ]
+  });
+
+  const ended = await endSessionForParent("parent_1", "session_1", { serviceClient });
+  assert.equal(ended.status, "ended");
+
+  const activeToken = serviceClient.tables.child_session_tokens.find((row) => row.id === "token_active");
+  const expiredToken = serviceClient.tables.child_session_tokens.find((row) => row.id === "token_expired");
+  const revokedToken = serviceClient.tables.child_session_tokens.find((row) => row.id === "token_already_revoked");
+
+  assert.ok(activeToken.revoked_at);
+  assert.equal(expiredToken.revoked_at, null);
+  assert.ok(revokedToken.revoked_at);
 });
 
 test("redeemSessionCode clears active join-code metadata from session list", async () => {

@@ -27,7 +27,7 @@ test("parseSpeechTranscribeInput requires a non-empty audio file", async () => {
   );
 
   const emptyAudioForm = new FormData();
-  emptyAudioForm.append("audio", new Blob([]), "empty.webm");
+  emptyAudioForm.append("audio", new Blob([], { type: "audio/webm" }), "empty.webm");
 
   await assert.rejects(
     () =>
@@ -60,6 +60,31 @@ test("parseSpeechTranscribeInput returns decoded bytes and language code", async
   assert.equal(Buffer.isBuffer(parsed.audioBytes), true);
   assert.equal(parsed.audioBytes.toString("utf8"), "abc123");
   assert.equal(parsed.languageCode, "en-US");
+});
+
+test("parseSpeechTranscribeInput rejects oversized audio payloads", async () => {
+  const formData = new FormData();
+  formData.append("audio", new Blob(["a".repeat(8200)], { type: "audio/webm" }), "sample.webm");
+
+  await assert.rejects(
+    () =>
+      parseSpeechTranscribeInput(
+        new Request("https://example.test/transcribe", {
+          method: "POST",
+          body: formData
+        }),
+        {
+          env: {
+            SPEECH_TRANSCRIBE_MAX_AUDIO_BYTES: "8192"
+          }
+        }
+      ),
+    (error) =>
+      error instanceof ApiError &&
+      error.status === 413 &&
+      error.code === "payload_too_large" &&
+      error.message === "audio file must be <= 8192 bytes."
+  );
 });
 
 test("parseSpeechSynthesizeInput requires text and clamps speaking rate", async () => {
@@ -111,4 +136,28 @@ test("parseSpeechSynthesizeInput normalizes markdown-style text for speech", asy
   assert.equal(parsed.text.includes("🙂"), false);
   assert.equal(parsed.text.includes("`"), false);
   assert.equal(parsed.text, "Hi Use fractions first.");
+});
+
+test("parseSpeechSynthesizeInput rejects overly long text", async () => {
+  const longText = "a".repeat(201);
+  await assert.rejects(
+    () =>
+      parseSpeechSynthesizeInput(
+        new Request("https://example.test/synthesize", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ text: longText })
+        }),
+        {
+          env: {
+            SPEECH_SYNTH_MAX_TEXT_LENGTH: "200"
+          }
+        }
+      ),
+    (error) =>
+      error instanceof ApiError &&
+      error.status === 413 &&
+      error.code === "payload_too_large" &&
+      error.message === "text must be at most 200 characters."
+  );
 });

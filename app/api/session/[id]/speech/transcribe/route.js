@@ -33,7 +33,7 @@ export function createSpeechTranscribePostHandler(dependencies = {}) {
       run: async ({ sessionId }) => {
         await applyRateLimit(request, buildRateLimitPolicy("speechTranscribe", sessionId));
 
-        await requireChild(request, sessionId);
+        await requireChild(request, sessionId, { requireActiveSession: true });
         const input = await parseSpeechTranscribeInput(request);
         const result = await transcribe(input);
         logServerVoiceMetric("speech_route_success", {

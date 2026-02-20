@@ -14,6 +14,7 @@ const MUTABLE_CONSENT_STATUSES = new Set([
 ]);
 
 const CONSENT_REQUIRED_ENV_KEY = "COPPA_CONSENT_REQUIRED";
+const COPPA_SCHEMA_FALLBACK_ENV_KEY = "ALLOW_COPPA_SCHEMA_FALLBACK";
 const DEFAULT_POLICY_VERSION = "2026-02-19";
 const DEFAULT_POLICY_URL = "/privacy";
 const DEFAULT_CONSENT_METHOD = "parent_self_attestation";
@@ -53,6 +54,15 @@ function parseBooleanEnv(rawValue, fallbackValue) {
 
 export function isCoppaConsentRequired(env = process.env) {
   return parseBooleanEnv(env[CONSENT_REQUIRED_ENV_KEY], true);
+}
+
+export function isCoppaSchemaFallbackAllowed(env = process.env) {
+  const nodeEnv = String(env.NODE_ENV ?? "").trim().toLowerCase();
+  if (nodeEnv === "production") {
+    return false;
+  }
+
+  return parseBooleanEnv(env[COPPA_SCHEMA_FALLBACK_ENV_KEY], false);
 }
 
 export function getCoppaPolicyVersion(env = process.env) {
@@ -112,7 +122,7 @@ export async function getParentCoppaConsentState(parentId, options = {}) {
     .maybeSingle();
 
   if (error) {
-    if (isCoppaSchemaMissingError(error)) {
+    if (isCoppaSchemaMissingError(error) && isCoppaSchemaFallbackAllowed(env)) {
       return {
         required: false,
         status: COPPA_CONSENT_STATUS.granted,
@@ -186,7 +196,7 @@ export async function setParentCoppaConsentState(parentId, payload, options = {}
     .single();
 
   if (error || !data) {
-    if (isCoppaSchemaMissingError(error)) {
+    if (isCoppaSchemaMissingError(error) && isCoppaSchemaFallbackAllowed(env)) {
       return {
         required: false,
         status: COPPA_CONSENT_STATUS.granted,
@@ -216,7 +226,7 @@ export async function setParentCoppaConsentState(parentId, payload, options = {}
   });
 
   if (consentEventError) {
-    if (isCoppaSchemaMissingError(consentEventError)) {
+    if (isCoppaSchemaMissingError(consentEventError) && isCoppaSchemaFallbackAllowed(env)) {
       return {
         required: false,
         status: COPPA_CONSENT_STATUS.granted,

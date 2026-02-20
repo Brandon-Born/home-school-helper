@@ -33,7 +33,7 @@ export function createSpeechSynthesizePostHandler(dependencies = {}) {
       run: async ({ sessionId }) => {
         await applyRateLimit(request, buildRateLimitPolicy("speechSynthesize", sessionId));
 
-        await requireChild(request, sessionId);
+        await requireChild(request, sessionId, { requireActiveSession: true });
         const input = await parseSpeechSynthesizeInput(request);
         const audioBuffer = await synthesize(input);
         logServerVoiceMetric("speech_route_success", {

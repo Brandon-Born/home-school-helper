@@ -6,6 +6,7 @@ import {
 } from "./supabase-clients.js";
 import {
   PARENT_PROFILE_SELECT,
+  isCoppaSchemaFallbackAllowed,
   isCoppaSchemaMissingError,
   withCoppaConsentDefaults
 } from "./session-foundation/coppa-consent-service.js";
@@ -25,6 +26,7 @@ export async function requireParentContext(request, options = {}) {
   const accessToken = getBearerToken(request);
   const anonClient = options.anonClient ?? getAnonSupabaseClient();
   const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
+  const env = options.env ?? process.env;
 
   const { data: userData, error: userError } = await anonClient.auth.getUser(accessToken);
   if (userError || !userData?.user) {
@@ -47,7 +49,7 @@ export async function requireParentContext(request, options = {}) {
     .select(PARENT_PROFILE_SELECT)
     .single());
 
-  if (parentError && isCoppaSchemaMissingError(parentError)) {
+  if (parentError && isCoppaSchemaMissingError(parentError) && isCoppaSchemaFallbackAllowed(env)) {
     ({ data: parent, error: parentError } = await serviceClient
       .from("parents")
       .upsert(parentPayload, { onConflict: "auth_user_id" })
@@ -80,6 +82,7 @@ export async function requireParentContext(request, options = {}) {
 export async function requireChildSessionContext(request, sessionId, options = {}) {
   const childToken = getBearerToken(request);
   const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
+  const requireActiveSession = Boolean(options.requireActiveSession);
 
   const tokenHash = hashOpaqueToken(childToken);
   const nowIso = new Date().toISOString();
@@ -95,6 +98,23 @@ export async function requireChildSessionContext(request, sessionId, options = {
 
   if (tokenError || !tokenRow) {
     throw new ApiError(401, "invalid_child_session_token", "Child session token is invalid or expired.");
+  }
+
+  if (requireActiveSession) {
+    const { data: sessionRow, error: sessionError } = await serviceClient
+      .from("sessions")
+      .select("id, child_id, status")
+      .eq("id", sessionId)
+      .eq("child_id", tokenRow.child_id)
+      .maybeSingle();
+
+    if (sessionError || !sessionRow) {
+      throw new ApiError(401, "invalid_child_session_token", "Child session token is invalid or expired.");
+    }
+
+    if (sessionRow.status !== "active") {
+      throw new ApiError(409, "session_not_active", "Session is not active.");
+    }
   }
 
   return {
