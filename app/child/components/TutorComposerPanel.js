@@ -62,11 +62,11 @@ export function TutorComposerPanel({
               toggleVoiceCapture();
             }}
             disabled={voiceDisabled}
-            className={`btn-circle${isVoiceActive ? " is-active" : ""}`}
+            className={`btn-record${isVoiceActive ? " is-active" : ""}`}
             aria-pressed={isVoiceActive}
             aria-label={listeningLabel}
           >
-            🎤
+            {isVoiceActive ? "🛑 Click here to end" : "🎤 Record your voice"}
           </button>
           <button
             type="submit"

@@ -429,6 +429,50 @@
   cursor: not-allowed;
 }
 
+.btn-record {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--success);
+  padding: 8px 16px;
+  min-height: 40px;
+  background: transparent;
+  color: var(--success);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: all 160ms ease;
+  white-space: nowrap;
+}
+
+.btn-record:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--success) 12%, transparent);
+  box-shadow: 0 4px 12px color-mix(in oklab, var(--success) 20%, transparent);
+  transform: translateY(-1px);
+}
+
+.btn-record:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--success) 25%, transparent);
+}
+
+.btn-record.is-active {
+  background: color-mix(in oklab, var(--danger) 14%, var(--surface) 86%);
+  border-color: var(--danger);
+  color: var(--danger);
+  animation: gentle-pulse 1.5s ease-in-out infinite;
+}
+
+.btn-record:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: var(--text-muted);
+  color: var(--text-muted);
+}
+
 .voice-row {
   display: flex;
   flex-wrap: wrap;
