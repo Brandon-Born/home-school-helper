@@ -25,6 +25,8 @@ function createLocalStorageMock() {
 
 function buildVoiceStub() {
   const pendingCalls = [];
+  let startCalls = 0;
+  let stopCalls = 0;
   return {
     state: {
       voiceBusy: false,
@@ -45,14 +47,24 @@ function buildVoiceStub() {
     },
     actions: {
       setAutoSpeak: () => {},
-      startVoiceCapture: () => {},
-      stopVoiceCapture: () => {},
+      startVoiceCapture: () => {
+        startCalls += 1;
+      },
+      stopVoiceCapture: () => {
+        stopCalls += 1;
+      },
       resetVoiceRuntime: () => {},
       setPendingTutorReply: (value) => {
         pendingCalls.push(value);
       }
     },
-    pendingCalls
+    pendingCalls,
+    get startCalls() {
+      return startCalls;
+    },
+    get stopCalls() {
+      return stopCalls;
+    }
   };
 }
 
@@ -164,6 +176,44 @@ test("useChildConsole uppercases join code input", async () => {
   });
 
   assert.equal(renderer.getCurrent().state.joinCode, "AB12CD34");
+
+  await renderer.unmount();
+  delete global.window;
+});
+
+test("useChildConsole tracks hold-to-talk press lifecycle", async () => {
+  const localStorage = createLocalStorageMock();
+  global.window = { localStorage };
+
+  const voice = buildVoiceStub();
+  const useChildConsoleHook = createUseChildConsole({
+    apiRequestImpl: async () => {
+      throw new Error("Unexpected request");
+    },
+    useSessionStreamHook: () => {},
+    useChildVoiceRuntimeHook: () => voice
+  });
+
+  const renderer = await createHookRenderer(() => useChildConsoleHook());
+  await flushEffects();
+
+  assert.equal(renderer.getCurrent().state.isHoldToTalkPressed, false);
+
+  await act(async () => {
+    renderer.getCurrent().actions.beginHoldToTalk();
+    renderer.getCurrent().actions.startVoiceCapture();
+  });
+
+  assert.equal(renderer.getCurrent().state.isHoldToTalkPressed, true);
+  assert.equal(voice.startCalls, 1);
+
+  await act(async () => {
+    renderer.getCurrent().actions.stopVoiceCapture();
+    renderer.getCurrent().actions.endHoldToTalk();
+  });
+
+  assert.equal(renderer.getCurrent().state.isHoldToTalkPressed, false);
+  assert.equal(voice.stopCalls, 1);
 
   await renderer.unmount();
   delete global.window;

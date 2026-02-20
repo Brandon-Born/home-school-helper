@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef } from "react";
+
 export function TutorComposerPanel({
   studentInput,
   setStudentInput,
@@ -12,14 +14,38 @@ export function TutorComposerPanel({
   onSend,
   onVoiceStart,
   onVoiceStop,
+  onVoiceHoldStart,
+  onVoiceHoldEnd,
+  holdToTalkPressed,
   isCloudRecording,
   isListening,
   speechSupport,
   listeningLabel
 }) {
   const isVoiceActive = isCloudRecording || isListening;
+  const showThinking = isTranscribing || pendingTutorReply || isPlayingSpeech;
   const voiceDisabled = loading || voiceBusy || pendingTutorReply || (!speechSupport.cloudStt && !speechSupport.browserStt);
-  const voiceButtonClass = `btn btn--secondary voice-button${isCloudRecording || isListening ? " is-active" : ""}`;
+  const frozenVoiceUiRef = useRef(null);
+  const wasHoldingRef = useRef(false);
+
+  if (holdToTalkPressed && !wasHoldingRef.current) {
+    frozenVoiceUiRef.current = {
+      isVoiceActive,
+      listeningLabel,
+      turnStatus,
+      showThinking
+    };
+  } else if (!holdToTalkPressed && wasHoldingRef.current) {
+    frozenVoiceUiRef.current = null;
+  }
+  wasHoldingRef.current = holdToTalkPressed;
+
+  const frozenVoiceUi = holdToTalkPressed ? frozenVoiceUiRef.current : null;
+  const displayIsVoiceActive = frozenVoiceUi?.isVoiceActive ?? isVoiceActive;
+  const displayListeningLabel = frozenVoiceUi?.listeningLabel ?? listeningLabel;
+  const displayTurnStatus = frozenVoiceUi?.turnStatus ?? turnStatus;
+  const displayShowThinking = frozenVoiceUi?.showThinking ?? showThinking;
+  const voiceButtonClass = `btn btn--secondary voice-button${displayIsVoiceActive ? " is-active" : ""}`;
 
   return (
     <section className="card" aria-busy={loading || pendingTutorReply}>
@@ -53,11 +79,13 @@ export function TutorComposerPanel({
             type="button"
             onPointerDown={(event) => {
               event.preventDefault();
+              onVoiceHoldStart();
               onVoiceStart();
             }}
             onPointerUp={(event) => {
               event.preventDefault();
               onVoiceStop();
+              onVoiceHoldEnd();
             }}
             onClick={(event) => {
               if (event.detail !== 0) {
@@ -73,6 +101,7 @@ export function TutorComposerPanel({
             onKeyDown={(event) => {
               if ((event.key === "Enter" || event.key === " ") && !isVoiceActive) {
                 event.preventDefault();
+                onVoiceHoldStart();
                 onVoiceStart();
               }
             }}
@@ -80,35 +109,43 @@ export function TutorComposerPanel({
               if ((event.key === "Enter" || event.key === " ") && isVoiceActive) {
                 event.preventDefault();
                 onVoiceStop();
+                onVoiceHoldEnd();
               }
             }}
             onPointerCancel={(event) => {
               event.preventDefault();
               onVoiceStop();
+              onVoiceHoldEnd();
             }}
             onPointerLeave={(event) => {
-              if (isCloudRecording || isListening) {
+              if (holdToTalkPressed) {
                 event.preventDefault();
-                onVoiceStop();
+                if (isCloudRecording || isListening) {
+                  onVoiceStop();
+                }
+                onVoiceHoldEnd();
               }
             }}
             onBlur={() => {
-              if (isVoiceActive) {
-                onVoiceStop();
+              if (holdToTalkPressed) {
+                if (isVoiceActive) {
+                  onVoiceStop();
+                }
+                onVoiceHoldEnd();
               }
             }}
             disabled={voiceDisabled}
             className={voiceButtonClass}
-            aria-pressed={isVoiceActive}
+            aria-pressed={displayIsVoiceActive}
             aria-describedby="turn-status"
           >
-            {listeningLabel}
+            {displayListeningLabel}
           </button>
 
           <span id="turn-status" className="pill" role="status" aria-live="polite">
-            {turnStatus || "Waiting for your question"}
+            {displayTurnStatus || "Waiting for your question"}
           </span>
-          {isTranscribing || pendingTutorReply || isPlayingSpeech ? <span className="pill pulse">Thinking...</span> : null}
+          {displayShowThinking ? <span className="pill pulse">Thinking...</span> : null}
         </div>
       </form>
     </section>

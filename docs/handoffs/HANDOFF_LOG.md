@@ -5,6 +5,37 @@ Notes:
 - Kept the 3 most recent detailed handoffs.
 - Deduplicated older history into a durable summary for fast agent onboarding.
 
+## 2026-02-20T03:19:59Z - Codex
+
+### Scope Worked
+- Prevented child hold-to-talk UI reflow during press by freezing relevant UI state until release.
+
+### Last Agent Accomplished
+- Added hold-lifecycle state (`isHoldToTalkPressed`) and actions in `useChildConsole`.
+- Updated child page error alert rendering to keep the pre-press error message stable while hold-to-talk is pressed.
+- Updated `TutorComposerPanel` to snapshot/freeze voice button/status/thinking display during hold and release updates after pointer/key release.
+- Added hook unit coverage for hold press lifecycle behavior.
+
+### Files Touched
+- `app/child/hooks/useChildConsole.js`
+- `app/child/page.js`
+- `app/child/components/TutorComposerPanel.js`
+- `tests/use-child-console-hook.test.js`
+- `docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm run test:unit -- tests/use-child-console-hook.test.js`
+- Result: pass (3 tests, 0 failures).
+
+### Open Risks / Issues
+- No browser-level layout assertion yet for hold-to-talk freeze; behavior validated via state/wiring unit tests.
+
+### Next Steps (Ordered)
+1. Add a Playwright assertion that the child page error alert remains visible during pointer-down hold and only updates after release.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-20T03:11:52Z - Codex
 
 ### Scope Worked
