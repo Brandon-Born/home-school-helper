@@ -54,6 +54,13 @@ export default function AboutPage() {
             </section>
 
             <section className={styles.section}>
+                <h2 className={styles.sectionTitle}>Open Source</h2>
+                <p className={styles.body}>
+                    We believe in transparency! If you are a tech-savvy parent and want to verify the code for yourself, you can view our full <a href="https://github.com/Brandon-Born/home-school-helper" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline" }}>source code on GitHub</a>.
+                </p>
+            </section>
+
+            <section className={styles.section}>
                 <h2 className={styles.sectionTitle}>Our Principles</h2>
                 <ul className={styles.principlesList}>
                     <li>
