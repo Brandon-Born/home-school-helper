@@ -274,7 +274,6 @@
   overscroll-behavior-y: contain;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
   padding: 16px;
 }
 
