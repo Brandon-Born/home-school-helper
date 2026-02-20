@@ -1,6 +1,7 @@
 import {
   persistSessionMessage,
-  persistTutorAuditEvents
+  persistTutorAuditEvents,
+  updateSessionTutorMemory
 } from "./session-foundation-service.js";
 import { generateTutorTurn } from "./tutor-service.js";
 import { getTutorConfig } from "./config.js";
@@ -13,6 +14,8 @@ export async function runSessionTutorTurn(
     parentGuidance,
     profile,
     dailyContext,
+    sessionMemory,
+    recentMessages,
     allowDirectAnswer,
     inputActorType,
     inputVisibilityScope
@@ -22,6 +25,7 @@ export async function runSessionTutorTurn(
   const generateTurn = dependencies.generateTutorTurn ?? generateTutorTurn;
   const persistMessage = dependencies.persistSessionMessage ?? persistSessionMessage;
   const persistAuditEvents = dependencies.persistTutorAuditEvents ?? persistTutorAuditEvents;
+  const persistSessionMemory = dependencies.updateSessionTutorMemory ?? updateSessionTutorMemory;
   const getConfig = dependencies.getTutorConfig ?? getTutorConfig;
 
   const result = await generateTurn({
@@ -31,6 +35,8 @@ export async function runSessionTutorTurn(
     parentGuidance,
     profile,
     dailyContext,
+    sessionMemory,
+    recentMessages,
     allowDirectAnswer
   });
 
@@ -50,6 +56,22 @@ export async function runSessionTutorTurn(
     content: result.assistant_text,
     policyFlags: result.policy_applied
   });
+
+  try {
+    await persistSessionMemory({
+      sessionId,
+      source,
+      learnerInput: studentInput,
+      assistantText: result.assistant_text,
+      policyApplied: result.policy_applied,
+      dailyContext,
+      existingMemory: sessionMemory,
+      updatedAt: assistantMessageRow?.created_at
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error || "unknown");
+    console.warn(`[session-memory] update failed for ${sessionId}: ${message}`);
+  }
 
   await persistAuditEvents({
     sessionId,

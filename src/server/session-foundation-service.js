@@ -62,3 +62,9 @@ export {
   computeTranscriptRetentionCutoffIso,
   purgeExpiredTranscripts
 } from "./session-foundation/transcript-retention-service.js";
+
+export {
+  normalizeSessionMemory,
+  buildNextSessionMemory,
+  updateSessionTutorMemory
+} from "./session-foundation/session-memory-service.js";

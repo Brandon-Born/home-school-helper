@@ -13,7 +13,8 @@ import {
   persistTutorAuditEvents,
   redeemSessionCode,
   setParentCoppaConsentState,
-  startSessionForParent
+  startSessionForParent,
+  updateSessionTutorMemory
 } from "../src/server/session-foundation-service.js";
 import { runSessionTutorTurn } from "../src/server/session-turn-orchestrator.js";
 import { createFakeServiceClient } from "./helpers/fake-service-client.js";
@@ -127,6 +128,7 @@ test("critical path covers parent onboarding through child tutoring turn", async
       }),
       persistSessionMessage: (payload) => persistSessionMessage(payload, { serviceClient }),
       persistTutorAuditEvents: (payload) => persistTutorAuditEvents(payload, { serviceClient }),
+      updateSessionTutorMemory: (payload) => updateSessionTutorMemory(payload, { serviceClient }),
       getTutorConfig: () => ({
         promptVersion: "test-prompt-v1"
       })
@@ -154,6 +156,8 @@ test("critical path covers parent onboarding through child tutoring turn", async
     serviceClient.tables.policy_events.map((event) => event.event_type),
     ["tutor_model_call", "guardrail_policy"]
   );
+  assert.equal(typeof serviceClient.tables.sessions[0].daily_context.session_memory?.summary, "string");
+  assert.equal(serviceClient.tables.sessions[0].daily_context.session_memory?.turn_count, 1);
 });
 
 test("critical path invalidates child token immediately after parent ends the session", async () => {

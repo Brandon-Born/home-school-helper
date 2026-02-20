@@ -59,6 +59,8 @@ export function createChildTurnPostHandler(dependencies = {}) {
         parentGuidance: tutorContext.latestParentGuidance,
         profile: tutorContext.profile,
         dailyContext: tutorContext.dailyContext,
+        sessionMemory: tutorContext.sessionMemory,
+        recentMessages: tutorContext.recentMessages,
         allowDirectAnswer: tutorContext.allowDirectAnswer,
         inputActorType: "child",
         inputVisibilityScope: "child_and_parent"

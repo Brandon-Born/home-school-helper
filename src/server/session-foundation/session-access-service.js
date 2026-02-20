@@ -1,5 +1,8 @@
 import { ApiError } from "../api-error.js";
 import { getServiceSupabaseClient } from "../supabase-clients.js";
+import { normalizeSessionMemory } from "./session-memory-service.js";
+
+const TUTOR_PROMPT_RECENT_MESSAGE_LIMIT = 8;
 
 export async function ensureParentOwnsSession(parentId, sessionId, options = {}) {
   const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
@@ -85,11 +88,46 @@ export async function getSessionTutorContext(
     throw new ApiError(500, "override_lookup_failed", "Unable to evaluate direct-answer override.");
   }
 
+  const { data: recentMessageRows, error: recentMessagesError } = await serviceClient
+    .from("messages")
+    .select("id, actor_type, visibility_scope, content, created_at")
+    .eq("session_id", session.id)
+    .eq("visibility_scope", "child_and_parent")
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(TUTOR_PROMPT_RECENT_MESSAGE_LIMIT);
+
+  if (recentMessagesError) {
+    throw new ApiError(500, "messages_fetch_failed", "Unable to fetch recent session transcript context.");
+  }
+
+  const recentMessages = Array.isArray(recentMessageRows)
+    ? recentMessageRows
+        .slice()
+        .reverse()
+        .map((row) => ({
+          id: row.id,
+          actor_type: row.actor_type,
+          content: row.content,
+          created_at: row.created_at
+        }))
+    : [];
+
+  const sessionDailyContext =
+    session.daily_context && typeof session.daily_context === "object"
+      ? session.daily_context
+      : {};
+  const sessionMemory = normalizeSessionMemory(sessionDailyContext.session_memory);
+  const { session_memory: _discardedSessionMemory, ...dailyContext } = sessionDailyContext;
+  void _discardedSessionMemory;
+
   return {
     session,
     profile: child,
-    dailyContext: session.daily_context ?? {},
+    dailyContext,
+    sessionMemory,
     latestParentGuidance: guidanceRows?.[0]?.content ?? null,
-    allowDirectAnswer: Array.isArray(overrideRows) && overrideRows.length > 0
+    allowDirectAnswer: Array.isArray(overrideRows) && overrideRows.length > 0,
+    recentMessages
   };
 }

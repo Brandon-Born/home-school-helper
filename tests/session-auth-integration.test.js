@@ -7,6 +7,7 @@ import {
   createChildForParent,
   endSessionForParent,
   ensureParentOwnsSession,
+  getSessionTutorContext,
   listActiveSessionsForParent,
   listSessionMessages,
   regenerateJoinCodeForSession,
@@ -188,6 +189,77 @@ test("listSessionMessages hides parent-only messages from child visibility", asy
     childView.map((message) => message.id),
     ["m1", "m3"]
   );
+});
+
+test("getSessionTutorContext returns compact daily context plus normalized session memory", async () => {
+  const serviceClient = createFakeServiceClient({
+    sessions: [
+      {
+        id: "session_1",
+        child_id: "child_1",
+        parent_id: "parent_1",
+        status: "active",
+        daily_context: {
+          daily_subjects: ["Math"],
+          goal_notes: "Fractions",
+          session_memory: {
+            turn_count: 3,
+            summary: "Focus subjects: Math. Recent progression: Learner asks about denominators.",
+            key_checkpoints: ["Learner focus: denominator basics."],
+            pending_questions: ["What denominator can both fractions use?"],
+            updated_at: "2026-02-20T20:33:00.000Z"
+          }
+        }
+      }
+    ],
+    children: [
+      {
+        id: "child_1",
+        parent_id: "parent_1",
+        first_name: "Ava",
+        age: 9,
+        grade: "4",
+        subjects: ["Math"],
+        profile_notes: null,
+        special_needs: null
+      }
+    ],
+    messages: [
+      {
+        id: "m1",
+        session_id: "session_1",
+        actor_type: "child",
+        visibility_scope: "child_and_parent",
+        content: "I am confused.",
+        created_at: "2026-02-20T20:31:00.000Z"
+      },
+      {
+        id: "m2",
+        session_id: "session_1",
+        actor_type: "parent",
+        visibility_scope: "parent_only",
+        content: "Keep it gentle.",
+        created_at: "2026-02-20T20:32:00.000Z"
+      }
+    ]
+  });
+
+  const context = await getSessionTutorContext(
+    {
+      sessionId: "session_1",
+      childId: "child_1"
+    },
+    { serviceClient }
+  );
+
+  assert.deepEqual(context.dailyContext, {
+    daily_subjects: ["Math"],
+    goal_notes: "Fractions"
+  });
+  assert.equal(context.sessionMemory.turn_count, 3);
+  assert.equal(context.sessionMemory.summary.includes("Focus subjects: Math"), true);
+  assert.equal(context.recentMessages.length, 1);
+  assert.equal(context.recentMessages[0].id, "m1");
 });
 
 test("requireChildSessionContext validates token hash, session scope, and expiry", async () => {

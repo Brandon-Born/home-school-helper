@@ -47,4 +47,5 @@ test("buildTutorSystemPrompt includes TTS plain-speech instruction", () => {
   });
 
   assert.match(prompt, /plain spoken sentences suitable for read-aloud TTS/i);
+  assert.match(prompt, /name sparingly/i);
 });

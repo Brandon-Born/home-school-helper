@@ -436,3 +436,99 @@ Notes:
 
 ### Blocking Questions
 - None.
+
+## 2026-02-20T20:14:37Z - Codex
+
+### Scope Worked
+- Reduced robotic tutor responses by improving turn prompt context and name usage behavior.
+
+### Last Agent Accomplished
+- Added recent transcript context (last 8 shared messages) to tutor context payload and prompt inputs.
+- Updated turn generation to:
+  - use full child profile only before conversation starts,
+  - use compact profile summary after conversation begins,
+  - include recent visible transcript lines in the prompt each turn.
+- Added prompt instruction to use learner name sparingly.
+- Added post-generation cleanup that removes repeated leading `Name, ...` salutation when consecutive assistant messages do this.
+- Threaded `recentMessages` through child-turn and parent-nudge route orchestrations.
+- Added new unit tests for prompt-context inclusion and repeated-name suppression.
+
+### Files Touched
+- `src/server/session-foundation/session-access-service.js`
+- `src/server/session-turn-orchestrator.js`
+- `src/server/tutor-service.js`
+- `src/server/guardrails.js`
+- `app/api/session/[id]/child-turn/route.js`
+- `app/api/session/[id]/parent-nudge/route.js`
+- `tests/tutor-service.test.js`
+- `tests/guardrails.test.js`
+- `docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `node --test tests/tutor-service.test.js tests/guardrails.test.js tests/session-turn-orchestrator.test.js tests/security.test.js`
+- Result: pass (10 tests, 0 failures).
+- Command: `node --test tests/dynamic-route-params.test.js tests/e2e-critical-path.test.js tests/session-auth-integration.test.js`
+- Result: pass (24 tests, 0 failures).
+
+### Open Risks / Issues
+- Prompt context still uses a bounded recent-message window; very long sessions may require explicit summarization for best continuity.
+
+### Next Steps (Ordered)
+1. Optionally add periodic rolling session-summary generation for longer sessions.
+2. Collect a few live transcript samples and tune the name-salutation suppression rule if needed.
+
+### Blocking Questions
+- None.
+
+## 2026-02-20T20:25:59Z - Codex
+
+### Scope Worked
+- Implemented rolling session-memory compaction for tutor turn context so longer sessions retain continuity without replaying full transcript.
+
+### Last Agent Accomplished
+- Added `session_memory` compaction service and persistence:
+  - `buildNextSessionMemory` creates bounded checkpoints, pending questions, and summary text.
+  - `updateSessionTutorMemory` writes memory into `sessions.daily_context.session_memory` without dropping existing context fields.
+- Updated tutor context loading to:
+  - return normalized `sessionMemory`,
+  - keep `dailyContext` compact by excluding stored `session_memory`,
+  - continue returning recent shared transcript messages.
+- Updated child-turn/parent-nudge orchestration to pass `sessionMemory` + `recentMessages` into turn generation.
+- Updated tutor prompt building to include:
+  - rolling session memory block,
+  - recent transcript block,
+  - existing sparse-profile behavior after conversation starts.
+- Kept repeated-name suppression behavior and guardrails from earlier change.
+
+### Files Touched
+- `src/server/session-foundation/session-memory-service.js`
+- `src/server/session-foundation/session-access-service.js`
+- `src/server/session-foundation-service.js`
+- `src/server/session-turn-orchestrator.js`
+- `src/server/tutor-service.js`
+- `app/api/session/[id]/child-turn/route.js`
+- `app/api/session/[id]/parent-nudge/route.js`
+- `tests/session-memory-service.test.js`
+- `tests/session-turn-orchestrator.test.js`
+- `tests/session-auth-integration.test.js`
+- `tests/e2e-critical-path.test.js`
+- `tests/tutor-service.test.js`
+- `docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `node --test tests/session-memory-service.test.js tests/tutor-service.test.js tests/session-turn-orchestrator.test.js tests/guardrails.test.js tests/security.test.js`
+- Result: pass (13 tests, 0 failures).
+- Command: `node --test tests/session-auth-integration.test.js tests/e2e-critical-path.test.js tests/dynamic-route-params.test.js`
+- Result: pass (25 tests, 0 failures).
+- Command: `npm run test:e2e`
+- Result: pass (Playwright matrix; all suites green).
+
+### Open Risks / Issues
+- Memory compaction is deterministic and bounded; it is robust but not semantic LLM summarization. For very long/highly branching sessions, adding periodic model-authored summary distillation may improve nuance.
+
+### Next Steps (Ordered)
+1. Add optional periodic model-based memory distillation (for example every 8-12 turns) into `session_memory.summary` while preserving bounded deterministic fallback.
+2. Add telemetry counters for memory update failures and prompt-context token size.
+
+### Blocking Questions
+- None.

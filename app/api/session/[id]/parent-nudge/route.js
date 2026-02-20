@@ -72,6 +72,8 @@ export function createParentNudgePostHandler(dependencies = {}) {
         parentGuidance,
         profile: tutorContext.profile,
         dailyContext: tutorContext.dailyContext,
+        sessionMemory: tutorContext.sessionMemory,
+        recentMessages: tutorContext.recentMessages,
         allowDirectAnswer: tutorContext.allowDirectAnswer,
         inputActorType: "parent",
         inputVisibilityScope: "parent_only"

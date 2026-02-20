@@ -7,7 +7,8 @@ test("runSessionTutorTurn orchestrates generation, persistence, and audit loggin
   const calls = {
     generate: null,
     persist: [],
-    audit: null
+    audit: null,
+    memory: null
   };
 
   const result = await runSessionTutorTurn(
@@ -42,6 +43,9 @@ test("runSessionTutorTurn orchestrates generation, persistence, and audit loggin
       persistTutorAuditEvents: async (args) => {
         calls.audit = args;
       },
+      updateSessionTutorMemory: async (args) => {
+        calls.memory = args;
+      },
       getTutorConfig: () => ({
         promptVersion: "v1"
       })
@@ -53,6 +57,9 @@ test("runSessionTutorTurn orchestrates generation, persistence, and audit loggin
   assert.equal(calls.persist.length, 2);
   assert.equal(calls.persist[0].actorType, "child");
   assert.equal(calls.persist[1].actorType, "assistant");
+  assert.equal(calls.memory.sessionId, "session_1");
+  assert.equal(calls.memory.source, "child-turn");
+  assert.equal(calls.memory.learnerInput, "Can you help me solve this?");
   assert.deepEqual(calls.audit, {
     sessionId: "session_1",
     source: "child-turn",
