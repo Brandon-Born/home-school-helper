@@ -87,7 +87,7 @@ Deliverables:
 - Realtime channels with strict parent/child visibility boundaries.
 
 Acceptance criteria:
-- Parent nudge appears as tutor utterance on child side in near real-time.
+- Parent nudge receives a private tutor side-channel acknowledgement in near real-time; child-visible tutoring continues on child turns with parent guidance applied in the background.
 - Child cannot access hidden parent messages by API or UI paths.
 
 ### Phase 3: Voice + Tutor Quality

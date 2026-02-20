@@ -10,6 +10,7 @@ const MAX_RECENT_PROMPT_MESSAGES = 8;
 const MAX_PROMPT_MESSAGE_CHARS = 280;
 const MAX_MEMORY_CHECKPOINTS = 6;
 const MAX_MEMORY_PENDING_QUESTIONS = 3;
+const MAX_MEMORY_PARENT_PRIORITIES = 4;
 
 function sanitizePromptText(value, maxChars = MAX_PROMPT_MESSAGE_CHARS) {
   const normalized = String(value ?? "")
@@ -46,7 +47,9 @@ function normalizePromptSessionMemory(sessionMemory) {
     return {
       summary: "",
       keyCheckpoints: [],
-      pendingQuestions: []
+      pendingQuestions: [],
+      parentPriorities: [],
+      latestParentGuidance: ""
     };
   }
 
@@ -62,11 +65,19 @@ function normalizePromptSessionMemory(sessionMemory) {
         .filter(Boolean)
         .slice(-MAX_MEMORY_PENDING_QUESTIONS)
     : [];
+  const parentPriorities = Array.isArray(sessionMemory.parent_priorities)
+    ? sessionMemory.parent_priorities
+        .map((item) => sanitizePromptText(item, 220))
+        .filter(Boolean)
+        .slice(-MAX_MEMORY_PARENT_PRIORITIES)
+    : [];
 
   return {
     summary: sanitizePromptText(sessionMemory.summary, 420),
     keyCheckpoints,
-    pendingQuestions
+    pendingQuestions,
+    parentPriorities,
+    latestParentGuidance: sanitizePromptText(sessionMemory.latest_parent_guidance, 220)
   };
 }
 
@@ -135,8 +146,16 @@ function buildSessionMemoryPrompt(memory) {
   const summary = memory?.summary ?? "";
   const keyCheckpoints = Array.isArray(memory?.keyCheckpoints) ? memory.keyCheckpoints : [];
   const pendingQuestions = Array.isArray(memory?.pendingQuestions) ? memory.pendingQuestions : [];
+  const parentPriorities = Array.isArray(memory?.parentPriorities) ? memory.parentPriorities : [];
+  const latestParentGuidance = memory?.latestParentGuidance ?? "";
 
-  if (!summary && keyCheckpoints.length === 0 && pendingQuestions.length === 0) {
+  if (
+    !summary &&
+    keyCheckpoints.length === 0 &&
+    pendingQuestions.length === 0 &&
+    parentPriorities.length === 0 &&
+    !latestParentGuidance
+  ) {
     return "Rolling session memory: none yet";
   }
 
@@ -157,6 +176,16 @@ function buildSessionMemoryPrompt(memory) {
     lines.push("Pending questions:");
     for (const question of pendingQuestions) {
       lines.push(`- ${question}`);
+    }
+  }
+
+  if (parentPriorities.length > 0 || latestParentGuidance) {
+    lines.push("Private parent steering memory:");
+    for (const priority of parentPriorities) {
+      lines.push(`- Priority: ${priority}`);
+    }
+    if (latestParentGuidance) {
+      lines.push(`Latest direction: ${latestParentGuidance}`);
     }
   }
 
@@ -198,16 +227,39 @@ function deRepeatLeadingLearnerName(assistantText, { profile, promptMessages } =
   return cleaned || assistantText;
 }
 
+function buildSourceInputPrompt(source, inputText) {
+  if (source === "parent-nudge") {
+    return `Parent side message: ${inputText || "(no parent side message provided)"}`;
+  }
+
+  if (source === "child-turn") {
+    return `Learner message: ${inputText || "(no learner message provided)"}`;
+  }
+
+  return `Message: ${inputText || "(no message provided)"}`;
+}
+
+function buildResponseAudiencePrompt(source) {
+  if (source === "parent-nudge") {
+    return "Response audience: parent only (private side-channel acknowledgement).";
+  }
+
+  return "Response audience: learner (child-visible tutoring turn).";
+}
+
 function buildUserPrompt({ source, studentInput, parentGuidance, promptMessages, sessionMemory }) {
   const inputText = studentInput?.trim() || "";
   const guidanceText = parentGuidance?.trim() || "";
 
   return [
     `Source: ${source}`,
-    guidanceText ? `Hidden parent guidance: ${guidanceText}` : "Hidden parent guidance: none",
+    buildResponseAudiencePrompt(source),
+    guidanceText
+      ? `Private parent direction (authoritative): ${guidanceText}`
+      : "Private parent direction (authoritative): none",
     buildSessionMemoryPrompt(sessionMemory),
     buildRecentTranscriptPrompt(promptMessages),
-    `Learner message: ${inputText || "(no learner message provided)"}`
+    buildSourceInputPrompt(source, inputText)
   ].join("\n");
 }
 
@@ -259,13 +311,17 @@ export async function generateTutorTurn({
     assistantText: modelResponse.text,
     studentPrompt: studentInput,
     parentGuidance,
-    allowDirectAnswer
+    allowDirectAnswer,
+    source
   });
 
-  const assistantText = deRepeatLeadingLearnerName(guarded.assistantText, {
-    profile,
-    promptMessages
-  });
+  const assistantText =
+    source === "child-turn"
+      ? deRepeatLeadingLearnerName(guarded.assistantText, {
+          profile,
+          promptMessages
+        })
+      : guarded.assistantText;
 
   return {
     assistant_text: assistantText,

@@ -258,6 +258,7 @@ test("getSessionTutorContext returns compact daily context plus normalized sessi
   });
   assert.equal(context.sessionMemory.turn_count, 3);
   assert.equal(context.sessionMemory.summary.includes("Focus subjects: Math"), true);
+  assert.equal(context.latestParentGuidance.includes("Latest parent nudge: Keep it gentle."), true);
   assert.equal(context.recentMessages.length, 1);
   assert.equal(context.recentMessages[0].id, "m1");
 });

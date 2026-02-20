@@ -78,3 +78,43 @@ test("generateTutorTurn removes repeated leading learner-name salutation", async
 
   assert.equal(result.assistant_text, "first compare the denominators.");
 });
+
+test("generateTutorTurn uses parent-side framing for parent nudges", async () => {
+  let recordedCall = null;
+
+  const result = await generateTutorTurn({
+    sessionId: "session_2",
+    source: "parent-nudge",
+    studentInput: "Please slow down and reinforce confidence.",
+    parentGuidance: "Session direction: keep frustration low.",
+    profile: {
+      first_name: "Ava",
+      grade: "4",
+      subjects: ["Math"]
+    },
+    dailyContext: { daily_subjects: ["Math"] },
+    sessionMemory: {
+      parent_priorities: ["Session direction: keep frustration low."],
+      latest_parent_guidance: "Please slow down and reinforce confidence."
+    },
+    recentMessages: [{ actor_type: "assistant", content: "Let us try one simple step." }],
+    allowDirectAnswer: false,
+    configOverride: TEST_CONFIG,
+    modelCaller: async (payload) => {
+      recordedCall = payload;
+      return { text: "Understood. I will shift to slower confidence-building prompts." };
+    }
+  });
+
+  assert.equal(typeof result.assistant_text, "string");
+  assert.ok(recordedCall);
+  assert.equal(
+    recordedCall.userPrompt.includes("Response audience: parent only (private side-channel acknowledgement)."),
+    true
+  );
+  assert.equal(
+    recordedCall.userPrompt.includes("Parent side message: Please slow down and reinforce confidence."),
+    true
+  );
+  assert.equal(recordedCall.userPrompt.includes("Private parent steering memory:"), true);
+});

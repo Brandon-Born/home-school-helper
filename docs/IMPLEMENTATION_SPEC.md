@@ -71,7 +71,7 @@ This spec covers the first production-capable version of the Homeschool Sidekick
 
 ## Acceptance Criteria
 - Child-turn endpoint returns: `assistant_text`, `speak_payload`, `input_message`, `assistant_message`, `policy_applied`, `model_used`.
-- Parent nudge endpoint uses same tutor pipeline and persists parent/assistant messages.
+- Parent nudge endpoint uses same tutor pipeline and persists parent/assistant messages in `parent_only` visibility as a private side-channel acknowledgement.
 - Required env vars fail startup when missing.
 - CI enforces handoff log update when runtime code changes.
 

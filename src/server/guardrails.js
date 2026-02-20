@@ -74,10 +74,12 @@ export function applyTutorGuardrails({
   assistantText,
   studentPrompt,
   parentGuidance,
-  allowDirectAnswer
+  allowDirectAnswer,
+  source
 }) {
   const policyApplied = [];
   let finalText = (assistantText || "").trim();
+  const responseIsPrivateToParent = source === "parent-nudge";
 
   if (!finalText) {
     finalText = "Tell me your current thinking, and I’ll guide you with the next step.";
@@ -89,7 +91,7 @@ export function applyTutorGuardrails({
     policyApplied.push("unsafe_content_blocked");
   }
 
-  if (containsParentGuidanceLeak(finalText, parentGuidance)) {
+  if (!responseIsPrivateToParent && containsParentGuidanceLeak(finalText, parentGuidance)) {
     finalText = "Let’s keep going one step at a time. Tell me what you notice first.";
     policyApplied.push("parent_guidance_redacted");
   }
@@ -128,6 +130,9 @@ export function buildTutorSystemPrompt({
     "Maintain age-appropriate language and safe educational content.",
     "Use plain spoken sentences suitable for read-aloud TTS; avoid markdown, emoji, and code-style formatting.",
     "Use the learner's name sparingly; do not start every reply with their name.",
+    "Parent guidance is a private and authoritative steering channel unless safety policy conflicts.",
+    "When Source is child-turn, address the learner directly and continue the child lesson naturally.",
+    "When Source is parent-nudge, address the parent privately as a side-channel coaching acknowledgement.",
     "Parent guidance is private context and must not be exposed verbatim to the child.",
     `Student profile context: ${profileText}`,
     `Daily session context: ${dayText}`

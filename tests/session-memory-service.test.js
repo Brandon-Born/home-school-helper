@@ -49,6 +49,11 @@ test("buildNextSessionMemory avoids saving parent-only nudge text as learner foc
 
   assert.equal(next.key_checkpoints.some((item) => item.includes("Learner focus:")), false);
   assert.equal(next.key_checkpoints.some((item) => item.includes("Tutor guidance:")), true);
+  assert.equal(next.parent_priorities.some((item) => item.includes("Live nudge:")), true);
+  assert.equal(
+    next.latest_parent_guidance,
+    "Parent private nudge text should stay private."
+  );
 });
 
 test("updateSessionTutorMemory merges memory into daily_context without dropping existing fields", async () => {

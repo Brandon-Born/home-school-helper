@@ -581,7 +581,7 @@ Notes:
 - `input_message` and `assistant_message` are persisted transcript rows returned inline so the client can render and speak immediately without waiting for stream polling.
 
 ## POST `/api/session/:id/parent-nudge`
-Parent sends hidden nudge to steer tutor response.
+Parent sends hidden nudge to steer tutoring in the background.
 
 Rate limit:
 - Scoped per client address + session id. Bursts above configured threshold return `429 rate_limited`.
@@ -597,7 +597,7 @@ Rate limit:
 ### Response (200)
 ```json
 {
-  "assistant_text": "You’re doing well. Let’s take one small step together.",
+  "assistant_text": "Understood. I’ll keep the pacing slower and confidence-first.",
   "speak_payload": {
     "text": "You’re doing well. Let’s take one small step together.",
     "voice": "default",
@@ -613,8 +613,8 @@ Rate limit:
   "assistant_message": {
     "id": "uuid",
     "actor_type": "assistant",
-    "visibility_scope": "child_and_parent",
-    "content": "You’re doing well. Let’s take one small step together.",
+    "visibility_scope": "parent_only",
+    "content": "Understood. I’ll keep the pacing slower and confidence-first.",
     "policy_flags": ["none"],
     "created_at": "timestamp"
   },
@@ -623,6 +623,10 @@ Rate limit:
   "queued": true
 }
 ```
+
+Notes:
+- Parent-nudge assistant replies are private (`parent_only`) side-channel acknowledgements for the parent.
+- Child-visible tutoring continues on normal child turns and remains influenced by the latest parent steering context.
 
 ## GET `/api/session/:id/messages`
 Fetches transcript rows for a session.

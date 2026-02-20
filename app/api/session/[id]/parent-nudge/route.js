@@ -76,7 +76,8 @@ export function createParentNudgePostHandler(dependencies = {}) {
         recentMessages: tutorContext.recentMessages,
         allowDirectAnswer: tutorContext.allowDirectAnswer,
         inputActorType: "parent",
-        inputVisibilityScope: "parent_only"
+        inputVisibilityScope: "parent_only",
+        assistantVisibilityScope: "parent_only"
       });
 
       return Response.json({

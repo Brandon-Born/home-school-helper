@@ -221,6 +221,7 @@ test("parent-nudge and override routes accept promised params", async () => {
     parentId: "parent_1"
   });
   assert.equal(recorded.nudgeTurnArgs.sessionId, "s6");
+  assert.equal(recorded.nudgeTurnArgs.assistantVisibilityScope, "parent_only");
 
   const overrideHandler = createOverridePostHandler({
     requireParentContext: async () => ({

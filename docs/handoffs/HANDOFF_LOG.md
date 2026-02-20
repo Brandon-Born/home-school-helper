@@ -46,6 +46,95 @@ Notes:
 ### Blocking Questions
 - None.
 
+## 2026-02-20T22:21:03Z - Codex
+
+### Scope Worked
+- Added Playwright e2e coverage for private parent-side nudge acknowledgements and child transcript isolation.
+
+### Last Agent Accomplished
+- Added a new Playwright spec that validates:
+  - parent sends nudge via parent UI,
+  - nudge response persists assistant acknowledgement as `parent_only`,
+  - parent-visible transcript API includes private nudge + private assistant acknowledgement,
+  - child-visible transcript API excludes those private messages,
+  - child can still submit a normal `child-turn` and receive a `child_and_parent` assistant reply.
+- Used child token auth for child transcript assertions and parent bearer header captured from the nudge request for parent transcript assertions.
+
+### Files Touched
+- `tests/playwright/parent-private-nudge-visibility.spec.js`
+- `docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npx playwright test tests/playwright/parent-private-nudge-visibility.spec.js --project=chromium`
+- Result: pass (1 test, 0 failures).
+
+### Open Risks / Issues
+- Spec relies on test-auth bootstrap/session state and dev server stability; if CI auth bootstrap drifts, this test can fail before exercising the transcript assertions.
+
+### Next Steps (Ordered)
+1. Optionally add a companion assertion in this spec that verifies parent transcript UI renders the private acknowledgement row once stream sync completes.
+2. Add this spec to any tagged smoke subset if parent-guidance privacy is considered a release blocker.
+
+### Blocking Questions
+- None.
+
+## 2026-02-20T22:13:46Z - Codex
+
+### Scope Worked
+- Elevated parent steering to a persistent, high-priority private channel and fixed source framing so parent nudges are handled as side-channel parent messages (not learner turns).
+
+### Last Agent Accomplished
+- Updated tutor prompt assembly to be source-aware:
+  - `child-turn` uses learner-facing framing.
+  - `parent-nudge` uses parent-side private acknowledgement framing.
+  - Parent direction is explicitly marked authoritative in prompt context.
+- Added private parent steering memory into rolling `session_memory`:
+  - `parent_priorities` (bounded, deduped),
+  - `latest_parent_guidance` fallback signal,
+  - summary includes parent-priority context for long sessions/compaction continuity.
+- Updated tutor context loading to build merged parent guidance context from:
+  - latest parent-only nudge,
+  - session `parent_context`,
+  - memory-based parent steering fallback.
+- Changed parent-nudge orchestration persistence:
+  - parent input remains `parent_only`,
+  - assistant acknowledgement is now also `parent_only` (private side channel).
+- Kept child-turn behavior unchanged for child-visible tutoring while still applying parent guidance in background context.
+- Updated guardrails so parent-guidance leak redaction only applies to child-visible outputs, not private parent-side acknowledgements.
+- Updated API/spec/plan docs to reflect private parent-side nudge acknowledgement behavior.
+
+### Files Touched
+- `src/server/guardrails.js`
+- `src/server/tutor-service.js`
+- `src/server/session-foundation/session-memory-service.js`
+- `src/server/session-foundation/session-access-service.js`
+- `src/server/session-turn-orchestrator.js`
+- `app/api/session/[id]/parent-nudge/route.js`
+- `tests/guardrails.test.js`
+- `tests/tutor-service.test.js`
+- `tests/session-memory-service.test.js`
+- `tests/session-turn-orchestrator.test.js`
+- `tests/dynamic-route-params.test.js`
+- `tests/session-auth-integration.test.js`
+- `docs/API_CONTRACT.md`
+- `docs/IMPLEMENTATION_SPEC.md`
+- `docs/PROJECT_PLAN.md`
+- `docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `node --test tests/guardrails.test.js tests/tutor-service.test.js tests/session-memory-service.test.js tests/session-turn-orchestrator.test.js tests/dynamic-route-params.test.js tests/session-auth-integration.test.js`
+- Result: pass (36 tests, 0 failures).
+
+### Open Risks / Issues
+- Parent guidance context now intentionally accumulates priority lines for continuity; prompt token budget should be monitored if teams later increase memory window sizes.
+
+### Next Steps (Ordered)
+1. Add one Playwright assertion that a parent nudge yields a parent-only assistant row not visible in child stream.
+2. Optionally add parent-guidance telemetry counters (for example, guidance-context size and fallback-source usage) for production tuning.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-20T03:31:33Z - Codex
 
 ### Scope Worked

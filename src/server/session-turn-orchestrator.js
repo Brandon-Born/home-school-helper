@@ -18,7 +18,8 @@ export async function runSessionTutorTurn(
     recentMessages,
     allowDirectAnswer,
     inputActorType,
-    inputVisibilityScope
+    inputVisibilityScope,
+    assistantVisibilityScope = "child_and_parent"
   },
   dependencies = {}
 ) {
@@ -52,7 +53,7 @@ export async function runSessionTutorTurn(
   const assistantMessageRow = await persistMessage({
     sessionId,
     actorType: "assistant",
-    visibilityScope: "child_and_parent",
+    visibilityScope: assistantVisibilityScope,
     content: result.assistant_text,
     policyFlags: result.policy_applied
   });
@@ -96,7 +97,7 @@ export async function runSessionTutorTurn(
       ? {
           id: assistantMessageRow.id,
           actor_type: "assistant",
-          visibility_scope: "child_and_parent",
+          visibility_scope: assistantVisibilityScope,
           content: result.assistant_text,
           policy_flags: result.policy_applied,
           created_at: assistantMessageRow.created_at

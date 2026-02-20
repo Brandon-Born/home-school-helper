@@ -4,8 +4,10 @@ import { getServiceSupabaseClient } from "../supabase-clients.js";
 const SESSION_MEMORY_VERSION = 1;
 const SESSION_MEMORY_MAX_CHECKPOINTS = 10;
 const SESSION_MEMORY_MAX_PENDING_QUESTIONS = 4;
+const SESSION_MEMORY_MAX_PARENT_PRIORITIES = 6;
 const SESSION_MEMORY_SUMMARY_MAX_CHARS = 420;
 const SESSION_MEMORY_ITEM_MAX_CHARS = 180;
+const SESSION_MEMORY_PARENT_PRIORITY_MAX_CHARS = 220;
 
 function sanitizeText(rawValue, maxChars = SESSION_MEMORY_ITEM_MAX_CHARS) {
   const normalized = String(rawValue ?? "")
@@ -82,8 +84,21 @@ function extractAssistantQuestions(assistantText) {
   return parts.filter((part) => part.includes("?"));
 }
 
-function buildMemorySummary({ subjects, checkpoints, pendingQuestions }) {
+function buildMemorySummary({
+  subjects,
+  checkpoints,
+  pendingQuestions,
+  parentPriorities,
+  latestParentGuidance
+}) {
   const summaryParts = [];
+  const parentHighlights = Array.isArray(parentPriorities) ? parentPriorities.slice(-2) : [];
+
+  if (parentHighlights.length > 0) {
+    summaryParts.push(`Parent priorities: ${parentHighlights.join(" ")}`);
+  } else if (latestParentGuidance) {
+    summaryParts.push(`Parent priority: ${latestParentGuidance}`);
+  }
 
   if (subjects.length > 0) {
     summaryParts.push(`Focus subjects: ${subjects.join(", ")}.`);
@@ -113,6 +128,13 @@ export function normalizeSessionMemory(rawMemory) {
       memory.pending_questions,
       SESSION_MEMORY_MAX_PENDING_QUESTIONS
     ),
+    parent_priorities: normalizeStringArray(
+      memory.parent_priorities,
+      SESSION_MEMORY_MAX_PARENT_PRIORITIES,
+      SESSION_MEMORY_PARENT_PRIORITY_MAX_CHARS
+    ),
+    latest_parent_guidance:
+      sanitizeText(memory.latest_parent_guidance, SESSION_MEMORY_PARENT_PRIORITY_MAX_CHARS) || null,
     summary: sanitizeText(memory.summary, SESSION_MEMORY_SUMMARY_MAX_CHARS)
   };
 }
@@ -162,6 +184,33 @@ export function buildNextSessionMemory({
     [...base.pending_questions, ...extractAssistantQuestions(assistantText)],
     SESSION_MEMORY_MAX_PENDING_QUESTIONS
   );
+  const sessionParentContext = firstSentence(
+    dailyContext?.parent_context,
+    SESSION_MEMORY_PARENT_PRIORITY_MAX_CHARS
+  );
+  const parentPriorities = [...base.parent_priorities];
+  if (sessionParentContext) {
+    parentPriorities.push(`Session direction: ${sessionParentContext}`);
+  }
+
+  let latestParentGuidance = base.latest_parent_guidance ?? null;
+  if (source === "parent-nudge") {
+    const parentDirection = firstSentence(learnerInput, SESSION_MEMORY_PARENT_PRIORITY_MAX_CHARS);
+    if (parentDirection) {
+      parentPriorities.push(`Live nudge: ${parentDirection}`);
+      latestParentGuidance = parentDirection;
+    }
+  }
+
+  const normalizedParentPriorities = normalizeStringArray(
+    parentPriorities,
+    SESSION_MEMORY_MAX_PARENT_PRIORITIES,
+    SESSION_MEMORY_PARENT_PRIORITY_MAX_CHARS
+  );
+
+  if (!latestParentGuidance && normalizedParentPriorities.length > 0) {
+    latestParentGuidance = normalizedParentPriorities[normalizedParentPriorities.length - 1];
+  }
 
   return {
     version: SESSION_MEMORY_VERSION,
@@ -170,10 +219,14 @@ export function buildNextSessionMemory({
     subjects,
     key_checkpoints: normalizedCheckpoints,
     pending_questions: pendingQuestions,
+    parent_priorities: normalizedParentPriorities,
+    latest_parent_guidance: latestParentGuidance,
     summary: buildMemorySummary({
       subjects,
       checkpoints: normalizedCheckpoints,
-      pendingQuestions
+      pendingQuestions,
+      parentPriorities: normalizedParentPriorities,
+      latestParentGuidance
     })
   };
 }

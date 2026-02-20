@@ -3,6 +3,61 @@ import { getServiceSupabaseClient } from "../supabase-clients.js";
 import { normalizeSessionMemory } from "./session-memory-service.js";
 
 const TUTOR_PROMPT_RECENT_MESSAGE_LIMIT = 8;
+const PARENT_GUIDANCE_LINE_MAX_CHARS = 280;
+
+function sanitizeGuidanceLine(value) {
+  const normalized = String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalized) {
+    return "";
+  }
+
+  if (normalized.length <= PARENT_GUIDANCE_LINE_MAX_CHARS) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, PARENT_GUIDANCE_LINE_MAX_CHARS - 1)}…`;
+}
+
+function buildParentGuidanceContext({
+  latestMessageGuidance,
+  parentContext,
+  memoryGuidance,
+  memoryPriorities
+}) {
+  const lines = [];
+  const pushUnique = (label, rawValue) => {
+    const value = sanitizeGuidanceLine(rawValue);
+    if (!value) {
+      return;
+    }
+
+    const duplicate = lines.some((line) => line.toLowerCase().endsWith(value.toLowerCase()));
+    if (!duplicate) {
+      lines.push(`${label}: ${value}`);
+    }
+  };
+
+  pushUnique("Session direction", parentContext);
+
+  const normalizedPriorities = Array.isArray(memoryPriorities)
+    ? memoryPriorities.map((item) => sanitizeGuidanceLine(item)).filter(Boolean)
+    : [];
+  for (const priority of normalizedPriorities.slice(-3)) {
+    pushUnique("Persistent parent priority", priority);
+  }
+
+  pushUnique("Latest parent nudge", latestMessageGuidance);
+  pushUnique("Memory fallback", memoryGuidance);
+
+  if (lines.length === 0) {
+    return null;
+  }
+
+  return lines.join("\n");
+}
 
 export async function ensureParentOwnsSession(parentId, sessionId, options = {}) {
   const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
@@ -120,13 +175,19 @@ export async function getSessionTutorContext(
   const sessionMemory = normalizeSessionMemory(sessionDailyContext.session_memory);
   const { session_memory: _discardedSessionMemory, ...dailyContext } = sessionDailyContext;
   void _discardedSessionMemory;
+  const latestParentGuidance = buildParentGuidanceContext({
+    latestMessageGuidance: guidanceRows?.[0]?.content ?? null,
+    parentContext: dailyContext.parent_context,
+    memoryGuidance: sessionMemory.latest_parent_guidance,
+    memoryPriorities: sessionMemory.parent_priorities
+  });
 
   return {
     session,
     profile: child,
     dailyContext,
     sessionMemory,
-    latestParentGuidance: guidanceRows?.[0]?.content ?? null,
+    latestParentGuidance,
     allowDirectAnswer: Array.isArray(overrideRows) && overrideRows.length > 0,
     recentMessages
   };

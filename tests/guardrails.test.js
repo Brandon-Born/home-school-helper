@@ -31,11 +31,26 @@ test("guardrails redact verbatim parent guidance from child-visible output", () 
     assistantText: `Parent said: ${parentGuidance}`,
     studentPrompt: "I do not understand fractions.",
     parentGuidance,
+    source: "child-turn",
     allowDirectAnswer: true
   });
 
   assert.equal(result.assistantText.includes("Student is frustrated"), false);
   assert.ok(result.policyApplied.includes("parent_guidance_redacted"));
+});
+
+test("guardrails allow parent-guidance references in private parent-side acknowledgements", () => {
+  const parentGuidance = "Student is frustrated; praise effort and slow down before solving.";
+  const result = applyTutorGuardrails({
+    assistantText: `Understood. I will follow this direction: ${parentGuidance}`,
+    studentPrompt: "n/a",
+    parentGuidance,
+    source: "parent-nudge",
+    allowDirectAnswer: true
+  });
+
+  assert.match(result.assistantText, /Understood/i);
+  assert.deepEqual(result.policyApplied, ["none"]);
 });
 
 test("buildTutorSystemPrompt includes TTS plain-speech instruction", () => {
