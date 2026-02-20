@@ -10,17 +10,10 @@ export function SessionStatusPanel({
   onLeave
 }) {
   return (
-    <section className="card card--accent" aria-live="polite">
-      <h2 className="section-title">You're in! ✅</h2>
-      <p className="section-muted">
-        Your lesson is ready. Ask questions below!
-      </p>
-
-      <div className="status-panel" role="status" aria-live="polite" aria-atomic="true">
-        <div className="status-row">
-          <span className="pill">{voiceStatus}</span>
-          {turnStatus ? <span className="pill">{turnStatus}</span> : null}
-        </div>
+    <div className="child-session-bar" aria-live="polite">
+      <div className="status-row">
+        <span className="pill">{voiceStatus}</span>
+        {turnStatus ? <span className="pill">{turnStatus}</span> : null}
       </div>
 
       <div className="btn-row">
@@ -34,10 +27,10 @@ export function SessionStatusPanel({
           />
           Read answers out loud
         </label>
-        <button type="button" onClick={onLeave} className="btn btn--ghost">
-          Leave lesson
+        <button type="button" onClick={onLeave} className="btn btn--ghost btn--sm">
+          Leave
         </button>
       </div>
-    </section>
+    </div>
   );
 }

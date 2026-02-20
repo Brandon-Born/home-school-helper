@@ -249,6 +249,185 @@
   line-height: 1.55;
 }
 
+/* ── Chat Mode Feed (Child Interface) ──────────── */
+
+.chat-mode-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* Remove max-height, let the layout container handle scrolling */
+}
+
+.chat-mode-feed .message-feed__window-controls {
+  margin: 12px 0;
+}
+
+.chat-bubble-wrapper {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+}
+
+.chat-bubble-wrapper--child {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.chat-bubble-wrapper--assistant {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.chat-bubble {
+  padding: 12px 16px;
+  border-radius: 18px;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  box-shadow: 0 2px 8px color-mix(in oklab, var(--text) 4%, transparent);
+}
+
+.chat-bubble--child {
+  background: var(--role-accent);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-bubble--assistant {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-bottom-left-radius: 4px;
+}
+
+.chat-bubble-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  padding: 0 4px;
+}
+
+/* ── Child Layout Components ───────────────────── */
+
+.child-session-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.child-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.child-composer__input-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  background: var(--surface-muted);
+  border: 1.5px solid var(--border);
+  border-radius: 24px;
+  padding: 4px;
+  transition: border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
+}
+
+.child-composer__input-wrapper:focus-within {
+  border-color: color-mix(in oklab, var(--role-accent) 60%, var(--border) 40%);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--role-accent) 18%, transparent);
+}
+
+.child-composer__input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px 14px;
+  font-size: 1rem;
+  color: var(--text);
+  min-height: 44px;
+  resize: none;
+}
+
+.child-composer__input:focus {
+  outline: none;
+}
+
+.child-composer__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 4px;
+  padding-bottom: 2px;
+}
+
+.child-composer-status {
+  position: absolute;
+  top: -28px;
+  left: 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface);
+  padding: 2px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 4px color-mix(in oklab, var(--text) 4%, transparent);
+  animation: fade-up 200ms ease both;
+}
+
+.btn-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.btn-circle:hover:not(:disabled) {
+  background: var(--surface);
+  color: var(--role-accent);
+}
+
+.btn-circle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--role-accent) 25%, transparent);
+}
+
+.btn-circle.is-active {
+  background: color-mix(in oklab, var(--danger) 14%, var(--surface) 86%);
+  color: var(--danger);
+  animation: gentle-pulse 1.5s ease-in-out infinite;
+}
+
+.btn-circle--primary {
+  background: var(--role-accent);
+  color: #fff;
+}
+
+.btn-circle--primary:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--role-accent) 80%, var(--brand) 20%);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.btn-circle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .voice-row {
   display: flex;
   flex-wrap: wrap;

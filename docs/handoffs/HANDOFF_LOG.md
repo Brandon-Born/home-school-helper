@@ -331,3 +331,42 @@ Notes:
 - Removed duplicated handoffs for the same fix train (especially repeated UAT-BUG-1 and Playwright bootstrap progression entries).
 - Kept only final/effective versions of each theme in this summary.
 - Preserved all currently actionable details in the 3 detailed entries above.
+
+## 2026-02-20T10:05:00Z - Antigravity
+
+### Scope Worked
+- Redesigned the Child (`/child`) chat experience to solve the "wasted vertical space, chat below the fold" UX issue.
+- Replaced stacked panels with a modern full-viewport chat layout (pinned bottom input, auto-scrolling flex transcript).
+- Styled messages as chat bubbles tailored to the student (right) and the assistant (left).
+- Polished the join screen to be a centralized, visually clean input without heavy visual cards.
+
+### Last Agent Accomplished
+- Created `.app-shell--chat-variant` in `layout.css` to strip hero/footer chrome.
+- Created `.child-chat-layout` in `layout.css` and `.chat-bubble` in `components.css` for modern layout/styling.
+- Refactored `SessionStatusPanel` and `TutorComposerPanel` to be compact horizontal bars instead of padded sections.
+- Refactored `TranscriptFeed` to accept `chatMode` to render styled bubbles and added a `scrollIntoView` effect for auto-scrolling.
+- Verified changes visually via the internal browser subagent and confirmed Playwright test suite (`child-join-code-redemption.spec.js`) continues to pass.
+
+### Files Touched
+- `app/child/page.js`
+- `app/child/components/JoinSessionPanel.js`
+- `app/child/components/SessionStatusPanel.js`
+- `app/child/components/TutorComposerPanel.js`
+- `app/child/components/TranscriptPanel.js`
+- `app/components/layout/AppShell.js`
+- `app/components/transcript/TranscriptFeed.js`
+- `app/styles/layout.css`
+- `app/styles/components.css`
+
+### Tests / Checks Run
+- Visual verification using browser subagent on `/child` (Join screen + Session screen).
+- Playwright E2E: `npx playwright test tests/playwright/child-join-code-redemption.spec.js` (Passed).
+
+### Open Risks / Issues
+- None.
+
+### Next Steps (Ordered)
+1. Proceed with the next priority user task or backlog item.
+
+### Blocking Questions
+- None.

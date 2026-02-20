@@ -52,7 +52,8 @@ export function TranscriptFeed({
   actorLabels = null,
   enableWindowing = true,
   windowSize = 120,
-  windowStep = 120
+  windowStep = 120,
+  chatMode = false
 }) {
   const normalizedWindowSize = Math.max(20, Number.parseInt(String(windowSize || 0), 10) || 120);
   const normalizedWindowStep = Math.max(20, Number.parseInt(String(windowStep || 0), 10) || 120);
@@ -66,6 +67,13 @@ export function TranscriptFeed({
   const previousMessageCountRef = useRef(messages.length);
   const windowPreviousCountRef = useRef(messages.length);
   const previousPendingRef = useRef(pending);
+  const endOfMessagesRef = useRef(null);
+
+  useEffect(() => {
+    if (chatMode && endOfMessagesRef.current) {
+      endOfMessagesRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages.length, pending, chatMode]);
 
   const resolveLabel = (actorType) => {
     const fromMap = actorLabels ? actorLabels[actorType] : null;
@@ -148,7 +156,7 @@ export function TranscriptFeed({
         </div>
       ) : null}
       <div
-        className="message-feed"
+        className={chatMode ? "chat-mode-feed" : "message-feed"}
         role="log"
         aria-live="polite"
         aria-relevant="additions text"
@@ -158,19 +166,43 @@ export function TranscriptFeed({
         {messages.length === 0 ? (
           <p className="empty-state">{emptyText}</p>
         ) : (
-          visibleMessages.map((message) => (
-            <article key={message.id} className={`message-row message-row--${message.actor_type}`}>
-              <div className="message-row__meta">
-                <span className="pill">{resolveLabel(message.actor_type)}</span>
-                {showVisibilityScope ? (
-                  <span className="pill pill--muted">{resolveVisibilityScopeLabel(message.visibility_scope)}</span>
-                ) : null}
-              </div>
-              <p className="message-row__body">{message.content}</p>
-            </article>
-          ))
+          visibleMessages.map((message) => {
+            if (chatMode) {
+              return (
+                <article key={message.id} className={`chat-bubble-wrapper chat-bubble-wrapper--${message.actor_type}`}>
+                  {message.actor_type !== "child" ? (
+                    <span className="chat-bubble-meta">{resolveLabel(message.actor_type)}</span>
+                  ) : null}
+                  <div className={`chat-bubble chat-bubble--${message.actor_type}`}>
+                    {message.content}
+                  </div>
+                </article>
+              );
+            }
+            return (
+              <article key={message.id} className={`message-row message-row--${message.actor_type}`}>
+                <div className="message-row__meta">
+                  <span className="pill">{resolveLabel(message.actor_type)}</span>
+                  {showVisibilityScope ? (
+                    <span className="pill pill--muted">{resolveVisibilityScopeLabel(message.visibility_scope)}</span>
+                  ) : null}
+                </div>
+                <p className="message-row__body">{message.content}</p>
+              </article>
+            );
+          })
         )}
-        {pending ? <p className="empty-state">{pendingText}</p> : null}
+        {pending ? (
+          chatMode ? (
+            <article className="chat-bubble-wrapper chat-bubble-wrapper--assistant">
+              <span className="chat-bubble-meta">{resolveLabel("assistant")}</span>
+              <div className="chat-bubble chat-bubble--assistant pulse">{pendingText}</div>
+            </article>
+          ) : (
+            <p className="empty-state">{pendingText}</p>
+          )
+        ) : null}
+        {chatMode ? <div ref={endOfMessagesRef} /> : null}
       </div>
       {enableWindowing && hiddenCount === 0 && messages.length > normalizedWindowSize && visibleCount > normalizedWindowSize ? (
         <div className="message-feed__window-controls">

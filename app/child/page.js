@@ -16,51 +16,60 @@ export default function ChildPage() {
       role="child"
       title="Hey there! 👋"
       subtitle="Type the code your parent gave you and let's get started."
+      variant={state.sessionAccess ? "chat" : "standard"}
     >
       <StatusAlert tone="error" message={state.error} />
 
       {!state.sessionAccess ? (
-        <div className="console-centered">
-          <JoinSessionPanel
-            joinCode={state.joinCode}
-            setJoinCode={actions.setJoinCode}
-            deviceFingerprint={state.deviceFingerprint}
-            setDeviceFingerprint={actions.setDeviceFingerprint}
-            onSubmit={actions.joinSession}
-            loading={state.joinLoading}
-          />
+        <div className="child-join-screen">
+          <div className="child-join-screen__inner">
+            <JoinSessionPanel
+              joinCode={state.joinCode}
+              setJoinCode={actions.setJoinCode}
+              deviceFingerprint={state.deviceFingerprint}
+              setDeviceFingerprint={actions.setDeviceFingerprint}
+              onSubmit={actions.joinSession}
+              loading={state.joinLoading}
+            />
+          </div>
         </div>
       ) : (
-        <div className="stack">
-          <SessionStatusPanel
-            sessionAccess={state.sessionAccess}
-            voiceStatus={state.voiceStatus}
-            turnStatus={state.turnStatus}
-            autoSpeak={state.autoSpeak}
-            setAutoSpeak={actions.setAutoSpeak}
-            speechSupport={state.speechSupport}
-            onLeave={actions.leaveSession}
-          />
+        <div className="child-chat-layout">
+          <div className="child-chat-layout__status">
+            <SessionStatusPanel
+              sessionAccess={state.sessionAccess}
+              voiceStatus={state.voiceStatus}
+              turnStatus={state.turnStatus}
+              autoSpeak={state.autoSpeak}
+              setAutoSpeak={actions.setAutoSpeak}
+              speechSupport={state.speechSupport}
+              onLeave={actions.leaveSession}
+            />
+          </div>
 
-          <TutorComposerPanel
-            studentInput={state.studentInput}
-            setStudentInput={actions.setStudentInput}
-            loading={state.sendLoading}
-            voiceBusy={state.voiceBusy}
-            isTranscribing={state.isTranscribing}
-            isPlayingSpeech={state.isPlayingSpeech}
-            pendingTutorReply={state.pendingTutorReply}
-            turnStatus={state.turnStatus}
-            onSend={actions.sendTurn}
-            onVoiceStart={actions.startVoiceCapture}
-            onVoiceStop={actions.stopVoiceCapture}
-            isCloudRecording={state.isCloudRecording}
-            isListening={state.isListening}
-            speechSupport={state.speechSupport}
-            listeningLabel={state.listeningLabel}
-          />
+          <div className="child-chat-layout__messages">
+            <TranscriptPanel messages={state.messages} pendingTutorReply={state.pendingTutorReply} />
+          </div>
 
-          <TranscriptPanel messages={state.messages} pendingTutorReply={state.pendingTutorReply} />
+          <div className="child-chat-layout__composer">
+            <TutorComposerPanel
+              studentInput={state.studentInput}
+              setStudentInput={actions.setStudentInput}
+              loading={state.sendLoading}
+              voiceBusy={state.voiceBusy}
+              isTranscribing={state.isTranscribing}
+              isPlayingSpeech={state.isPlayingSpeech}
+              pendingTutorReply={state.pendingTutorReply}
+              turnStatus={state.turnStatus}
+              onSend={actions.sendTurn}
+              onVoiceStart={actions.startVoiceCapture}
+              onVoiceStop={actions.stopVoiceCapture}
+              isCloudRecording={state.isCloudRecording}
+              isListening={state.isListening}
+              speechSupport={state.speechSupport}
+              listeningLabel={state.listeningLabel}
+            />
+          </div>
         </div>
       )}
     </AppShell>

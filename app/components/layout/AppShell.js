@@ -10,11 +10,11 @@ const NAV_LINKS = [
   { href: "/child", label: "Kids" }
 ];
 
-export function AppShell({ title, subtitle, role = "home", actions = null, children }) {
+export function AppShell({ title, subtitle, role = "home", actions = null, children, variant = "standard" }) {
   const pathname = usePathname();
 
   return (
-    <div className={`app-shell app-shell--${role}`}>
+    <div className={`app-shell app-shell--${role}${variant === "chat" ? " app-shell--chat-variant" : ""}`}>
       <header className="app-shell__header">
         <div>
           <Link href="/" className="app-shell__brand">

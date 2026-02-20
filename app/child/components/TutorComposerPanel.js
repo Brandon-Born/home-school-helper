@@ -20,7 +20,6 @@ export function TutorComposerPanel({
   const isVoiceActive = isCloudRecording || isListening;
   const showThinking = isTranscribing || pendingTutorReply || isPlayingSpeech;
   const voiceDisabled = loading || voiceBusy || pendingTutorReply || (!speechSupport.cloudStt && !speechSupport.browserStt);
-  const voiceButtonClass = `btn btn--secondary voice-button${isVoiceActive ? " is-active" : ""}`;
 
   const toggleVoiceCapture = () => {
     if (isVoiceActive) {
@@ -31,23 +30,31 @@ export function TutorComposerPanel({
   };
 
   return (
-    <section className="card" aria-busy={loading || pendingTutorReply}>
-      <h2 className="section-title">What do you want to learn? 🤔</h2>
-      <p className="section-muted">Type your question or tap the mic to talk.</p>
-      <form onSubmit={onSend} className="form-grid" aria-busy={loading || pendingTutorReply}>
-        <div className="voice-row">
-          <label className="sr-only" htmlFor="student-input">
-            Ask a question
-          </label>
-          <input
-            id="student-input"
-            className="input"
-            placeholder="Ask me anything..."
-            value={studentInput}
-            onChange={(event) => setStudentInput(event.target.value)}
-            autoFocus
-            aria-label="Ask a question"
-          />
+    <div className="child-composer" aria-busy={loading || pendingTutorReply}>
+      <form onSubmit={onSend} className="child-composer__input-wrapper">
+        {showThinking ? <span className="child-composer-status">Thinking...</span> : null}
+        <label className="sr-only" htmlFor="student-input">
+          Ask a question
+        </label>
+        <textarea
+          id="student-input"
+          className="child-composer__input"
+          placeholder="Ask me anything..."
+          value={studentInput}
+          onChange={(event) => setStudentInput(event.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              if (studentInput.trim() && !loading && !pendingTutorReply && !voiceBusy) {
+                onSend(e);
+              }
+            }
+          }}
+          autoFocus
+          aria-label="Ask a question"
+          rows={1}
+        />
+        <div className="child-composer__actions">
           <button
             type="button"
             onClick={(event) => {
@@ -55,28 +62,25 @@ export function TutorComposerPanel({
               toggleVoiceCapture();
             }}
             disabled={voiceDisabled}
-            className={voiceButtonClass}
+            className={`btn-circle${isVoiceActive ? " is-active" : ""}`}
             aria-pressed={isVoiceActive}
-            aria-describedby="turn-status"
+            aria-label={listeningLabel}
           >
-            {listeningLabel} 🎤
+            🎤
           </button>
           <button
             type="submit"
-            className="btn btn--primary"
+            className="btn-circle btn-circle--primary"
             disabled={loading || voiceBusy || pendingTutorReply || !studentInput.trim()}
+            aria-label="Send"
           >
-            Ask! ✨
+            ⇧
           </button>
         </div>
-
-        <div className="voice-row">
-          <span id="turn-status" className="pill" role="status" aria-live="polite">
-            {turnStatus || "Waiting for your question"}
-          </span>
-          {showThinking ? <span className="pill pulse">Thinking...</span> : null}
-        </div>
       </form>
-    </section>
+      <span id="turn-status" className="sr-only" role="status" aria-live="polite">
+        {turnStatus || "Waiting for your question"}
+      </span>
+    </div>
   );
 }
