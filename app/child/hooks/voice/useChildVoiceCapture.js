@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { trackProductEvent } from "../../../../src/lib/product-analytics.js";
 import { detectSpeechSupport } from "./speech-support.js";
 import { createUseBrowserVoiceCaptureStrategy } from "./useBrowserVoiceCaptureStrategy.js";
@@ -75,28 +75,36 @@ export function createUseChildVoiceCapture({
       setNotice
     });
 
+    const stopAllBrowserVoiceCapture = browserCapture.actions.stopAllBrowserVoiceCapture;
+    const stopAllCloudVoiceCapture = cloudCapture.actions.stopAllCloudVoiceCapture;
+    const startCloudVoiceCapture = cloudCapture.actions.startCloudVoiceCapture;
+    const startBrowserVoiceCapture = browserCapture.actions.startBrowserVoiceCapture;
+    const stopCloudVoiceCapture = cloudCapture.actions.stopCloudVoiceCapture;
+    const stopBrowserVoiceCapture = browserCapture.actions.stopBrowserVoiceCapture;
+    const stopAllVoiceCaptureRef = useRef(() => {});
+
     const stopAllVoiceCapture = useCallback(() => {
-      browserCapture.actions.stopAllBrowserVoiceCapture();
-      cloudCapture.actions.stopAllCloudVoiceCapture();
-    }, [browserCapture.actions, cloudCapture.actions]);
+      stopAllBrowserVoiceCapture();
+      stopAllCloudVoiceCapture();
+    }, [stopAllBrowserVoiceCapture, stopAllCloudVoiceCapture]);
 
     const startVoiceCapture = useCallback(() => {
       if (speechSupport.cloudStt) {
-        void cloudCapture.actions.startCloudVoiceCapture();
+        void startCloudVoiceCapture();
         return;
       }
 
-      browserCapture.actions.startBrowserVoiceCapture();
-    }, [browserCapture.actions, cloudCapture.actions, speechSupport.cloudStt]);
+      startBrowserVoiceCapture();
+    }, [speechSupport.cloudStt, startBrowserVoiceCapture, startCloudVoiceCapture]);
 
     const stopVoiceCapture = useCallback(() => {
       if (cloudCapture.state.isCloudRecording) {
-        cloudCapture.actions.stopCloudVoiceCapture();
+        stopCloudVoiceCapture();
         return;
       }
 
-      browserCapture.actions.stopBrowserVoiceCapture();
-    }, [browserCapture.actions, cloudCapture.actions, cloudCapture.state.isCloudRecording]);
+      stopBrowserVoiceCapture();
+    }, [cloudCapture.state.isCloudRecording, stopBrowserVoiceCapture, stopCloudVoiceCapture]);
 
     useEffect(() => {
       const support = detectSpeechSupportImpl();
@@ -111,10 +119,14 @@ export function createUseChildVoiceCapture({
     }, [speechSupport, speechSupportRef]);
 
     useEffect(() => {
-      return () => {
-        stopAllVoiceCapture();
-      };
+      stopAllVoiceCaptureRef.current = stopAllVoiceCapture;
     }, [stopAllVoiceCapture]);
+
+    useEffect(() => {
+      return () => {
+        stopAllVoiceCaptureRef.current();
+      };
+    }, []);
 
     return {
       state: {

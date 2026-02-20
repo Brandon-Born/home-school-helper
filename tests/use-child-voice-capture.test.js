@@ -217,3 +217,57 @@ test("useChildVoiceCapture reports permission denied and auth invalidation failu
 
   await invalidRenderer.unmount();
 });
+
+test("useChildVoiceCapture keeps cloud recording active until explicit stop", async () => {
+  const { recorders, createMediaRecorderImpl } = createRecorderFactory();
+
+  const useChildVoiceCaptureHook = createUseChildVoiceCapture({
+    detectSpeechSupportImpl: () => ({
+      cloudStt: true,
+      browserStt: false,
+      cloudTts: false,
+      browserTts: false
+    }),
+    getUserMediaImpl: async () => ({
+      getTracks: () => []
+    }),
+    createMediaRecorderImpl,
+    createBlobImpl: () => new Blob(["audio"]),
+    apiFormRequestImpl: async () => ({
+      transcript: "ok"
+    })
+  });
+
+  const useHarness = createHarnessHook(useChildVoiceCaptureHook);
+  const renderer = await createHookRenderer(() => useHarness());
+  await flushEffects();
+
+  await act(async () => {
+    renderer.getCurrent().capture.actions.startVoiceCapture();
+    await Promise.resolve();
+  });
+
+  for (
+    let attempt = 0;
+    attempt < 8 && !renderer.getCurrent().capture.state.isCloudRecording;
+    attempt += 1
+  ) {
+    await act(async () => {
+      await Promise.resolve();
+    });
+  }
+
+  assert.equal(renderer.getCurrent().capture.state.isCloudRecording, true);
+  assert.equal(recorders.length > 0, true);
+  assert.equal(recorders[0].state, "recording");
+
+  await act(async () => {
+    renderer.getCurrent().capture.actions.stopVoiceCapture();
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  assert.equal(renderer.getCurrent().capture.state.isCloudRecording, false);
+
+  await renderer.unmount();
+});

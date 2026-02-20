@@ -5,6 +5,34 @@ Notes:
 - Kept the 3 most recent detailed handoffs.
 - Deduplicated older history into a durable summary for fast agent onboarding.
 
+## 2026-02-20T03:31:33Z - Codex
+
+### Scope Worked
+- Fixed tap-to-toggle voice capture immediately turning off due to render-time cleanup side effect in child voice capture orchestration.
+
+### Last Agent Accomplished
+- Updated `useChildVoiceCapture` cleanup handling so stop-all voice capture runs on true unmount instead of re-render effect replacement.
+- Stabilized action references used by start/stop wrappers in `useChildVoiceCapture`.
+- Added regression unit test validating cloud recording remains active until explicit stop.
+
+### Files Touched
+- `app/child/hooks/voice/useChildVoiceCapture.js`
+- `tests/use-child-voice-capture.test.js`
+- `docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm run test:unit -- tests/use-child-voice-capture.test.js tests/use-child-console-hook.test.js`
+- Result: pass (6 tests, 0 failures).
+
+### Open Risks / Issues
+- No Playwright-level tap mic interaction assertion yet; fix validated via hook-level unit tests.
+
+### Next Steps (Ordered)
+1. Add a Playwright child voice interaction check to catch start/stop regressions in browser event flow.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-20T03:25:02Z - Codex
 
 ### Scope Worked
