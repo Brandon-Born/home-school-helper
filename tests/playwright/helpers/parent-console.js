@@ -145,7 +145,7 @@ export async function startSessionForChild(
 
   const sharePanel = page.getByTestId("session-share-panel");
   await expect(sharePanel).toBeVisible({ timeout: 30000 });
-  const joinCodeEl = page.getByTestId("session-join-code");
+  const joinCodeEl = page.getByTestId(`active-session-code-${sessionId}`);
   await expect(joinCodeEl).toBeVisible({ timeout: 30000 });
 
   const joinCode = (await joinCodeEl.innerText()).trim();
@@ -153,9 +153,7 @@ export async function startSessionForChild(
 
   const activeCard = page.getByTestId(`active-session-card-${sessionId}`);
   await expect(activeCard).toBeVisible({ timeout: 30000 });
-  await expect(page.getByTestId(`active-session-code-${sessionId}`)).toHaveText(joinCode, {
-    timeout: 30000
-  });
+  await expect(page.getByTestId(`active-session-code-${sessionId}`)).toHaveText(joinCode, { timeout: 30000 });
 
   return { joinCode, sharePanel, activeCard, sessionId };
 }
@@ -163,7 +161,7 @@ export async function startSessionForChild(
 export async function regenerateCodeFromActiveCard(page, { sessionId, previousCode }) {
   await goToParentSection(page, "sessions");
 
-  // Click the session card to select the child (makes session-join-code visible)
+  // Click the session card to select the child context in Sessions view.
   const sessionCard = page.getByTestId(`active-session-card-${sessionId}`);
   await expect(sessionCard).toBeVisible({ timeout: 30000 });
   await sessionCard.click();
@@ -186,7 +184,6 @@ export async function regenerateCodeFromActiveCard(page, { sessionId, previousCo
   expect(payloadCode).not.toBe(previousCode);
 
   await expect(cardCode).toHaveText(payloadCode, { timeout: 30000 });
-  await expect(page.getByTestId("session-join-code")).toHaveText(payloadCode, { timeout: 30000 });
 
   return payloadCode;
 }
@@ -195,7 +192,7 @@ export async function rejoinSessionFromActiveCard(page, { sessionId, expectedCod
   await goToParentSection(page, "sessions");
   await page.getByTestId(`active-session-card-${sessionId}`).click();
 
-  await expect(page.getByTestId("session-join-code")).toHaveText(expectedCode, {
+  await expect(page.getByTestId(`active-session-code-${sessionId}`)).toHaveText(expectedCode, {
     timeout: 30000
   });
 }

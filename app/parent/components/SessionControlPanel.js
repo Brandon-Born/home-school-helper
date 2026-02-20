@@ -38,10 +38,6 @@ export function SessionControlPanel({
       {activeSession && activeSession.child_id === selectedChild.id ? (
         <div className="card card--accent" data-testid="session-share-panel" role="status" aria-live="polite">
           <p className="section-muted">Share this code with {selectedChild.first_name}:</p>
-          <div className="join-code" data-testid="session-join-code">{activeSession.join_code}</div>
-          <p className="section-muted" style={{ marginTop: 8, fontSize: "0.88rem" }}>
-            Expires at {activeSession.expires_at}
-          </p>
           <p className="section-muted" style={{ fontSize: "0.85rem" }}>
             The tutor gives hints first by default. Switch to direct answers only when needed.
           </p>

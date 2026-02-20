@@ -142,3 +142,29 @@ test("useChildConsole handles join/send optimistic updates and stream auth inval
   await renderer.unmount();
   delete global.window;
 });
+
+test("useChildConsole uppercases join code input", async () => {
+  const localStorage = createLocalStorageMock();
+  global.window = { localStorage };
+
+  const voice = buildVoiceStub();
+  const useChildConsoleHook = createUseChildConsole({
+    apiRequestImpl: async () => {
+      throw new Error("Unexpected request");
+    },
+    useSessionStreamHook: () => {},
+    useChildVoiceRuntimeHook: () => voice
+  });
+
+  const renderer = await createHookRenderer(() => useChildConsoleHook());
+  await flushEffects();
+
+  await act(async () => {
+    renderer.getCurrent().actions.setJoinCode("ab12cd34");
+  });
+
+  assert.equal(renderer.getCurrent().state.joinCode, "AB12CD34");
+
+  await renderer.unmount();
+  delete global.window;
+});

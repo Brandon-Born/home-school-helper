@@ -17,6 +17,7 @@ export function JoinSessionPanel({ joinCode, setJoinCode, deviceFingerprint, set
             placeholder="AB12CD34"
             value={joinCode}
             onChange={(event) => setJoinCode(event.target.value)}
+            autoCapitalize="characters"
             autoComplete="off"
             autoFocus
             required

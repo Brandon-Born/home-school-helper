@@ -28,7 +28,7 @@ export function createUseChildConsole({
 } = {}) {
   return function useChildConsole() {
   const [sessionAccess, setSessionAccess] = useState(null);
-  const [joinCode, setJoinCode] = useState("");
+  const [joinCode, setJoinCodeState] = useState("");
   const [deviceFingerprint, setDeviceFingerprint] = useState("");
   const [studentInput, setStudentInput] = useState("");
   const [messages, setMessages] = useState([]);
@@ -46,6 +46,10 @@ export function createUseChildConsole({
       ...previous,
       [key]: value
     }));
+  }, []);
+
+  const setJoinCode = useCallback((value) => {
+    setJoinCodeState(String(value ?? "").toUpperCase());
   }, []);
 
   const handleSessionInvalid = useCallback((message) => {
@@ -164,7 +168,7 @@ export function createUseChildConsole({
       setSessionAccess(access);
       voiceStreamRef.current.initializeFromSnapshot([]);
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(access));
-      setJoinCode("");
+      setJoinCodeState("");
       trackProductEventImpl("child_join", {
         status: "success"
       });

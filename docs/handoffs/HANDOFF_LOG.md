@@ -5,6 +5,64 @@ Notes:
 - Kept the 3 most recent detailed handoffs.
 - Deduplicated older history into a durable summary for fast agent onboarding.
 
+## 2026-02-20T03:11:52Z - Codex
+
+### Scope Worked
+- Removed duplicate join-code/expiry display from the Sessions share panel card while preserving active-session card code visibility.
+
+### Last Agent Accomplished
+- Updated `SessionControlPanel` to remove join code and expiry lines from `session-share-panel`.
+- Updated Playwright parent console helpers to source/assert join codes from `active-session-code-<sessionId>` instead of `session-join-code`.
+
+### Files Touched
+- `app/parent/components/SessionControlPanel.js`
+- `tests/playwright/helpers/parent-console.js`
+- `docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm run test:unit -- tests/use-parent-sessions-hook.test.js tests/use-parent-console-hook.test.js`
+- Result: pass (6 tests, 0 failures).
+- Command: `npm run test:e2e -- tests/playwright/new-user-experience.spec.js`
+- Result: failed in Playwright global setup (`page.waitForURL(/\/parent(?:[/?#]|$)/)` timeout in `tests/playwright/global.setup.mjs:116`).
+
+### Open Risks / Issues
+- End-to-end verification for this change is blocked by existing Playwright auth/setup navigation timeout in this environment.
+
+### Next Steps (Ordered)
+1. Fix or stabilize Playwright global auth/setup navigation (`tests/playwright/global.setup.mjs`) and rerun targeted sessions e2e coverage.
+
+### Blocking Questions
+- None.
+
+## 2026-02-20T03:05:52Z - Codex
+
+### Scope Worked
+- Enforced uppercase join-code entry on the child page so the "Your code" field always reflects the code format parents share.
+
+### Last Agent Accomplished
+- Added join-code normalization in `useChildConsole` so any `setJoinCode` action uppercases input.
+- Added join-code input hinting with `autoCapitalize="characters"` in `JoinSessionPanel`.
+- Added a hook unit test covering lowercase-to-uppercase conversion behavior.
+
+### Files Touched
+- `app/child/hooks/useChildConsole.js`
+- `app/child/components/JoinSessionPanel.js`
+- `tests/use-child-console-hook.test.js`
+- `docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm run test:unit -- tests/use-child-console-hook.test.js`
+- Result: pass (2 tests, 0 failures).
+
+### Open Risks / Issues
+- None.
+
+### Next Steps (Ordered)
+1. Optionally add a small Playwright assertion that typing lowercase into the child join input renders uppercase immediately.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-19T21:30:36Z - Antigravity
 
 ### Scope Worked
