@@ -68,10 +68,20 @@ export function TranscriptFeed({
   const windowPreviousCountRef = useRef(messages.length);
   const previousPendingRef = useRef(pending);
   const endOfMessagesRef = useRef(null);
+  const isInitialScrollRef = useRef(true);
 
   useEffect(() => {
     if (chatMode && endOfMessagesRef.current) {
-      endOfMessagesRef.current.scrollIntoView({ behavior: "smooth" });
+      const scrollBehavior = isInitialScrollRef.current ? "auto" : "smooth";
+
+      // Use a slight timeout to ensure React and the browser have fully 
+      // calculated the DOM and painted before we scroll to the bottom.
+      setTimeout(() => {
+        if (endOfMessagesRef.current) {
+          endOfMessagesRef.current.scrollIntoView({ behavior: scrollBehavior });
+          isInitialScrollRef.current = false;
+        }
+      }, 50);
     }
   }, [messages.length, pending, chatMode]);
 
