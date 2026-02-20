@@ -1,9 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+import { ApiError } from "../src/server/api-error.js";
 import { requireChildSessionContext, requireParentContext } from "../src/server/auth.js";
 import {
   createChildForParent,
+  endSessionForParent,
   getSessionTutorContext,
   listChildrenForParent,
   listSessionMessages,
@@ -151,5 +153,89 @@ test("critical path covers parent onboarding through child tutoring turn", async
   assert.deepEqual(
     serviceClient.tables.policy_events.map((event) => event.event_type),
     ["tutor_model_call", "guardrail_policy"]
+  );
+});
+
+test("critical path invalidates child token immediately after parent ends the session", async () => {
+  const serviceClient = createFakeServiceClient();
+  const anonClient = {
+    auth: {
+      getUser: async () => ({
+        data: {
+          user: {
+            id: "auth_parent_1",
+            email: "parent@example.com"
+          }
+        },
+        error: null
+      })
+    }
+  };
+
+  const parentRequest = new Request("https://example.test/api/parent/me", {
+    headers: {
+      authorization: "Bearer parent-token"
+    }
+  });
+  const parentContext = await requireParentContext(parentRequest, {
+    anonClient,
+    serviceClient
+  });
+  await setParentCoppaConsentState(parentContext.parent.id, { status: "granted" }, { serviceClient });
+
+  const child = await createChildForParent(
+    parentContext.parent.id,
+    {
+      child_name: "Ava",
+      age: 9,
+      grade: "4",
+      subjects: ["Math"]
+    },
+    { serviceClient }
+  );
+
+  const startedSession = await startSessionForParent(
+    parentContext.parent.id,
+    {
+      child_id: child.id,
+      daily_subjects: ["Math"]
+    },
+    { serviceClient }
+  );
+  const joinAccess = await redeemSessionCode(
+    {
+      code: startedSession.join_code
+    },
+    { serviceClient }
+  );
+
+  const childRequest = new Request(
+    `https://example.test/api/session/${startedSession.session_id}/child-turn`,
+    {
+      headers: {
+        authorization: `Bearer ${joinAccess.child_session_token}`
+      }
+    }
+  );
+
+  const beforeEnd = await requireChildSessionContext(childRequest, startedSession.session_id, {
+    serviceClient
+  });
+  assert.equal(beforeEnd.tokenRow.session_id, startedSession.session_id);
+
+  const endedSession = await endSessionForParent(parentContext.parent.id, startedSession.session_id, {
+    serviceClient
+  });
+  assert.equal(endedSession.status, "ended");
+
+  await assert.rejects(
+    () =>
+      requireChildSessionContext(childRequest, startedSession.session_id, {
+        serviceClient
+      }),
+    (error) =>
+      error instanceof ApiError &&
+      error.status === 401 &&
+      error.code === "invalid_child_session_token"
   );
 });

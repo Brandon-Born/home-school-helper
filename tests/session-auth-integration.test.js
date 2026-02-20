@@ -436,6 +436,97 @@ test("endSessionForParent revokes non-expired child session tokens", async () =>
   assert.ok(revokedToken.revoked_at);
 });
 
+test("endSessionForParent does not end session when token revocation fails", async () => {
+  const now = Date.now();
+  const serviceClient = createFakeServiceClient({
+    sessions: [
+      {
+        id: "session_1",
+        child_id: "child_1",
+        parent_id: "parent_1",
+        status: "active"
+      }
+    ],
+    child_session_tokens: [
+      {
+        id: "token_active",
+        session_id: "session_1",
+        child_id: "child_1",
+        token_hash: "hash-active",
+        expires_at: new Date(now + 60 * 1000).toISOString(),
+        revoked_at: null
+      }
+    ]
+  });
+  const originalFrom = serviceClient.from.bind(serviceClient);
+  serviceClient.from = (table) => {
+    const query = originalFrom(table);
+    const originalExecute = query.execute.bind(query);
+    query.execute = () => {
+      if (table === "child_session_tokens" && query.operation === "update") {
+        return { data: null, error: { message: "forced revoke failure" } };
+      }
+      return originalExecute();
+    };
+    return query;
+  };
+
+  await assert.rejects(
+    () => endSessionForParent("parent_1", "session_1", { serviceClient }),
+    (error) =>
+      error instanceof ApiError &&
+      error.status === 500 &&
+      error.code === "session_token_revoke_failed"
+  );
+
+  assert.equal(serviceClient.tables.sessions[0].status, "active");
+  assert.equal(serviceClient.tables.child_session_tokens[0].revoked_at, null);
+});
+
+test("endSessionForParent keeps tokens revoked if status update fails", async () => {
+  const now = Date.now();
+  const serviceClient = createFakeServiceClient({
+    sessions: [
+      {
+        id: "session_1",
+        child_id: "child_1",
+        parent_id: "parent_1",
+        status: "active"
+      }
+    ],
+    child_session_tokens: [
+      {
+        id: "token_active",
+        session_id: "session_1",
+        child_id: "child_1",
+        token_hash: "hash-active",
+        expires_at: new Date(now + 60 * 1000).toISOString(),
+        revoked_at: null
+      }
+    ]
+  });
+  const originalFrom = serviceClient.from.bind(serviceClient);
+  serviceClient.from = (table) => {
+    const query = originalFrom(table);
+    const originalExecute = query.execute.bind(query);
+    query.execute = () => {
+      if (table === "sessions" && query.operation === "update") {
+        return { data: null, error: { message: "forced end-session failure" } };
+      }
+      return originalExecute();
+    };
+    return query;
+  };
+
+  await assert.rejects(
+    () => endSessionForParent("parent_1", "session_1", { serviceClient }),
+    (error) => error instanceof ApiError && error.status === 500 && error.code === "session_end_failed"
+  );
+
+  assert.equal(serviceClient.tables.sessions[0].status, "active");
+  assert.ok(serviceClient.tables.child_session_tokens[0].revoked_at);
+});
+
 test("redeemSessionCode clears active join-code metadata from session list", async () => {
   const serviceClient = createFakeServiceClient({
     parents: [buildConsentReadyParent()],

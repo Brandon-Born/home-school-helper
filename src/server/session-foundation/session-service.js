@@ -276,6 +276,35 @@ export async function endSessionForParent(parentId, sessionId, options = {}) {
   const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
   const nowIso = new Date().toISOString();
 
+  const { data: activeSession, error: activeSessionError } = await serviceClient
+    .from("sessions")
+    .select("id, status")
+    .eq("id", sessionId)
+    .eq("parent_id", parentId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (activeSessionError) {
+    throw new ApiError(500, "session_end_failed", "Unable to end session.");
+  }
+
+  if (!activeSession) {
+    throw new ApiError(404, "session_not_found", "Active session not found for this parent.");
+  }
+
+  const { error: revokeTokenError } = await serviceClient
+    .from("child_session_tokens")
+    .update({
+      revoked_at: nowIso
+    })
+    .eq("session_id", sessionId)
+    .is("revoked_at", null)
+    .gt("expires_at", nowIso);
+
+  if (revokeTokenError) {
+    throw new ApiError(500, "session_token_revoke_failed", "Unable to revoke active child session tokens.");
+  }
+
   let data;
   let error;
 
@@ -312,20 +341,22 @@ export async function endSessionForParent(parentId, sessionId, options = {}) {
   }
 
   if (!data) {
+    const { data: latestSession, error: latestSessionError } = await serviceClient
+      .from("sessions")
+      .select("id, status")
+      .eq("id", sessionId)
+      .eq("parent_id", parentId)
+      .maybeSingle();
+
+    if (latestSessionError) {
+      throw new ApiError(500, "session_end_failed", "Unable to end session.");
+    }
+
+    if (latestSession?.status === "ended") {
+      return latestSession;
+    }
+
     throw new ApiError(404, "session_not_found", "Active session not found for this parent.");
-  }
-
-  const { error: revokeTokenError } = await serviceClient
-    .from("child_session_tokens")
-    .update({
-      revoked_at: nowIso
-    })
-    .eq("session_id", sessionId)
-    .is("revoked_at", null)
-    .gt("expires_at", nowIso);
-
-  if (revokeTokenError) {
-    throw new ApiError(500, "session_token_revoke_failed", "Unable to revoke active child session tokens.");
   }
 
   return data;

@@ -396,3 +396,43 @@ Notes:
 
 ### Blocking Questions
 - None.
+
+## 2026-02-20T19:07:42Z - Codex
+
+### Scope Worked
+- Hardened session end behavior to avoid ending sessions before child token revocation succeeds.
+- Added regression coverage for revoke-failure and end-update-failure paths.
+- Added integration critical-path test proving child token invalidation immediately after session end.
+
+### Last Agent Accomplished
+- Updated `endSessionForParent` flow to:
+  - verify parent-owned active session first,
+  - revoke non-expired child tokens,
+  - then mark session ended.
+- Added race-tolerant fallback when final status update returns no row after precheck (returns ended session if concurrent end already happened).
+- Added tests covering:
+  - no session end when token revocation fails,
+  - token revocation remains in effect when session status update fails,
+  - child token becomes invalid after parent ends session in critical flow.
+
+### Files Touched
+- `src/server/session-foundation/session-service.js`
+- `tests/session-auth-integration.test.js`
+- `tests/e2e-critical-path.test.js`
+- `docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `node --test tests/session-auth-integration.test.js tests/e2e-critical-path.test.js`
+- Result: pass (18 tests, 0 failures).
+- Command: `node --test tests/session-management-routes.test.js`
+- Result: pass (5 tests, 0 failures).
+
+### Open Risks / Issues
+- Session end is now security-safe on revoke errors, but status-update failures after revocation can still leave a session in `active` state with revoked tokens (safe, but availability/UX follow-up may be needed).
+
+### Next Steps (Ordered)
+1. Consider making session end fully atomic at DB level (single SQL function/transaction) to avoid split-state outcomes.
+2. Continue with remaining security hardening priorities (stream abuse controls, safe 5xx envelopes, CSP/security headers).
+
+### Blocking Questions
+- None.
