@@ -5,6 +5,47 @@ Notes:
 - Kept the 3 most recent detailed handoffs.
 - Deduplicated older history into a durable summary for fast agent onboarding.
 
+## 2026-02-20T03:41:36Z - Codex
+
+### Scope Worked
+- Improved child voice UX for kids with tap-to-talk copy simplification, auto-submit after cloud transcription, and mic button placement next to Ask.
+- Hid expired join code display on parent active session cards.
+
+### Last Agent Accomplished
+- Added transcript callback plumbing from `useChildConsole` -> `useChildVoiceRuntime` -> `useChildVoiceCapture` -> cloud strategy.
+- Implemented shared send helper in `useChildConsole` and auto-submit flow when cloud transcript is ready.
+- Updated child voice copy to simpler phrases and moved mic button next to Ask with trailing microphone emoji.
+- Updated active session card rendering to suppress join code and expiry text when code is expired.
+- Added/updated unit tests for cloud transcript callback submit behavior and revised voice status strings.
+
+### Files Touched
+- `app/child/hooks/useChildConsole.js`
+- `app/child/hooks/useChildVoiceRuntime.js`
+- `app/child/hooks/voice/useChildVoiceCapture.js`
+- `app/child/hooks/voice/useCloudVoiceCaptureStrategy.js`
+- `app/child/hooks/voice/useBrowserVoiceCaptureStrategy.js`
+- `app/child/hooks/voice/speech-status.js`
+- `app/child/components/TutorComposerPanel.js`
+- `app/parent/components/ActiveSessionsPanel.js`
+- `tests/use-cloud-voice-capture-strategy.test.js`
+- `tests/use-child-voice-capture.test.js`
+- `tests/use-browser-voice-capture-strategy.test.js`
+- `docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm run test:unit -- tests/use-child-console-hook.test.js tests/use-child-voice-capture.test.js tests/use-cloud-voice-capture-strategy.test.js tests/use-browser-voice-capture-strategy.test.js tests/use-parent-sessions-hook.test.js tests/use-parent-console-hook.test.js`
+- Result: pass (18 tests, 0 failures).
+
+### Open Risks / Issues
+- Mic button placement change is validated by unit tests but not yet covered by a browser e2e assertion.
+
+### Next Steps (Ordered)
+1. Add a Playwright child page assertion for mic button placement/label and one-tap start + second-tap stop flow.
+2. Add a component-level assertion that expired session cards hide join code text.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-20T03:31:33Z - Codex
 
 ### Scope Worked

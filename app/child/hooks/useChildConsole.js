@@ -55,21 +55,15 @@ export function createUseChildConsole({
   const handleSessionInvalid = useCallback((message) => {
     clearSessionRef.current(message);
   }, []);
-
-  const voice = useChildVoiceRuntimeHook({
-    sessionAccess,
-    studentInput,
-    setStudentInput,
-    setError,
-    onSessionInvalid: handleSessionInvalid
+  const voiceActionsRef = useRef({
+    setPendingTutorReply: () => {},
+    resetVoiceRuntime: () => {},
+    setAutoSpeak: () => {}
   });
-  const voiceActionsRef = useRef(voice.actions);
-  const voiceStreamRef = useRef(voice.stream);
-
-  useEffect(() => {
-    voiceActionsRef.current = voice.actions;
-    voiceStreamRef.current = voice.stream;
-  }, [voice.actions, voice.stream]);
+  const voiceStreamRef = useRef({
+    initializeFromSnapshot: () => {},
+    handleIncomingMessages: () => {}
+  });
 
   const clearChildSession = useCallback((message) => {
     voiceActionsRef.current.resetVoiceRuntime();
@@ -89,6 +83,110 @@ export function createUseChildConsole({
   }, []);
 
   clearSessionRef.current = clearChildSession;
+
+  const submitTurnInput = useCallback(
+    async (inputText) => {
+      if (!sessionAccess?.session_id) {
+        return false;
+      }
+
+      const normalizedInput = String(inputText || "").trim();
+      if (!normalizedInput) {
+        return false;
+      }
+
+      setLoadingState("send", true);
+      setError("");
+      voiceActionsRef.current.setPendingTutorReply(true);
+
+      try {
+        const payload = await apiRequestImpl(`/api/session/${sessionAccess.session_id}/child-turn`, {
+          method: "POST",
+          bearerToken: sessionAccess.child_session_token,
+          body: {
+            student_input: normalizedInput
+          }
+        });
+
+        const freshMessages = [];
+        if (payload?.input_message) {
+          freshMessages.push(payload.input_message);
+        }
+        if (payload?.assistant_message) {
+          freshMessages.push(payload.assistant_message);
+        }
+
+        if (freshMessages.length > 0) {
+          setMessages((previous) => mergeMessages(previous, freshMessages));
+        }
+
+        if (payload?.assistant_message) {
+          voiceActionsRef.current.setPendingTutorReply(false);
+          voiceStreamRef.current.handleIncomingMessages([payload.assistant_message]);
+        }
+
+        setStudentInput("");
+        trackProductEventImpl("turn_send", {
+          status: "success"
+        });
+        return true;
+      } catch (requestError) {
+        if (isChildAuthFailure(requestError)) {
+          clearSessionRef.current("Your lesson code expired. Please ask your parent for a new code.");
+          trackProductEventImpl("turn_send", {
+            status: "failed"
+          });
+          return false;
+        }
+
+        setError(requestError instanceof Error ? requestError.message : "We couldn't send your question. Please try again.");
+        voiceActionsRef.current.setPendingTutorReply(false);
+        trackProductEventImpl("turn_send", {
+          status: "failed"
+        });
+        return false;
+      } finally {
+        setLoadingState("send", false);
+      }
+    },
+    [
+      apiRequestImpl,
+      sessionAccess?.child_session_token,
+      sessionAccess?.session_id,
+      setLoadingState,
+      trackProductEventImpl
+    ]
+  );
+
+  const handleVoiceTranscriptReady = useCallback(
+    async (capturedInput) => {
+      const normalizedInput = String(capturedInput || "").trim();
+      if (!normalizedInput) {
+        return false;
+      }
+
+      const sent = await submitTurnInput(normalizedInput);
+      if (!sent) {
+        setStudentInput(normalizedInput);
+      }
+      return sent;
+    },
+    [submitTurnInput]
+  );
+
+  const voice = useChildVoiceRuntimeHook({
+    sessionAccess,
+    studentInput,
+    setStudentInput,
+    setError,
+    onSessionInvalid: handleSessionInvalid,
+    onTranscriptReady: handleVoiceTranscriptReady
+  });
+
+  useEffect(() => {
+    voiceActionsRef.current = voice.actions;
+    voiceStreamRef.current = voice.stream;
+  }, [voice.actions, voice.stream]);
 
   useEffect(() => {
     try {
@@ -184,61 +282,10 @@ export function createUseChildConsole({
 
   async function sendTurn(event) {
     event.preventDefault();
-    if (!sessionAccess?.session_id || !studentInput.trim()) {
+    if (!studentInput.trim()) {
       return;
     }
-
-    setLoadingState("send", true);
-    setError("");
-    voiceActionsRef.current.setPendingTutorReply(true);
-
-    try {
-      const payload = await apiRequestImpl(`/api/session/${sessionAccess.session_id}/child-turn`, {
-        method: "POST",
-        bearerToken: sessionAccess.child_session_token,
-        body: {
-          student_input: studentInput.trim()
-        }
-      });
-
-      const freshMessages = [];
-      if (payload?.input_message) {
-        freshMessages.push(payload.input_message);
-      }
-      if (payload?.assistant_message) {
-        freshMessages.push(payload.assistant_message);
-      }
-
-      if (freshMessages.length > 0) {
-        setMessages((previous) => mergeMessages(previous, freshMessages));
-      }
-
-      if (payload?.assistant_message) {
-        voiceActionsRef.current.setPendingTutorReply(false);
-        voiceStreamRef.current.handleIncomingMessages([payload.assistant_message]);
-      }
-
-      setStudentInput("");
-      trackProductEventImpl("turn_send", {
-        status: "success"
-      });
-    } catch (requestError) {
-      if (isChildAuthFailure(requestError)) {
-        clearChildSession("Your lesson code expired. Please ask your parent for a new code.");
-        trackProductEventImpl("turn_send", {
-          status: "failed"
-        });
-        return;
-      }
-
-      setError(requestError instanceof Error ? requestError.message : "We couldn't send your question. Please try again.");
-      voiceActionsRef.current.setPendingTutorReply(false);
-      trackProductEventImpl("turn_send", {
-        status: "failed"
-      });
-    } finally {
-      setLoadingState("send", false);
-    }
+    await submitTurnInput(studentInput);
   }
 
   function leaveSession() {

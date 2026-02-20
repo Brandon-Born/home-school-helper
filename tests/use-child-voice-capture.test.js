@@ -143,7 +143,7 @@ test("useChildVoiceCapture transcribes cloud capture and updates input state", a
   assert.equal(hookValue.capture.state.isCloudRecording, false);
   assert.equal(hookValue.capture.state.isTranscribing, false);
   assert.equal(hookValue.studentInput, "Base input transcribed answer");
-  assert.equal(hookValue.notice, "Voice captured. Tap Send when ready.");
+  assert.equal(hookValue.notice, "Great! Tap Ask to send.");
   assert.equal(hookValue.error, "");
   assert.equal(streamTracks[0].stopped, true);
 

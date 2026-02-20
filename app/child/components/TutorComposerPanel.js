@@ -33,7 +33,7 @@ export function TutorComposerPanel({
   return (
     <section className="card" aria-busy={loading || pendingTutorReply}>
       <h2 className="section-title">What do you want to learn? 🤔</h2>
-      <p className="section-muted">Type your question or tap the mic button to start and stop talking.</p>
+      <p className="section-muted">Type your question or tap the mic to talk.</p>
       <form onSubmit={onSend} className="form-grid" aria-busy={loading || pendingTutorReply}>
         <div className="voice-row">
           <label className="sr-only" htmlFor="student-input">
@@ -49,16 +49,6 @@ export function TutorComposerPanel({
             aria-label="Ask a question"
           />
           <button
-            type="submit"
-            className="btn btn--primary"
-            disabled={loading || voiceBusy || pendingTutorReply || !studentInput.trim()}
-          >
-            Ask! ✨
-          </button>
-        </div>
-
-        <div className="voice-row">
-          <button
             type="button"
             onClick={(event) => {
               event.preventDefault();
@@ -69,9 +59,18 @@ export function TutorComposerPanel({
             aria-pressed={isVoiceActive}
             aria-describedby="turn-status"
           >
-            {listeningLabel}
+            {listeningLabel} 🎤
           </button>
+          <button
+            type="submit"
+            className="btn btn--primary"
+            disabled={loading || voiceBusy || pendingTutorReply || !studentInput.trim()}
+          >
+            Ask! ✨
+          </button>
+        </div>
 
+        <div className="voice-row">
           <span id="turn-status" className="pill" role="status" aria-live="polite">
             {turnStatus || "Waiting for your question"}
           </span>

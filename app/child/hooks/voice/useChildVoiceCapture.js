@@ -47,6 +47,7 @@ export function createUseChildVoiceCapture({
     setError,
     setNotice,
     onSessionInvalid,
+    onTranscriptReady,
     isPlayingSpeech,
     speechSupportRef
   }) {
@@ -62,7 +63,8 @@ export function createUseChildVoiceCapture({
       setStudentInput,
       setError,
       setNotice,
-      onSessionInvalid
+      onSessionInvalid,
+      onTranscriptReady
     });
 
     const browserCapture = useBrowserCaptureHook({

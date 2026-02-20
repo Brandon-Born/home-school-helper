@@ -42,6 +42,7 @@ function createRecorderFactory() {
 
 function createCloudHarnessHook(useCloudCaptureHook, options = {}) {
   const invalidMessages = [];
+  const transcriptReadyCalls = [];
 
   function useHarness() {
     const [studentInput, setStudentInput] = useState(options.initialStudentInput ?? "");
@@ -61,7 +62,13 @@ function createCloudHarnessHook(useCloudCaptureHook, options = {}) {
       setNotice,
       onSessionInvalid: (message) => {
         invalidMessages.push(message);
-      }
+      },
+      onTranscriptReady: options.onTranscriptReady
+        ? async (value) => {
+            transcriptReadyCalls.push(value);
+            return options.onTranscriptReady(value);
+          }
+        : null
     });
 
     return {
@@ -69,7 +76,8 @@ function createCloudHarnessHook(useCloudCaptureHook, options = {}) {
       studentInput,
       error,
       notice,
-      invalidMessages
+      invalidMessages,
+      transcriptReadyCalls
     };
   }
 
@@ -109,9 +117,46 @@ test("useCloudVoiceCaptureStrategy transcribes cloud capture and updates input",
   assert.equal(state.capture.state.isCloudRecording, false);
   assert.equal(state.capture.state.isTranscribing, false);
   assert.equal(state.studentInput, "Base input transcribed answer");
-  assert.equal(state.notice, "Voice captured. Tap Send when ready.");
+  assert.equal(state.notice, "Great! Tap Ask to send.");
   assert.equal(state.error, "");
   assert.equal(streamTracks[0].stopped, true);
+
+  await renderer.unmount();
+});
+
+test("useCloudVoiceCaptureStrategy submits transcript via callback when available", async () => {
+  const { createMediaRecorderImpl } = createRecorderFactory();
+  const useCloudCaptureHook = createUseCloudVoiceCaptureStrategy({
+    getUserMediaImpl: async () => ({
+      getTracks: () => []
+    }),
+    createMediaRecorderImpl,
+    createBlobImpl: () => new Blob(["audio"]),
+    apiFormRequestImpl: async () => ({
+      transcript: "spoken answer"
+    })
+  });
+
+  const useHarness = createCloudHarnessHook(useCloudCaptureHook, {
+    initialStudentInput: "Base input",
+    onTranscriptReady: async () => true
+  });
+  const renderer = await createHookRenderer(() => useHarness());
+
+  await act(async () => {
+    void renderer.getCurrent().capture.actions.startCloudVoiceCapture();
+  });
+  await act(async () => {
+    renderer.getCurrent().capture.actions.stopCloudVoiceCapture();
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  const state = renderer.getCurrent();
+  assert.equal(state.transcriptReadyCalls.length, 1);
+  assert.equal(state.transcriptReadyCalls[0], "Base input spoken answer");
+  assert.equal(state.studentInput, "Base input");
+  assert.equal(state.notice, "Great! Sending it now.");
 
   await renderer.unmount();
 });

@@ -17,17 +17,30 @@ function timeAgo(isoString) {
     return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function timeUntil(isoString) {
+function timeUntil(isoString, now = Date.now()) {
     if (!isoString) return "soon";
     const timestamp = new Date(isoString).getTime();
     if (Number.isNaN(timestamp)) return "soon";
 
-    const diff = timestamp - Date.now();
+    const diff = timestamp - now;
     if (diff <= 0) return "expired";
     const mins = Math.ceil(diff / 60000);
     if (mins < 60) return `in ${mins}m`;
     const hrs = Math.floor(mins / 60);
     return `in ${hrs}h`;
+}
+
+function isJoinCodeActive(joinCode, expiresAt, now = Date.now()) {
+    if (!joinCode || !expiresAt) {
+        return false;
+    }
+
+    const expiryTs = new Date(expiresAt).getTime();
+    if (Number.isNaN(expiryTs)) {
+        return false;
+    }
+
+    return expiryTs > now;
 }
 
 export function ActiveSessionsPanel({
@@ -99,6 +112,8 @@ export function ActiveSessionsPanel({
                     const isSelected = child.id === selectedChildId;
                     const joinCode = session?.join_code;
                     const joinCodeExpiry = session?.expires_at;
+                    const now = Date.now();
+                    const shouldShowJoinCode = isJoinCodeActive(joinCode, joinCodeExpiry, now);
                     const subjects = session?.daily_context?.daily_subjects;
 
                     return (
@@ -127,13 +142,13 @@ export function ActiveSessionsPanel({
 
                             {session ? (
                                 <>
-                                    {joinCode ? (
+                                    {shouldShowJoinCode ? (
                                         <div className="active-session-card__code">
                                             <span className="join-code" data-testid={`active-session-code-${session.session_id}`}>
                                                 {joinCode}
                                             </span>
                                             <span className="section-muted" style={{ fontSize: "0.8rem" }}>
-                                                expires {timeUntil(joinCodeExpiry)}
+                                                expires {timeUntil(joinCodeExpiry, now)}
                                             </span>
                                         </div>
                                     ) : null}

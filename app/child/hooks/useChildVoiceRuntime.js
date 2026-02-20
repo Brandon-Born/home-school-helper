@@ -11,7 +11,8 @@ export function useChildVoiceRuntime({
   studentInput,
   setStudentInput,
   setError,
-  onSessionInvalid
+  onSessionInvalid,
+  onTranscriptReady
 }) {
   const [isPlayingSpeech, setIsPlayingSpeech] = useState(false);
   const [pendingTutorReply, setPendingTutorReply] = useState(false);
@@ -42,6 +43,7 @@ export function useChildVoiceRuntime({
     setError,
     setNotice,
     onSessionInvalid,
+    onTranscriptReady,
     isPlayingSpeech,
     speechSupportRef
   });

@@ -80,7 +80,7 @@ test("useBrowserVoiceCaptureStrategy applies interim and final transcripts", asy
     renderer.getCurrent().capture.actions.startBrowserVoiceCapture();
   });
   assert.equal(renderer.getCurrent().capture.state.isListening, true);
-  assert.equal(renderer.getCurrent().notice, "Listening. Tap to stop.");
+  assert.equal(renderer.getCurrent().notice, "Listening... tap again when you're done.");
   assert.equal(recognitions.length, 1);
 
   await act(async () => {

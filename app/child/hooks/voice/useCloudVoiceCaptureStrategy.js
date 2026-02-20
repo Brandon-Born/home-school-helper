@@ -22,7 +22,8 @@ export function createUseCloudVoiceCaptureStrategy({
     setStudentInput,
     setError,
     setNotice,
-    onSessionInvalid
+    onSessionInvalid,
+    onTranscriptReady
   }) {
     const [isCloudRecording, setIsCloudRecording] = useState(false);
     const [isTranscribing, setIsTranscribing] = useState(false);
@@ -95,7 +96,13 @@ export function createUseCloudVoiceCaptureStrategy({
         }
 
         const baseInput = studentInputRef.current.trim();
-        setStudentInput([baseInput, transcript].filter(Boolean).join(" "));
+        const composedInput = [baseInput, transcript].filter(Boolean).join(" ");
+        let autoSent = false;
+        if (typeof onTranscriptReady === "function") {
+          autoSent = Boolean(await onTranscriptReady(composedInput));
+        } else {
+          setStudentInput(composedInput);
+        }
         logClientVoiceMetric("cloud_stt_transcribe_success", {
           transport: "cloud_stt",
           session_id: sessionAccess.session_id
@@ -104,8 +111,12 @@ export function createUseCloudVoiceCaptureStrategy({
           status: "transcribed",
           transport: "cloud_stt"
         });
+        return {
+          autoSent,
+          composedInput
+        };
       },
-      [apiFormRequestImpl, sessionAccess?.child_session_token, sessionAccess?.session_id, setStudentInput, trackProductEventImpl]
+      [apiFormRequestImpl, onTranscriptReady, sessionAccess?.child_session_token, sessionAccess?.session_id, setStudentInput, trackProductEventImpl]
     );
 
     const startCloudVoiceCapture = useCallback(async () => {
@@ -172,11 +183,15 @@ export function createUseCloudVoiceCaptureStrategy({
           }
 
           setIsTranscribing(true);
-          setNotice("Turning your voice into text...");
+          setNotice("Getting your words...");
           try {
-            await transcribeCloudRecording(createBlobImpl(chunks, { type: recorder.mimeType || "audio/webm" }));
+            const result = await transcribeCloudRecording(createBlobImpl(chunks, { type: recorder.mimeType || "audio/webm" }));
             setError("");
-            setNotice("Voice captured. Tap Send when ready.");
+            if (result?.autoSent) {
+              setNotice("Great! Sending it now.");
+            } else {
+              setNotice("Great! Tap Ask to send.");
+            }
           } catch (speechError) {
             if (isChildAuthFailure(speechError)) {
               logClientVoiceMetric(
@@ -205,7 +220,7 @@ export function createUseCloudVoiceCaptureStrategy({
               status: "failed",
               transport: "cloud_stt"
             });
-            setError(classifySpeechFailure(speechError, "We could not turn that into text. Tap to talk and try again."));
+            setError(classifySpeechFailure(speechError, "We couldn't hear that. Tap the mic and try again."));
             setNotice("");
           } finally {
             setIsTranscribing(false);
@@ -222,7 +237,7 @@ export function createUseCloudVoiceCaptureStrategy({
           transport: "cloud_stt"
         });
         setError("");
-        setNotice("Listening. Tap to transcribe.");
+        setNotice("Listening... tap again when you're done.");
         setIsCloudRecording(true);
       } catch (captureError) {
         const denied =
