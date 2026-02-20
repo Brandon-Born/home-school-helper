@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Solid background with squircle corners to ensure it pops in light/dark tabs -->
+  <rect width="512" height="512" rx="115" fill="#4F46E5" />
+  
+  <!-- Owl Body -->
+  <path d="M 140 420 C 140 240, 180 160, 256 160 C 332 160, 372 240, 372 420 Z" fill="#ffffff" />
+  
+  <!-- Owl "Ears" / Tuft -->
+  <polygon points="150,210 110,130 210,180" fill="#ffffff" />
+  <polygon points="362,210 402,130 302,180" fill="#ffffff" />
+
+  <!-- Eyes Large Background -->
+  <circle cx="206" cy="256" r="48" fill="#1E1B4B" />
+  <circle cx="306" cy="256" r="48" fill="#1E1B4B" />
+
+  <!-- Eyes Inner Iris (Bright Blue) -->
+  <circle cx="206" cy="256" r="20" fill="#38BDF8" />
+  <circle cx="306" cy="256" r="20" fill="#38BDF8" />
+
+  <!-- Eye Highlights -->
+  <circle cx="196" cy="246" r="8" fill="#ffffff" />
+  <circle cx="296" cy="246" r="8" fill="#ffffff" />
+
+  <!-- Beak -->
+  <polygon points="230,316 282,316 256,356" fill="#F59E0B" />
+
+  <!-- Graduation Cap Board -->
+  <polygon points="256,40 110,90 256,140 402,90" fill="#111827" />
+  
+  <!-- Cap Base/Skullcap -->
+  <path d="M 180,115 V 150 C 180 170, 332 170, 332 150 V 115 Z" fill="#111827" />
+
+  <!-- Tassel Button -->
+  <circle cx="256" cy="90" r="10" fill="#F59E0B" />
+
+  <!-- Tassel line and fringe -->
+  <path d="M 256,90 L 370,120 V 170" fill="none" stroke="#F59E0B" stroke-width="12" stroke-linejoin="round" stroke-linecap="round" />
+</svg>
