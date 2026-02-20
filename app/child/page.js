@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef } from "react";
 import { JoinSessionPanel } from "./components/JoinSessionPanel.js";
 import { SessionStatusPanel } from "./components/SessionStatusPanel.js";
 import { TranscriptPanel } from "./components/TranscriptPanel.js";
@@ -11,13 +10,6 @@ import { AppShell } from "../components/layout/AppShell.js";
 
 export default function ChildPage() {
   const { state, actions } = useChildConsole();
-  const frozenErrorRef = useRef("");
-
-  if (!state.isHoldToTalkPressed) {
-    frozenErrorRef.current = state.error;
-  }
-
-  const errorMessage = state.isHoldToTalkPressed ? frozenErrorRef.current : state.error;
 
   return (
     <AppShell
@@ -25,7 +17,7 @@ export default function ChildPage() {
       title="Hey there! 👋"
       subtitle="Type the code your parent gave you and let's get started."
     >
-      <StatusAlert tone="error" message={errorMessage} />
+      <StatusAlert tone="error" message={state.error} />
 
       {!state.sessionAccess ? (
         <div className="console-centered">
@@ -62,9 +54,6 @@ export default function ChildPage() {
             onSend={actions.sendTurn}
             onVoiceStart={actions.startVoiceCapture}
             onVoiceStop={actions.stopVoiceCapture}
-            onVoiceHoldStart={actions.beginHoldToTalk}
-            onVoiceHoldEnd={actions.endHoldToTalk}
-            holdToTalkPressed={state.isHoldToTalkPressed}
             isCloudRecording={state.isCloudRecording}
             isListening={state.isListening}
             speechSupport={state.speechSupport}

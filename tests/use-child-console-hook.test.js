@@ -181,7 +181,7 @@ test("useChildConsole uppercases join code input", async () => {
   delete global.window;
 });
 
-test("useChildConsole tracks hold-to-talk press lifecycle", async () => {
+test("useChildConsole forwards voice start/stop actions", async () => {
   const localStorage = createLocalStorageMock();
   global.window = { localStorage };
 
@@ -197,22 +197,16 @@ test("useChildConsole tracks hold-to-talk press lifecycle", async () => {
   const renderer = await createHookRenderer(() => useChildConsoleHook());
   await flushEffects();
 
-  assert.equal(renderer.getCurrent().state.isHoldToTalkPressed, false);
-
   await act(async () => {
-    renderer.getCurrent().actions.beginHoldToTalk();
     renderer.getCurrent().actions.startVoiceCapture();
   });
 
-  assert.equal(renderer.getCurrent().state.isHoldToTalkPressed, true);
   assert.equal(voice.startCalls, 1);
 
   await act(async () => {
     renderer.getCurrent().actions.stopVoiceCapture();
-    renderer.getCurrent().actions.endHoldToTalk();
   });
 
-  assert.equal(renderer.getCurrent().state.isHoldToTalkPressed, false);
   assert.equal(voice.stopCalls, 1);
 
   await renderer.unmount();

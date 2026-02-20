@@ -140,7 +140,7 @@ export function createUseBrowserVoiceCaptureStrategy({
       try {
         recognitionRef.current = recognition;
         setError("");
-        setNotice("Listening. Release to stop.");
+        setNotice("Listening. Tap to stop.");
         setIsListening(true);
         recognition.start();
         logClientVoiceMetric("browser_stt_start", {

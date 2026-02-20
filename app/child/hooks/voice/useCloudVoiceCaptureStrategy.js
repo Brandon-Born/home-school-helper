@@ -142,7 +142,7 @@ export function createUseCloudVoiceCaptureStrategy({
             },
             { level: "warn" }
           );
-          setError("Recording failed. Hold to talk and try again.");
+          setError("Recording failed. Tap to talk and try again.");
           setNotice("");
           setIsCloudRecording(false);
         };
@@ -205,7 +205,7 @@ export function createUseCloudVoiceCaptureStrategy({
               status: "failed",
               transport: "cloud_stt"
             });
-            setError(classifySpeechFailure(speechError, "We could not turn that into text. Hold to talk and try again."));
+            setError(classifySpeechFailure(speechError, "We could not turn that into text. Tap to talk and try again."));
             setNotice("");
           } finally {
             setIsTranscribing(false);
@@ -222,7 +222,7 @@ export function createUseCloudVoiceCaptureStrategy({
           transport: "cloud_stt"
         });
         setError("");
-        setNotice("Listening. Release to transcribe.");
+        setNotice("Listening. Tap to transcribe.");
         setIsCloudRecording(true);
       } catch (captureError) {
         const denied =

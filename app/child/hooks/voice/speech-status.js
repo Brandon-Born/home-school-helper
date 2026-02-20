@@ -24,11 +24,11 @@ export function getVoiceStatusText(speechSupport) {
 
 export function getTurnStatusText({ isCloudRecording, isListening, isTranscribing, pendingTutorReply, isPlayingSpeech, notice }) {
   if (isCloudRecording) {
-    return "Listening. Release to transcribe.";
+    return "Listening. Tap to transcribe.";
   }
 
   if (isListening) {
-    return "Listening. Release to stop.";
+    return "Listening. Tap to stop.";
   }
 
   if (isTranscribing) {
@@ -48,11 +48,11 @@ export function getTurnStatusText({ isCloudRecording, isListening, isTranscribin
 
 export function getListeningLabelText({ isCloudRecording, isListening, isTranscribing, isPlayingSpeech }) {
   if (isCloudRecording) {
-    return "Recording... release to fill the text box";
+    return "Recording... tap to transcribe";
   }
 
   if (isListening) {
-    return "Listening... release to stop";
+    return "Listening... tap to stop";
   }
 
   if (isTranscribing) {
@@ -63,5 +63,5 @@ export function getListeningLabelText({ isCloudRecording, isListening, isTranscr
     return "Sidekick speaking...";
   }
 
-  return "Hold to talk";
+  return "Tap to talk";
 }

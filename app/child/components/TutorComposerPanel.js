@@ -1,7 +1,5 @@
 "use client";
 
-import { useRef } from "react";
-
 export function TutorComposerPanel({
   studentInput,
   setStudentInput,
@@ -14,9 +12,6 @@ export function TutorComposerPanel({
   onSend,
   onVoiceStart,
   onVoiceStop,
-  onVoiceHoldStart,
-  onVoiceHoldEnd,
-  holdToTalkPressed,
   isCloudRecording,
   isListening,
   speechSupport,
@@ -25,32 +20,20 @@ export function TutorComposerPanel({
   const isVoiceActive = isCloudRecording || isListening;
   const showThinking = isTranscribing || pendingTutorReply || isPlayingSpeech;
   const voiceDisabled = loading || voiceBusy || pendingTutorReply || (!speechSupport.cloudStt && !speechSupport.browserStt);
-  const frozenVoiceUiRef = useRef(null);
-  const wasHoldingRef = useRef(false);
+  const voiceButtonClass = `btn btn--secondary voice-button${isVoiceActive ? " is-active" : ""}`;
 
-  if (holdToTalkPressed && !wasHoldingRef.current) {
-    frozenVoiceUiRef.current = {
-      isVoiceActive,
-      listeningLabel,
-      turnStatus,
-      showThinking
-    };
-  } else if (!holdToTalkPressed && wasHoldingRef.current) {
-    frozenVoiceUiRef.current = null;
-  }
-  wasHoldingRef.current = holdToTalkPressed;
-
-  const frozenVoiceUi = holdToTalkPressed ? frozenVoiceUiRef.current : null;
-  const displayIsVoiceActive = frozenVoiceUi?.isVoiceActive ?? isVoiceActive;
-  const displayListeningLabel = frozenVoiceUi?.listeningLabel ?? listeningLabel;
-  const displayTurnStatus = frozenVoiceUi?.turnStatus ?? turnStatus;
-  const displayShowThinking = frozenVoiceUi?.showThinking ?? showThinking;
-  const voiceButtonClass = `btn btn--secondary voice-button${displayIsVoiceActive ? " is-active" : ""}`;
+  const toggleVoiceCapture = () => {
+    if (isVoiceActive) {
+      onVoiceStop();
+      return;
+    }
+    onVoiceStart();
+  };
 
   return (
     <section className="card" aria-busy={loading || pendingTutorReply}>
       <h2 className="section-title">What do you want to learn? 🤔</h2>
-      <p className="section-muted">Type your question or hold the mic button to talk.</p>
+      <p className="section-muted">Type your question or tap the mic button to start and stop talking.</p>
       <form onSubmit={onSend} className="form-grid" aria-busy={loading || pendingTutorReply}>
         <div className="voice-row">
           <label className="sr-only" htmlFor="student-input">
@@ -77,75 +60,22 @@ export function TutorComposerPanel({
         <div className="voice-row">
           <button
             type="button"
-            onPointerDown={(event) => {
-              event.preventDefault();
-              onVoiceHoldStart();
-              onVoiceStart();
-            }}
-            onPointerUp={(event) => {
-              event.preventDefault();
-              onVoiceStop();
-              onVoiceHoldEnd();
-            }}
             onClick={(event) => {
-              if (event.detail !== 0) {
-                return;
-              }
-
-              if (isVoiceActive) {
-                onVoiceStop();
-              } else {
-                onVoiceStart();
-              }
-            }}
-            onKeyDown={(event) => {
-              if ((event.key === "Enter" || event.key === " ") && !isVoiceActive) {
-                event.preventDefault();
-                onVoiceHoldStart();
-                onVoiceStart();
-              }
-            }}
-            onKeyUp={(event) => {
-              if ((event.key === "Enter" || event.key === " ") && isVoiceActive) {
-                event.preventDefault();
-                onVoiceStop();
-                onVoiceHoldEnd();
-              }
-            }}
-            onPointerCancel={(event) => {
               event.preventDefault();
-              onVoiceStop();
-              onVoiceHoldEnd();
-            }}
-            onPointerLeave={(event) => {
-              if (holdToTalkPressed) {
-                event.preventDefault();
-                if (isCloudRecording || isListening) {
-                  onVoiceStop();
-                }
-                onVoiceHoldEnd();
-              }
-            }}
-            onBlur={() => {
-              if (holdToTalkPressed) {
-                if (isVoiceActive) {
-                  onVoiceStop();
-                }
-                onVoiceHoldEnd();
-              }
+              toggleVoiceCapture();
             }}
             disabled={voiceDisabled}
             className={voiceButtonClass}
-            aria-pressed={displayIsVoiceActive}
+            aria-pressed={isVoiceActive}
             aria-describedby="turn-status"
           >
-            {displayListeningLabel}
+            {listeningLabel}
           </button>
 
           <span id="turn-status" className="pill" role="status" aria-live="polite">
-            {displayTurnStatus || "Waiting for your question"}
+            {turnStatus || "Waiting for your question"}
           </span>
-          {displayShowThinking ? <span className="pill pulse">Thinking...</span> : null}
+          {showThinking ? <span className="pill pulse">Thinking...</span> : null}
         </div>
       </form>
     </section>

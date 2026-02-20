@@ -5,6 +5,41 @@ Notes:
 - Kept the 3 most recent detailed handoffs.
 - Deduplicated older history into a durable summary for fast agent onboarding.
 
+## 2026-02-20T03:25:02Z - Codex
+
+### Scope Worked
+- Switched child microphone interaction from hold-to-talk to tap-to-toggle (tap to start listening, tap again to stop/transcribe).
+
+### Last Agent Accomplished
+- Removed hold-state plumbing from `useChildConsole` and `ChildPage`.
+- Simplified `TutorComposerPanel` mic button handlers to a toggle click interaction and updated instructional copy.
+- Updated speech status/label strings and voice capture notices from "release" semantics to "tap" semantics.
+- Updated unit tests to align with toggle behavior and revised notice text.
+
+### Files Touched
+- `app/child/components/TutorComposerPanel.js`
+- `app/child/hooks/useChildConsole.js`
+- `app/child/page.js`
+- `app/child/hooks/voice/speech-status.js`
+- `app/child/hooks/voice/useBrowserVoiceCaptureStrategy.js`
+- `app/child/hooks/voice/useCloudVoiceCaptureStrategy.js`
+- `tests/use-child-console-hook.test.js`
+- `tests/use-browser-voice-capture-strategy.test.js`
+- `docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- Command: `npm run test:unit -- tests/use-child-console-hook.test.js tests/use-browser-voice-capture-strategy.test.js tests/use-cloud-voice-capture-strategy.test.js`
+- Result: pass (8 tests, 0 failures).
+
+### Open Risks / Issues
+- No browser e2e assertion yet for the tap-toggle interaction on actual pointer events.
+
+### Next Steps (Ordered)
+1. Add a Playwright child mic interaction assertion for tap start/tap stop behavior and status copy.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-20T03:19:59Z - Codex
 
 ### Scope Worked

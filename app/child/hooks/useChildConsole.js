@@ -37,7 +37,6 @@ export function createUseChildConsole({
     send: false
   });
   const [error, setError] = useState("");
-  const [isHoldToTalkPressed, setIsHoldToTalkPressed] = useState(false);
   const clearSessionRef = useRef((message) => {
     void message;
   });
@@ -85,7 +84,6 @@ export function createUseChildConsole({
       join: false,
       send: false
     });
-    setIsHoldToTalkPressed(false);
     setStudentInput("");
     setError(message || "");
   }, []);
@@ -247,14 +245,6 @@ export function createUseChildConsole({
     clearChildSession("");
   }
 
-  const beginHoldToTalk = useCallback(() => {
-    setIsHoldToTalkPressed(true);
-  }, []);
-
-  const endHoldToTalk = useCallback(() => {
-    setIsHoldToTalkPressed(false);
-  }, []);
-
     return {
     state: {
       sessionAccess,
@@ -274,7 +264,6 @@ export function createUseChildConsole({
       speechSupport: voice.state.speechSupport,
       isListening: voice.state.isListening,
       isCloudRecording: voice.state.isCloudRecording,
-      isHoldToTalkPressed,
       autoSpeak: voice.state.autoSpeak,
       voiceStatus: voice.state.voiceStatus,
       listeningLabel: voice.state.listeningLabel
@@ -286,8 +275,6 @@ export function createUseChildConsole({
       setAutoSpeak: voice.actions.setAutoSpeak,
       joinSession,
       sendTurn,
-      beginHoldToTalk,
-      endHoldToTalk,
       startVoiceCapture: voice.actions.startVoiceCapture,
       stopVoiceCapture: voice.actions.stopVoiceCapture,
       leaveSession
