@@ -3,7 +3,6 @@
 import { useTheme } from "./ThemeProvider.js";
 
 const MODES = [
-  { value: "system", label: "System" },
   { value: "light", label: "Light" },
   { value: "dark", label: "Dark" }
 ];
