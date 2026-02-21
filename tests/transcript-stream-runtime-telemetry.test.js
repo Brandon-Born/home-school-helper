@@ -50,7 +50,7 @@ test("startTranscriptStreamRuntime emits poll error and recovery telemetry", asy
         event.event === "stream_poll_error" &&
         event.session_id === "s_runtime" &&
         event.visibility === "child" &&
-        event.error_message === "poll failed"
+        event.error_code === "stream_poll_failed"
     ),
     true
   );

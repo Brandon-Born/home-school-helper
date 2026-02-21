@@ -8,12 +8,17 @@ import { createSpeechTranscribePostHandler } from "../app/api/session/[id]/speec
 import { createChildTurnPostHandler } from "../app/api/session/[id]/child-turn/route.js";
 import { createParentNudgePostHandler } from "../app/api/session/[id]/parent-nudge/route.js";
 import { createOverridePostHandler } from "../app/api/session/[id]/override/route.js";
+import { resetStreamConnectionSlots } from "../src/server/stream-connection-guard.js";
 import { assertApiErrorResponse, createAudioFormRequest, createJsonRequest } from "./helpers/route-test-helpers.js";
 
 const originalSpeechTelemetrySetting = process.env.SPEECH_TELEMETRY_DISABLED;
 process.env.SPEECH_TELEMETRY_DISABLED = "1";
 test.after(() => {
   process.env.SPEECH_TELEMETRY_DISABLED = originalSpeechTelemetrySetting;
+});
+
+test.beforeEach(() => {
+  resetStreamConnectionSlots();
 });
 
 test("dynamic route handlers accept promised params for messages and stream routes", async () => {
@@ -32,6 +37,7 @@ test("dynamic route handlers accept promised params for messages and stream rout
   assert.equal(messagesPayload.visibility, "s1");
 
   const streamHandler = createStreamGetHandler({
+    enforceRateLimit: () => {},
     resolveSessionViewerContext: async (_request, sessionId) => ({ role: "parent", visibility: sessionId }),
     listSessionMessages: async () => [],
     createSessionMessageSubscription: async () => async () => {},

@@ -21,6 +21,7 @@ test("resolveSessionViewerContext resolves parent viewer when parent token and o
 });
 
 test("resolveSessionViewerContext falls back to child viewer only on 401 parent auth errors", async () => {
+  let childOptions = null;
   const context = await resolveSessionViewerContext(new Request("https://example.test"), "session_2", {
     requireParentContext: async () => {
       throw new ApiError(401, "invalid_parent_token", "invalid");
@@ -28,9 +29,12 @@ test("resolveSessionViewerContext falls back to child viewer only on 401 parent 
     ensureParentOwnsSession: async () => {
       throw new Error("ownership path should not run after auth failure");
     },
-    requireChildSessionContext: async (_request, sessionId) => ({
-      tokenRow: { child_id: "child_1", session_id: sessionId }
-    })
+    requireChildSessionContext: async (_request, sessionId, options) => {
+      childOptions = options;
+      return {
+        tokenRow: { child_id: "child_1", session_id: sessionId }
+      };
+    }
   });
 
   assert.deepEqual(context, {
@@ -38,6 +42,7 @@ test("resolveSessionViewerContext falls back to child viewer only on 401 parent 
     visibility: "child",
     child_id: "child_1"
   });
+  assert.deepEqual(childOptions, { requireActiveSession: true });
 });
 
 test("resolveSessionViewerContext surfaces non-401 parent errors", async () => {

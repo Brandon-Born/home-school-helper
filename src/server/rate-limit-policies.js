@@ -31,6 +31,11 @@ export const RATE_LIMIT_POLICIES = Object.freeze({
     maxRequests: 35,
     windowMs: BASE_WINDOW_MS
   }),
+  sessionStreamConnect: Object.freeze({
+    scope: "session_stream_connect",
+    maxRequests: 25,
+    windowMs: BASE_WINDOW_MS
+  }),
   sessionActiveList: Object.freeze({
     scope: "session_active_list",
     maxRequests: 45,

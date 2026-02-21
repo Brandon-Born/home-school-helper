@@ -1,7 +1,22 @@
-import { asApiError } from "./api-error.js";
+import { ApiError, asApiError } from "./api-error.js";
+
+export const GENERIC_SERVER_ERROR_MESSAGE = "Something went wrong. Please try again.";
+
+export function toPublicApiError(error, fallbackCode) {
+  if (error instanceof ApiError) {
+    return error;
+  }
+
+  const apiError = asApiError(error, 500, fallbackCode);
+  if (apiError.status >= 500) {
+    return new ApiError(apiError.status, apiError.code, GENERIC_SERVER_ERROR_MESSAGE);
+  }
+
+  return apiError;
+}
 
 export function handleRouteError(error, fallbackCode) {
-  const apiError = asApiError(error, 500, fallbackCode);
+  const apiError = toPublicApiError(error, fallbackCode);
 
   return Response.json(
     {

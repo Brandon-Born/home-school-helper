@@ -61,6 +61,20 @@ function filterByVisibility(messages, visibility) {
   return messages.filter((message) => message?.visibility_scope === "child_and_parent");
 }
 
+function getErrorCode(error, fallbackCode) {
+  if (error && typeof error === "object" && typeof error.code === "string" && error.code) {
+    return error.code;
+  }
+  return fallbackCode;
+}
+
+function getErrorStatus(error) {
+  if (error && typeof error === "object" && Number.isFinite(error.status)) {
+    return error.status;
+  }
+  return undefined;
+}
+
 export async function startTranscriptStreamRuntime({
   writer,
   sessionId,
@@ -185,15 +199,17 @@ export async function startTranscriptStreamRuntime({
     } catch (error) {
       pollFailed = true;
       streamHadPollError = true;
+      const errorStatus = getErrorStatus(error);
       logStreamEvent("warn", {
         event: "stream_poll_error",
         session_id: sessionId,
         visibility,
-        error_message: error instanceof Error ? error.message : "Stream polling failed."
+        error_code: getErrorCode(error, "stream_poll_failed"),
+        ...(errorStatus ? { error_status: errorStatus } : {})
       });
       await writer.write(
         serializeSse("error", {
-          message: error instanceof Error ? error.message : "Stream polling failed."
+          message: "Stream polling failed."
         })
       );
     } finally {
@@ -257,7 +273,8 @@ export async function startTranscriptStreamRuntime({
           event: "stream_realtime_error",
           session_id: sessionId,
           visibility,
-          error_message: error instanceof Error ? error.message : "Realtime stream error."
+          error_code: getErrorCode(error, "stream_realtime_error"),
+          ...(Number.isFinite(getErrorStatus(error)) ? { error_status: getErrorStatus(error) } : {})
         });
 
         if (desiredTransportMode === "auto" && !pollTimer) {
@@ -310,12 +327,14 @@ export async function startTranscriptStreamRuntime({
     try {
       await startRealtimeTransport();
     } catch (error) {
+      const errorStatus = getErrorStatus(error);
       logStreamEvent("warn", {
         event: "stream_transport_failed",
         session_id: sessionId,
         visibility,
         mode: "realtime",
-        error_message: error instanceof Error ? error.message : "Realtime transport failed."
+        error_code: getErrorCode(error, "stream_transport_failed"),
+        ...(errorStatus ? { error_status: errorStatus } : {})
       });
 
       if (desiredTransportMode === "realtime") {

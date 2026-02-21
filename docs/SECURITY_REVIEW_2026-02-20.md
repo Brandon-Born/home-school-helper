@@ -17,6 +17,19 @@
 - Primary risk theme: authorization/session lifecycle hardening and abuse resistance (cost/DoS).
 - Highest priority: fix fail-open consent behavior, enforce bounded inputs, and revoke child session capabilities when a session ends.
 
+## Remediation Update (2026-02-21)
+- Status: All nine findings below have been remediated in code and validated by targeted security test suites.
+- Fix highlights:
+  - COPPA fail-open protections now include production fail-closed behavior plus startup schema health validation (`scripts/validate-env.mjs`, `src/server/session-foundation/coppa-schema-health.js`).
+  - Expensive-path payload caps and speech MIME/size validation are enforced with regression coverage (`app/api/session/[id]/child-turn/route.js`, `app/api/session/[id]/parent-nudge/route.js`, `src/server/speech-route-validators.js`).
+  - Child token invalidation on session end plus active-session enforcement now blocks child access on ended sessions (including stream/messages child path via viewer resolver).
+  - Unexpected server/internal error text is redacted from client envelopes; provider raw payload passthrough removed for Anthropic path.
+  - Stream abuse controls added: connect rate limiting + concurrent stream caps + slot lifecycle telemetry.
+  - Production rate-limit behavior now disallows silent fallback and tightens proxy-header trust defaults.
+  - Hardened security headers added (CSP/HSTS/frame/referrer/content-type/permissions) and inline bootstrap script moved to static asset; nonce-based strict CSP follow-up is tracked in the product backlog.
+  - Child session token persistence moved from `localStorage` to `sessionStorage` (intermediate hardening step; cookie migration tracked in product backlog).
+  - Server telemetry now redacts freeform `error.message` by default (opt-in only via env).
+
 ## Findings
 
 ### 1) Fail-open COPPA consent behavior on schema mismatch

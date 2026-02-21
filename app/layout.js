@@ -1,6 +1,5 @@
 import "./globals.css";
 import { ThemeProvider } from "./components/theme/ThemeProvider.js";
-import { THEME_BOOTSTRAP_SCRIPT } from "../src/lib/theme-mode.js";
 
 export const metadata = {
   title: "Homeschool Sidekick",
@@ -17,7 +16,7 @@ export default function RootLayout({ children }) {
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap"
           rel="stylesheet"
         />
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
+        <script src="/theme-bootstrap.js" />
       </head>
       <body>
         <ThemeProvider>{children}</ThemeProvider>

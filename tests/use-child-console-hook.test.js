@@ -69,8 +69,9 @@ function buildVoiceStub() {
 }
 
 test("useChildConsole handles join/send optimistic updates and stream auth invalidation", async () => {
+  const sessionStorage = createLocalStorageMock();
   const localStorage = createLocalStorageMock();
-  global.window = { localStorage };
+  global.window = { localStorage, sessionStorage };
 
   let streamArgs = null;
   const voice = buildVoiceStub();
@@ -156,8 +157,9 @@ test("useChildConsole handles join/send optimistic updates and stream auth inval
 });
 
 test("useChildConsole uppercases join code input", async () => {
+  const sessionStorage = createLocalStorageMock();
   const localStorage = createLocalStorageMock();
-  global.window = { localStorage };
+  global.window = { localStorage, sessionStorage };
 
   const voice = buildVoiceStub();
   const useChildConsoleHook = createUseChildConsole({
@@ -181,9 +183,53 @@ test("useChildConsole uppercases join code input", async () => {
   delete global.window;
 });
 
-test("useChildConsole forwards voice start/stop actions", async () => {
+test("useChildConsole persists child session access in sessionStorage", async () => {
+  const sessionStorage = createLocalStorageMock();
   const localStorage = createLocalStorageMock();
-  global.window = { localStorage };
+  global.window = { localStorage, sessionStorage };
+
+  const voice = buildVoiceStub();
+  const useChildConsoleHook = createUseChildConsole({
+    apiRequestImpl: async (path) => {
+      if (path === "/api/session/join") {
+        return {
+          session_access: {
+            session_id: "session_1",
+            child_session_token: "child-token",
+            child_id: "child_1"
+          }
+        };
+      }
+      throw new Error("Unexpected request");
+    },
+    useSessionStreamHook: () => {},
+    useChildVoiceRuntimeHook: () => voice
+  });
+
+  const renderer = await createHookRenderer(() => useChildConsoleHook());
+  await flushEffects();
+
+  await act(async () => {
+    renderer.getCurrent().actions.setJoinCode("AB12CD34");
+  });
+  await act(async () => {
+    await renderer.getCurrent().actions.joinSession({
+      preventDefault() {}
+    });
+  });
+
+  const stored = sessionStorage.getItem("child_session_access");
+  assert.equal(typeof stored, "string");
+  assert.equal(localStorage.getItem("child_session_access"), null);
+
+  await renderer.unmount();
+  delete global.window;
+});
+
+test("useChildConsole forwards voice start/stop actions", async () => {
+  const sessionStorage = createLocalStorageMock();
+  const localStorage = createLocalStorageMock();
+  global.window = { localStorage, sessionStorage };
 
   const voice = buildVoiceStub();
   const useChildConsoleHook = createUseChildConsole({

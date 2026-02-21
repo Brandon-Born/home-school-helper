@@ -5,6 +5,27 @@ const RATE_LIMIT_STORE = new Map();
 const DISTRIBUTED_FALLBACK_WARNINGS = new Set();
 const SUPPORTED_BACKENDS = new Set(["auto", "memory", "supabase"]);
 
+function parseBooleanEnv(rawValue, fallbackValue) {
+  if (rawValue === undefined || rawValue === null || String(rawValue).trim() === "") {
+    return fallbackValue;
+  }
+
+  const normalized = String(rawValue).trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+
+  if (["0", "false", "no", "off"].includes(normalized)) {
+    return false;
+  }
+
+  return fallbackValue;
+}
+
+function isProductionEnvironment(env = process.env) {
+  return String(env.NODE_ENV || "").trim().toLowerCase() === "production";
+}
+
 function parseForwardedIp(value) {
   if (!value) {
     return "";
@@ -15,8 +36,24 @@ function parseForwardedIp(value) {
     .trim();
 }
 
-export function getClientAddress(request) {
+export function getClientAddress(request, options = {}) {
+  const env = options.env ?? process.env;
+  const trustProxyHeaders = parseBooleanEnv(
+    env.RATE_LIMIT_TRUST_PROXY_HEADERS,
+    !isProductionEnvironment(env)
+  );
+
+  const trustedPlatformAddress =
+    parseForwardedIp(request.headers.get("x-vercel-forwarded-for")) ||
+    parseForwardedIp(request.headers.get("x-vercel-ip")) ||
+    parseForwardedIp(request.headers.get("fly-client-ip"));
+
+  if (!trustProxyHeaders) {
+    return trustedPlatformAddress || "unknown";
+  }
+
   return (
+    trustedPlatformAddress ||
     parseForwardedIp(request.headers.get("x-forwarded-for")) ||
     parseForwardedIp(request.headers.get("cf-connecting-ip")) ||
     parseForwardedIp(request.headers.get("x-real-ip")) ||
@@ -68,7 +105,7 @@ function enforceInMemoryRateLimit(
   const nowMs = options.nowMs ?? Date.now();
   const max = Math.max(1, Number.parseInt(String(maxRequests ?? 0), 10) || 1);
   const window = Math.max(1000, Number.parseInt(String(windowMs ?? 0), 10) || 1000);
-  const address = getClientAddress(request);
+  const address = getClientAddress(request, { env: options.env });
   const bucketKey = `${scope}:${address}:${keySuffix || "-"}`;
 
   pruneExpiredBuckets(nowMs);
@@ -97,7 +134,7 @@ async function enforceDistributedRateLimit(
 ) {
   const max = Math.max(1, Number.parseInt(String(maxRequests ?? 0), 10) || 1);
   const window = Math.max(1000, Number.parseInt(String(windowMs ?? 0), 10) || 1000);
-  const address = getClientAddress(request);
+  const address = getClientAddress(request, { env: options.env });
   const store = options.store;
 
   if (store && typeof store.acquire === "function") {
@@ -143,19 +180,35 @@ export async function enforceRateLimit(
   policy,
   options = {}
 ) {
-  const backend = normalizeBackend(options.backend ?? process.env.RATE_LIMIT_BACKEND);
+  const env = options.env ?? process.env;
+  let backend = normalizeBackend(options.backend ?? env.RATE_LIMIT_BACKEND);
+  const production = isProductionEnvironment(env);
+
+  if (production && backend === "memory") {
+    throw new ApiError(500, "rate_limit_backend_invalid", "Rate limiting is temporarily unavailable.");
+  }
+
+  if (production && backend === "auto") {
+    backend = "supabase";
+  }
 
   if (backend === "memory") {
-    enforceInMemoryRateLimit(request, policy, options);
+    enforceInMemoryRateLimit(request, policy, {
+      ...options,
+      env
+    });
     return;
   }
 
   try {
-    await enforceDistributedRateLimit(request, policy, options);
+    await enforceDistributedRateLimit(request, policy, {
+      ...options,
+      env
+    });
     return;
   } catch (error) {
     // If distributed mode is explicitly required, surface infrastructure failures.
-    if (backend === "supabase" && !(error instanceof ApiError)) {
+    if ((backend === "supabase" || production) && !(error instanceof ApiError)) {
       throw new ApiError(500, "rate_limit_unavailable", "Rate limiting is temporarily unavailable.");
     }
 

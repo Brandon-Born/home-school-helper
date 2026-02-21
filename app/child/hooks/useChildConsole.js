@@ -69,7 +69,13 @@ export function createUseChildConsole({
     voiceActionsRef.current.resetVoiceRuntime();
 
     if (typeof window !== "undefined") {
-      window.localStorage.removeItem(STORAGE_KEY);
+      try {
+        window.sessionStorage.removeItem(STORAGE_KEY);
+        // Clean up legacy storage location from older builds.
+        window.localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // Ignore storage errors while clearing local session state.
+      }
     }
 
     setSessionAccess(null);
@@ -190,8 +196,13 @@ export function createUseChildConsole({
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
+      const raw = window.sessionStorage.getItem(STORAGE_KEY);
       if (!raw) {
+        // Migrate away from legacy localStorage if present.
+        const legacy = window.localStorage.getItem(STORAGE_KEY);
+        if (legacy) {
+          window.localStorage.removeItem(STORAGE_KEY);
+        }
         return;
       }
 
@@ -200,7 +211,12 @@ export function createUseChildConsole({
         setSessionAccess(parsed);
       }
     } catch {
-      window.localStorage.removeItem(STORAGE_KEY);
+      try {
+        window.sessionStorage.removeItem(STORAGE_KEY);
+        window.localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // Ignore storage cleanup errors.
+      }
     }
   }, []);
 
@@ -265,7 +281,12 @@ export function createUseChildConsole({
       const access = payload.session_access;
       setSessionAccess(access);
       voiceStreamRef.current.initializeFromSnapshot([]);
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(access));
+      try {
+        window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(access));
+        window.localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // Keep in-memory access even if browser storage is unavailable.
+      }
       setJoinCodeState("");
       trackProductEventImpl("child_join", {
         status: "success"

@@ -1,6 +1,6 @@
 # Product Backlog (Rolling Open Items)
 
-Last updated: 2026-02-20
+Last updated: 2026-02-21
 
 Purpose:
 - Capture high-impact product and engineering improvements beyond the current "working" baseline.
@@ -99,6 +99,78 @@ Definition of done:
 - Unit tests cover metric emission for success/failure paths.
 Validation:
 - `node --test tests/tutor-service.test.js tests/session-turn-orchestrator.test.js tests/security.test.js`
+
+### 23) Distributed stream connection guard + lifecycle cleanup refactor
+Status: Open
+Why:
+- Current stream concurrency protection is process-local and can drift under horizontal scale or server restarts.
+- Stream connection acquire/release logic is currently coupled to route flow and should be centralized for easier reliability testing.
+Scope:
+- Move stream connection slot tracking from in-memory maps to a distributed backend (Supabase/Redis) with atomic acquire/release.
+- Add lease/TTL cleanup for orphaned connections (disconnect races, worker restarts).
+- Consolidate stream lifecycle hooks (connect, abort, runtime close, release telemetry) into one shared utility.
+- Keep existing route-level behavior and telemetry contracts stable.
+Implementation notes (starter files):
+- `src/server/stream-connection-guard.js`
+- `app/api/session/[id]/stream/route.js`
+- `src/server/rate-limit.js`
+- `tests/stream-route.test.js`
+- `tests/rate-limit.test.js`
+Definition of done:
+- Concurrent stream limits hold across multiple app instances.
+- No leaked active-slot records after abrupt disconnect/restart scenarios.
+- Unit/integration coverage validates acquire/release correctness and orphan cleanup paths.
+Validation:
+- `node --test tests/stream-route.test.js tests/rate-limit.test.js tests/transcript-stream-runtime-telemetry.test.js`
+
+### 24) Child session auth migration to HttpOnly cookies
+Status: Open
+Why:
+- Child session tokens are now reduced to `sessionStorage`, but they are still readable by injected JS on the child surface.
+- Moving to server-managed HttpOnly cookies meaningfully reduces token-exfiltration risk if client-side XSS occurs.
+Scope:
+- Replace bearer token storage/transport in child hooks with secure, short-lived HttpOnly session cookies.
+- Update join/session bootstrap to set/rotate/revoke child cookies server-side.
+- Keep child auth failure semantics and UX messaging unchanged.
+- Add CSRF-safe request strategy for child routes where needed.
+Implementation notes (starter files):
+- `app/child/hooks/useChildConsole.js`
+- `app/api/session/join/route.js`
+- `src/server/auth.js`
+- `app/api/session/[id]/child-turn/route.js`
+- `app/api/session/[id]/messages/route.js`
+- `app/api/session/[id]/stream/route.js`
+- `tests/use-child-console-hook.test.js`
+- `tests/session-auth-integration.test.js`
+Definition of done:
+- Child API/session routes authorize via HttpOnly cookie path (no client-side token persistence).
+- Session end/revocation invalidates cookie-backed access immediately.
+- End-to-end tests cover join, stream, turn send, and expired-session handling under cookie auth.
+Validation:
+- `node --test tests/session-auth-integration.test.js tests/use-child-console-hook.test.js tests/stream-route.test.js`
+
+### 25) Nonce-based CSP rollout for strict script policy
+Status: Open
+Why:
+- Current CSP uses `'unsafe-inline'` in `script-src` to preserve Next.js runtime hydration scripts.
+- We should remove this exception and move to nonce-based CSP enforcement for stronger XSS resistance.
+Scope:
+- Introduce nonce generation/propagation per request (middleware/server integration).
+- Apply nonce to framework/runtime inline scripts and any required app scripts.
+- Remove `'unsafe-inline'` from `script-src` while keeping the app fully functional.
+- Add regression tests/checks so CSP remains strict across upgrades.
+Implementation notes (starter files):
+- `next.config.mjs`
+- `app/layout.js`
+- `middleware.js` (new, if needed)
+- `tests/security-headers.test.js`
+Definition of done:
+- `script-src` no longer requires `'unsafe-inline'`.
+- Parent/child pages hydrate and function correctly with strict CSP enabled.
+- CSP validation is covered in automated tests.
+Validation:
+- `npm run build`
+- `node --test tests/security-headers.test.js`
 
 ### 14) Parent/child console orchestration refactor
 Status: Open

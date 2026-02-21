@@ -2,11 +2,25 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { ApiError } from "../src/server/api-error.js";
+import { resetStreamConnectionSlots } from "../src/server/stream-connection-guard.js";
 import { createStreamGetHandler, serializeSse } from "../app/api/session/[id]/stream/route.js";
 import {
   assertApiErrorResponse,
   parseSseEvents
 } from "./helpers/route-test-helpers.js";
+
+const originalStreamMaxPerKey = process.env.STREAM_MAX_CONCURRENT_CONNECTIONS;
+const originalStreamMaxPerSession = process.env.STREAM_MAX_CONCURRENT_PER_SESSION;
+process.env.STREAM_MAX_CONCURRENT_CONNECTIONS = "1000";
+process.env.STREAM_MAX_CONCURRENT_PER_SESSION = "2000";
+test.beforeEach(() => {
+  resetStreamConnectionSlots();
+});
+test.after(() => {
+  process.env.STREAM_MAX_CONCURRENT_CONNECTIONS = originalStreamMaxPerKey;
+  process.env.STREAM_MAX_CONCURRENT_PER_SESSION = originalStreamMaxPerSession;
+  resetStreamConnectionSlots();
+});
 
 test("serializeSse formats event payload blocks", () => {
   const encoded = serializeSse("snapshot", { visibility: "child" });
@@ -19,6 +33,7 @@ test("createStreamGetHandler uses child visibility when viewer is child", async 
   const listCalls = [];
 
   const handler = createStreamGetHandler({
+    enforceRateLimit: async () => {},
     resolveSessionViewerContext: async () => ({ role: "child", visibility: "child" }),
     listSessionMessages: async (args) => {
       listCalls.push(args);
@@ -49,6 +64,7 @@ test("createStreamGetHandler uses full visibility when viewer is parent", async 
   const listCalls = [];
 
   const handler = createStreamGetHandler({
+    enforceRateLimit: async () => {},
     resolveSessionViewerContext: async () => ({ role: "parent", visibility: "all", parent_id: "p1" }),
     listSessionMessages: async (args) => {
       listCalls.push(args);
@@ -76,6 +92,7 @@ test("createStreamGetHandler uses full visibility when viewer is parent", async 
 
 test("createStreamGetHandler surfaces selected stream transport mode on response headers", async () => {
   const handler = createStreamGetHandler({
+    enforceRateLimit: async () => {},
     resolveSessionViewerContext: async () => ({ role: "parent", visibility: "all", parent_id: "p1" }),
     listSessionMessages: async () => [],
     streamTransportMode: "polling",
@@ -94,6 +111,7 @@ test("createStreamGetHandler surfaces selected stream transport mode on response
 
 test("createStreamGetHandler returns JSON error response for viewer resolution failures", async () => {
   const handler = createStreamGetHandler({
+    enforceRateLimit: async () => {},
     resolveSessionViewerContext: async () => {
       throw new ApiError(403, "session_forbidden", "Forbidden");
     },
@@ -109,6 +127,75 @@ test("createStreamGetHandler returns JSON error response for viewer resolution f
     status: 403,
     error: "session_forbidden",
     message: "Forbidden"
+  });
+});
+
+test("createStreamGetHandler redacts unexpected server error details", async () => {
+  const handler = createStreamGetHandler({
+    enforceRateLimit: async () => {},
+    resolveSessionViewerContext: async () => {
+      throw new Error("sensitive stream failure details");
+    },
+    logStreamEvent: () => {}
+  });
+
+  const response = await handler(new Request("https://example.test/api/session/s1/stream"), {
+    params: { id: "s1" }
+  });
+
+  await assertApiErrorResponse(response, {
+    status: 500,
+    error: "stream_failed",
+    message: "Something went wrong. Please try again."
+  });
+});
+
+test("createStreamGetHandler applies stream connect rate limiting policy", async () => {
+  let recordedPolicy = null;
+
+  const handler = createStreamGetHandler({
+    enforceRateLimit: async (_request, policy) => {
+      recordedPolicy = policy;
+    },
+    resolveSessionViewerContext: async () => ({ role: "parent", visibility: "all", parent_id: "p1" }),
+    listSessionMessages: async () => [],
+    createSessionMessageSubscription: async () => async () => {},
+    setTimer: () => ({ timer: true }),
+    clearTimer: () => {},
+    logStreamEvent: () => {}
+  });
+
+  const response = await handler(new Request("https://example.test/api/session/s1/stream"), {
+    params: { id: "s1" }
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(recordedPolicy, {
+    scope: "session_stream_connect",
+    maxRequests: 25,
+    windowMs: 60_000,
+    keySuffix: "s1"
+  });
+});
+
+test("createStreamGetHandler rejects when concurrent stream slot limit is reached", async () => {
+  const handler = createStreamGetHandler({
+    enforceRateLimit: async () => {},
+    resolveSessionViewerContext: async () => ({ role: "child", visibility: "child" }),
+    acquireStreamConnectionSlot: () => {
+      throw new ApiError(429, "stream_too_many_connections", "Too many active stream connections.");
+    },
+    logStreamEvent: () => {}
+  });
+
+  const response = await handler(new Request("https://example.test/api/session/s1/stream"), {
+    params: { id: "s1" }
+  });
+
+  await assertApiErrorResponse(response, {
+    status: 429,
+    error: "stream_too_many_connections",
+    message: "Too many active stream connections."
   });
 });
 
@@ -151,6 +238,7 @@ test("createStreamGetHandler emits snapshot then ordered message_append events",
   ];
 
   const handler = createStreamGetHandler({
+    enforceRateLimit: async () => {},
     resolveSessionViewerContext: async () => ({ role: "child", visibility: "child" }),
     listSessionMessages: async () => {
       const index = Math.min(listCallCount, seededRows.length - 1);
@@ -253,6 +341,7 @@ test("createStreamGetHandler cursor advances with created_at and id", async () =
   ];
 
   const handler = createStreamGetHandler({
+    enforceRateLimit: async () => {},
     resolveSessionViewerContext: async () => ({ role: "child", visibility: "child" }),
     listSessionMessages: async () => {
       const index = Math.min(listCallCount, seededRows.length - 1);
@@ -310,6 +399,7 @@ test("createStreamGetHandler emits structured telemetry for connect and abort cl
   const telemetryEvents = [];
 
   const handler = createStreamGetHandler({
+    enforceRateLimit: async () => {},
     resolveSessionViewerContext: async () => ({ role: "parent", visibility: "all", parent_id: "p1" }),
     listSessionMessages: async () => [],
     createSessionMessageSubscription: async () => async () => {},

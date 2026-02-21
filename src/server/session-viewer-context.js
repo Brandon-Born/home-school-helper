@@ -24,7 +24,9 @@ export async function resolveSessionViewerContext(request, sessionId, dependenci
       throw parentError;
     }
 
-    const childContext = await requireChild(request, sessionId);
+    const childContext = await requireChild(request, sessionId, {
+      requireActiveSession: true
+    });
 
     return {
       role: "child",

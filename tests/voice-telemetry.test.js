@@ -31,6 +31,28 @@ test("getServerVoiceErrorDetails extracts structured server voice error fields",
   assert.deepEqual(details, {
     error_name: "ApiError",
     error_code: "speech_provider_unavailable",
+    error_status: 503
+  });
+});
+
+test("getServerVoiceErrorDetails can include error message only when explicitly enabled", () => {
+  const details = getServerVoiceErrorDetails(
+    {
+      name: "ApiError",
+      code: "speech_provider_unavailable",
+      status: 503,
+      message: "provider down"
+    },
+    {
+      env: {
+        SERVER_TELEMETRY_INCLUDE_ERROR_MESSAGE: "1"
+      }
+    }
+  );
+
+  assert.deepEqual(details, {
+    error_name: "ApiError",
+    error_code: "speech_provider_unavailable",
     error_status: 503,
     error_message: "provider down"
   });

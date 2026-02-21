@@ -27,6 +27,26 @@ test("getServerStreamErrorDetails extracts structured server stream error fields
 
   assert.deepEqual(details, {
     error_code: "stream_failed",
+    error_status: 500
+  });
+});
+
+test("getServerStreamErrorDetails can include error message only when explicitly enabled", () => {
+  const details = getServerStreamErrorDetails(
+    {
+      code: "stream_failed",
+      status: 500,
+      message: "boom"
+    },
+    {
+      env: {
+        SERVER_TELEMETRY_INCLUDE_ERROR_MESSAGE: "1"
+      }
+    }
+  );
+
+  assert.deepEqual(details, {
+    error_code: "stream_failed",
     error_status: 500,
     error_message: "boom"
   });
