@@ -110,6 +110,41 @@ test("startSessionForParent returns UI metadata needed for active-session cards"
   assert.equal(session.join_code.length, 8);
 });
 
+test("startSessionForParent seeds a child-visible assistant greeting based on parent setup", async () => {
+  const serviceClient = createFakeServiceClient({
+    parents: [buildConsentReadyParent()],
+    children: [
+      {
+        id: "child_1",
+        parent_id: "parent_1",
+        first_name: "Ava"
+      }
+    ]
+  });
+
+  const session = await startSessionForParent(
+    "parent_1",
+    {
+      child_id: "child_1",
+      daily_subjects: ["Math", "Reading"],
+      parent_context: "Private note: keep this hidden from child.",
+      goal_notes: "Finish one-step equations",
+      additional_context: "Had a long day, so keep it light"
+    },
+    { serviceClient }
+  );
+
+  const sessionMessages = serviceClient.tables.messages.filter((message) => message.session_id === session.session_id);
+  assert.equal(sessionMessages.length, 1);
+  assert.equal(sessionMessages[0].actor_type, "assistant");
+  assert.equal(sessionMessages[0].visibility_scope, "child_and_parent");
+  assert.equal(sessionMessages[0].content.includes("Hi Ava!"), true);
+  assert.equal(sessionMessages[0].content.includes("Math and Reading"), true);
+  assert.equal(sessionMessages[0].content.includes("Finish one-step equations"), true);
+  assert.equal(sessionMessages[0].content.includes("Had a long day"), true);
+  assert.equal(sessionMessages[0].content.includes("Private note"), false);
+});
+
 test("ensureParentOwnsSession enforces parent/session ownership", async () => {
   const serviceClient = createFakeServiceClient({
     sessions: [
