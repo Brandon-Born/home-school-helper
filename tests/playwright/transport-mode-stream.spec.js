@@ -56,9 +56,15 @@ function collectAppendedMessageIds(events) {
     .filter(Boolean);
 }
 
-async function openChildTranscriptStream({ baseUrl, sessionId, childToken }) {
+async function openChildTranscriptStream({ baseUrl, sessionId, childToken, requestedTransportMode = "" }) {
   const abortController = new AbortController();
-  const response = await fetch(`${baseUrl}/api/session/${sessionId}/stream?limit=50`, {
+  const streamUrl = new URL(`/api/session/${sessionId}/stream`, baseUrl);
+  streamUrl.searchParams.set("limit", "50");
+  if (requestedTransportMode) {
+    streamUrl.searchParams.set("transport_mode", requestedTransportMode);
+  }
+
+  const response = await fetch(streamUrl, {
     method: "GET",
     headers: {
       accept: "text/event-stream",
@@ -148,7 +154,8 @@ test("@transport-mode stream appends each persisted transcript row once", async 
     stream = await openChildTranscriptStream({
       baseUrl,
       sessionId: fixture.sessionId,
-      childToken
+      childToken,
+      requestedTransportMode: EXPECTED_TRANSPORT_MODE
     });
     await waitForEvent(stream.events, (event) => event.event === "snapshot", {
       label: "snapshot event"
@@ -211,7 +218,8 @@ test("@transport-mode stream appends each persisted transcript row once", async 
         stream = await openChildTranscriptStream({
           baseUrl,
           sessionId: fixture.sessionId,
-          childToken
+          childToken,
+          requestedTransportMode: EXPECTED_TRANSPORT_MODE
         });
         const refreshedSnapshot = await waitForEvent(
           stream.events,

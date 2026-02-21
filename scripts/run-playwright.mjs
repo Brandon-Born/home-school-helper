@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
+import net from "node:net";
 import path from "node:path";
 
 function normalizeValue(rawValue) {
@@ -51,6 +52,41 @@ function loadDotEnvFiles() {
   loadEnvFile(path.join(root, ".env.local"));
 }
 
+function resolveFreePort() {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+
+    server.on("error", reject);
+    server.listen(0, "localhost", () => {
+      const address = server.address();
+      if (!address || typeof address === "string" || !Number.isFinite(address.port)) {
+        server.close(() => reject(new Error("Unable to resolve an available local port.")));
+        return;
+      }
+
+      const { port } = address;
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve(port);
+      });
+    });
+  });
+}
+
+async function buildIsolatedWebServerEnv(envOverrides = {}) {
+  const port = await resolveFreePort();
+  const baseUrl = `http://localhost:${port}`;
+
+  return {
+    PORT: String(port),
+    PLAYWRIGHT_BASE_URL: baseUrl,
+    ...envOverrides
+  };
+}
+
 function runPlaywright(args = [], envOverrides = {}) {
   const command = process.platform === "win32" ? "npx.cmd" : "npx";
   const childEnv = {
@@ -85,24 +121,31 @@ function runPlaywright(args = [], envOverrides = {}) {
 }
 
 async function runDefaultAndTransportMatrix() {
-  const defaultCode = await runPlaywright(["--grep-invert", "@transport-mode"]);
+  const defaultCode = await runPlaywright(
+    ["--grep-invert", "@transport-mode"],
+    await buildIsolatedWebServerEnv()
+  );
   if (defaultCode !== 0) {
     return defaultCode;
   }
 
   const transportSpec = "tests/playwright/transport-mode-stream.spec.js";
-  const realtimeCode = await runPlaywright([transportSpec], {
-    STREAM_TRANSPORT_MODE: "realtime",
-    PLAYWRIGHT_EXPECTED_TRANSPORT_MODE: "realtime"
-  });
+  const realtimeCode = await runPlaywright(
+    [transportSpec],
+    await buildIsolatedWebServerEnv({
+      PLAYWRIGHT_EXPECTED_TRANSPORT_MODE: "realtime"
+    })
+  );
   if (realtimeCode !== 0) {
     return realtimeCode;
   }
 
-  const pollingCode = await runPlaywright([transportSpec], {
-    STREAM_TRANSPORT_MODE: "polling",
-    PLAYWRIGHT_EXPECTED_TRANSPORT_MODE: "polling"
-  });
+  const pollingCode = await runPlaywright(
+    [transportSpec],
+    await buildIsolatedWebServerEnv({
+      PLAYWRIGHT_EXPECTED_TRANSPORT_MODE: "polling"
+    })
+  );
   return pollingCode;
 }
 

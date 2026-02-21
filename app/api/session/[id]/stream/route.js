@@ -49,6 +49,8 @@ export function createStreamGetHandler(dependencies = {}) {
 
         const url = new URL(request.url);
         const limit = Math.min(Math.max(Number.parseInt(url.searchParams.get("limit") || "150", 10), 1), 300);
+        const requestedTransportMode =
+          url.searchParams.get("transport_mode") || url.searchParams.get("transport") || null;
         const clientAddress = resolveClientAddress(request);
 
         const viewerContext = await resolveViewerContext(request, sessionId);
@@ -79,7 +81,10 @@ export function createStreamGetHandler(dependencies = {}) {
             setTimer,
             clearTimer,
             logStreamEvent,
-            streamTransportMode: dependencies.streamTransportMode ?? process.env.STREAM_TRANSPORT_MODE
+            streamTransportMode:
+              dependencies.streamTransportMode ??
+              requestedTransportMode ??
+              process.env.STREAM_TRANSPORT_MODE
           });
 
           let streamClosed = false;

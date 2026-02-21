@@ -109,6 +109,35 @@ test("createStreamGetHandler surfaces selected stream transport mode on response
   assert.equal(response.headers.get("x-stream-transport-mode"), "polling");
 });
 
+test("createStreamGetHandler allows transport_mode query override for stream runtime selection", async () => {
+  const originalStreamTransportMode = process.env.STREAM_TRANSPORT_MODE;
+  process.env.STREAM_TRANSPORT_MODE = "realtime";
+
+  try {
+    const handler = createStreamGetHandler({
+      enforceRateLimit: async () => {},
+      resolveSessionViewerContext: async () => ({ role: "parent", visibility: "all", parent_id: "p1" }),
+      listSessionMessages: async () => [],
+      createSessionMessageSubscription: async () => async () => {},
+      setTimer: () => ({ timer: true }),
+      clearTimer: () => {},
+      logStreamEvent: () => {}
+    });
+
+    const response = await handler(
+      new Request("https://example.test/api/session/s1/stream?transport_mode=polling"),
+      {
+        params: { id: "s1" }
+      }
+    );
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("x-stream-transport-mode"), "polling");
+  } finally {
+    process.env.STREAM_TRANSPORT_MODE = originalStreamTransportMode;
+  }
+});
+
 test("createStreamGetHandler returns JSON error response for viewer resolution failures", async () => {
   const handler = createStreamGetHandler({
     enforceRateLimit: async () => {},

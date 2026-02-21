@@ -41,12 +41,61 @@ async function requestBootstrapLink(baseURL, email) {
   }
 }
 
+async function resolveActionLinkTarget(actionLink) {
+  let actionUrl;
+  try {
+    actionUrl = new URL(actionLink);
+  } catch {
+    return actionLink;
+  }
+
+  const isSupabaseVerifyLink =
+    actionUrl.hostname.endsWith(".supabase.co") && actionUrl.pathname.startsWith("/auth/v1/verify");
+  if (!isSupabaseVerifyLink) {
+    return actionUrl.toString();
+  }
+
+  try {
+    const response = await fetch(actionUrl, { redirect: "manual" });
+    const location = response.headers.get("location");
+    if (!location) {
+      return actionUrl.toString();
+    }
+    return new URL(location, actionUrl).toString();
+  } catch {
+    return actionUrl.toString();
+  }
+}
+
+function resolveBootstrapNavigationLink(actionLink, baseURL) {
+  const actionUrl = new URL(actionLink);
+  const resolvedBaseUrl = new URL(baseURL);
+
+  if (actionUrl.origin === resolvedBaseUrl.origin) {
+    return actionUrl.toString();
+  }
+
+  const hashParams = new URLSearchParams(actionUrl.hash.replace(/^#/, ""));
+  const hasSessionTokens = Boolean(hashParams.get("access_token") && hashParams.get("refresh_token"));
+  const hasAuthCode = Boolean(actionUrl.searchParams.get("code"));
+  if (!hasSessionTokens && !hasAuthCode) {
+    return actionUrl.toString();
+  }
+
+  const rewritten = new URL("/auth/callback", resolvedBaseUrl);
+  rewritten.search = actionUrl.search;
+  rewritten.hash = actionUrl.hash;
+  return rewritten.toString();
+}
+
 test("new parent can complete first-time onboarding workflow", async ({ baseURL, browser }) => {
   test.setTimeout(90_000);
 
   const resolvedBaseUrl = String(baseURL || process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3000");
   const email = createUniqueTestEmail();
   const actionLink = await requestBootstrapLink(resolvedBaseUrl, email);
+  const resolvedActionLink = await resolveActionLinkTarget(actionLink);
+  const bootstrapNavigationLink = resolveBootstrapNavigationLink(resolvedActionLink, resolvedBaseUrl);
   const childName = createUniqueChildName("PWNewUser");
   const fixture = {
     childName,
@@ -58,7 +107,7 @@ test("new parent can complete first-time onboarding workflow", async ({ baseURL,
   const page = await context.newPage();
 
   try {
-    await page.goto(actionLink, { waitUntil: "domcontentloaded" });
+    await page.goto(bootstrapNavigationLink, { waitUntil: "domcontentloaded" });
     await page.waitForURL(/\/parent(?:[/?#]|$)/, { timeout: 30000 });
     await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
 

@@ -2,6 +2,11 @@ import { defineConfig, devices } from "@playwright/test";
 
 const baseURL =
   process.env.PLAYWRIGHT_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://127.0.0.1:3000";
+const reuseExistingServer = !["0", "false", "no", "off"].includes(
+  String(process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER ?? "1")
+    .trim()
+    .toLowerCase()
+);
 
 export default defineConfig({
   testDir: "./tests/playwright",
@@ -27,6 +32,6 @@ export default defineConfig({
     command: "npm run dev",
     url: baseURL,
     timeout: 120000,
-    reuseExistingServer: true
+    reuseExistingServer
   }
 });

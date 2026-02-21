@@ -100,20 +100,71 @@ async function fetchBootstrapLink(baseURL, secret) {
   }
 }
 
+async function resolveActionLinkTarget(actionLink) {
+  let actionUrl;
+  try {
+    actionUrl = new URL(actionLink);
+  } catch {
+    return actionLink;
+  }
+
+  const isSupabaseVerifyLink =
+    actionUrl.hostname.endsWith(".supabase.co") && actionUrl.pathname.startsWith("/auth/v1/verify");
+  if (!isSupabaseVerifyLink) {
+    return actionUrl.toString();
+  }
+
+  try {
+    const response = await fetch(actionUrl, { redirect: "manual" });
+    const location = response.headers.get("location");
+    if (!location) {
+      return actionUrl.toString();
+    }
+    return new URL(location, actionUrl).toString();
+  } catch {
+    return actionUrl.toString();
+  }
+}
+
+function resolveBootstrapNavigationLink(actionLink, baseURL) {
+  const actionUrl = new URL(actionLink);
+  const resolvedBaseUrl = new URL(baseURL);
+
+  if (actionUrl.origin === resolvedBaseUrl.origin) {
+    return actionUrl.toString();
+  }
+
+  const hashParams = new URLSearchParams(actionUrl.hash.replace(/^#/, ""));
+  const hasSessionTokens = Boolean(hashParams.get("access_token") && hashParams.get("refresh_token"));
+  const hasAuthCode = Boolean(actionUrl.searchParams.get("code"));
+
+  if (!hasSessionTokens && !hasAuthCode) {
+    return actionUrl.toString();
+  }
+
+  const rewritten = new URL("/auth/callback", resolvedBaseUrl);
+  rewritten.search = actionUrl.search;
+  rewritten.hash = actionUrl.hash;
+  return rewritten.toString();
+}
+
 export default async function globalSetup(config) {
   await loadDotEnvFiles();
 
   const secret = requireEnv("PLAYWRIGHT_TEST_AUTH_SECRET");
   const baseURL = resolveBaseUrl(config);
   const actionLink = await fetchBootstrapLink(baseURL, secret);
+  const resolvedActionLink = await resolveActionLinkTarget(actionLink);
+  const bootstrapNavigationLink = resolveBootstrapNavigationLink(resolvedActionLink, baseURL);
 
   const browser = await chromium.launch();
   const context = await browser.newContext({ baseURL });
   const page = await context.newPage();
 
   try {
-    await page.goto(actionLink, { waitUntil: "domcontentloaded" });
+    await page.goto(bootstrapNavigationLink, { waitUntil: "domcontentloaded" });
     await page.waitForURL(/\/parent(?:[/?#]|$)/, { timeout: 30000 });
+    await page.getByText("Signed in as").first().waitFor({ state: "visible", timeout: 30000 });
 
     await fs.mkdir(path.dirname(AUTH_STATE_PATH), { recursive: true });
     await context.storageState({ path: AUTH_STATE_PATH });
