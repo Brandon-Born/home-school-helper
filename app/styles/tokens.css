@@ -15,6 +15,7 @@
   --brand-soft: #ece7fd;
   --success: #10b981;
   --danger: #ef4444;
+  --mic-idle-border: #000000;
   --accent-home: #6d4aed;
   --accent-parent: #0d9488;
   --accent-child: #f97316;
@@ -40,6 +41,7 @@
   --brand-soft: #2e2050;
   --success: #34d399;
   --danger: #fb7185;
+  --mic-idle-border: #ffffff;
   --accent-home: #a78bfa;
   --accent-parent: #2dd4bf;
   --accent-child: #fb923c;

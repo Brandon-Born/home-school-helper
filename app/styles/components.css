@@ -429,11 +429,11 @@
   justify-content: center;
   gap: 8px;
   border-radius: var(--radius-full);
-  border: 2px solid var(--success);
+  border: 2px solid var(--mic-idle-border);
   padding: 8px 16px;
   min-height: 40px;
   background: transparent;
-  color: var(--success);
+  color: var(--mic-idle-border);
   font: inherit;
   font-weight: 700;
   font-size: 0.92rem;
@@ -443,14 +443,14 @@
 }
 
 .btn-record:hover:not(:disabled) {
-  background: color-mix(in oklab, var(--success) 12%, transparent);
-  box-shadow: 0 4px 12px color-mix(in oklab, var(--success) 20%, transparent);
+  background: color-mix(in oklab, var(--mic-idle-border) 10%, transparent);
+  box-shadow: 0 4px 12px color-mix(in oklab, var(--mic-idle-border) 16%, transparent);
   transform: translateY(-1px);
 }
 
 .btn-record:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--success) 25%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--mic-idle-border) 30%, transparent);
 }
 
 .btn-record.is-active {
