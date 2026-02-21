@@ -5,14 +5,6 @@ import { parseThemeMode, THEME_STORAGE_KEY } from "../../../src/lib/theme-mode.j
 
 const ThemeContext = createContext(null);
 
-function readSystemPreference() {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-    return false;
-  }
-
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
-}
-
 function applyResolvedTheme(resolvedTheme) {
   if (typeof document === "undefined") {
     return;
@@ -22,45 +14,27 @@ function applyResolvedTheme(resolvedTheme) {
   document.documentElement.style.colorScheme = resolvedTheme;
 }
 
-function readInitialMode() {
-  if (typeof window === "undefined") {
-    return "light";
-  }
-
-  try {
-    const stored = parseThemeMode(window.localStorage.getItem(THEME_STORAGE_KEY));
-    if (stored) {
-      return stored;
-    }
-    const mode = readSystemPreference() ? "dark" : "light";
-    window.localStorage.setItem(THEME_STORAGE_KEY, mode);
-    return mode;
-  } catch {
-    return "light";
-  }
-}
-
-function readInitialThemeState() {
-  const mode = readInitialMode();
-  let resolvedTheme = mode;
-  if (typeof document !== "undefined") {
-    const fromDom = document.documentElement.dataset.theme;
-    if (fromDom === "light" || fromDom === "dark") {
-      resolvedTheme = fromDom;
-    }
-  }
-
-  return {
-    mode: resolvedTheme,
-    resolvedTheme
-  };
-}
-
 export function ThemeProvider({ children }) {
-  const [initialThemeState] = useState(readInitialThemeState);
-  const [themeMode, setThemeMode] = useState(initialThemeState.mode);
+  // Always initialize to the default server rendered state to prevent hydration errors
+  const [themeMode, setThemeMode] = useState("light");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Once the component is mounted on the client, synchronize the state
+    setMounted(true);
+    let initialMode = "light";
+    if (typeof document !== "undefined") {
+      const fromDom = document.documentElement.dataset.theme;
+      if (fromDom === "light" || fromDom === "dark") {
+        initialMode = fromDom;
+      }
+    }
+    setThemeMode(initialMode);
+  }, []);
+
+  useEffect(() => {
+    // Only persist back to the DOM/Storage if we've successfully mounted and stabilized
+    if (!mounted) return;
     const mode = parseThemeMode(themeMode) || "light";
 
     try {
@@ -70,7 +44,7 @@ export function ThemeProvider({ children }) {
     }
 
     applyResolvedTheme(mode);
-  }, [themeMode]);
+  }, [themeMode, mounted]);
 
   const value = useMemo(
     () => ({
@@ -92,3 +66,4 @@ export function useTheme() {
 
   return context;
 }
+
