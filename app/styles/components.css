@@ -310,13 +310,7 @@
 
 /* ── Child Layout Components ───────────────────── */
 
-.child-session-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
+
 
 .child-composer {
   display: flex;
@@ -472,6 +466,20 @@
   border-color: var(--text-muted);
   color: var(--text-muted);
 }
+
+@media (max-width: 600px) {
+  .btn-record .btn-record__text {
+    display: none;
+  }
+
+  .btn-record {
+    padding: 10px;
+    width: 44px;
+    height: 44px;
+    gap: 0;
+  }
+}
+
 
 .voice-row {
   display: flex;

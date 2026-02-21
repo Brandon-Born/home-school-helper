@@ -66,7 +66,10 @@ export function TutorComposerPanel({
             aria-pressed={isVoiceActive}
             aria-label={listeningLabel}
           >
-            {isVoiceActive ? "🛑 Click here to end" : "🎤 Record your voice"}
+            {isVoiceActive ? "🛑" : "🎤"}
+            <span className="btn-record__text">
+              {isVoiceActive ? " Click here to end" : " Record your voice"}
+            </span>
           </button>
           <button
             type="submit"
