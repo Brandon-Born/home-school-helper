@@ -140,8 +140,8 @@ test("startSessionForParent seeds a child-visible assistant greeting based on pa
   assert.equal(sessionMessages[0].visibility_scope, "child_and_parent");
   assert.equal(sessionMessages[0].content.includes("Hi Ava!"), true);
   assert.equal(sessionMessages[0].content.includes("Math and Reading"), true);
-  assert.equal(sessionMessages[0].content.includes("Finish one-step equations"), true);
-  assert.equal(sessionMessages[0].content.includes("Had a long day"), true);
+  assert.equal(sessionMessages[0].content.includes("Finish one-step equations"), false);
+  assert.equal(sessionMessages[0].content.includes("Had a long day"), false);
   assert.equal(sessionMessages[0].content.includes("Private note"), false);
 });
 

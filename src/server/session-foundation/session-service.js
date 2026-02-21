@@ -14,7 +14,6 @@ import { persistSessionMessage } from "./message-service.js";
 
 const JOIN_CODE_TTL_MINUTES = 10;
 const CHILD_SESSION_TTL_HOURS = 12;
-const MAX_GREETING_CONTEXT_SNIPPET_LENGTH = 180;
 
 function hasMissingActiveJoinCodeColumns(error) {
   const message = String(error?.message || "").toLowerCase();
@@ -37,21 +36,7 @@ function formatNaturalList(items) {
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
-function normalizeSnippet(value, maxLength = MAX_GREETING_CONTEXT_SNIPPET_LENGTH) {
-  const collapsed = String(value || "").replace(/\s+/g, " ").trim();
-  if (!collapsed) {
-    return null;
-  }
-
-  const clipped = collapsed.slice(0, maxLength).trim();
-  if (!clipped) {
-    return null;
-  }
-
-  return /[.!?]$/.test(clipped) ? clipped : `${clipped}.`;
-}
-
-function buildSessionGreeting({ childName, dailySubjects, goalNotes, additionalContext }) {
+function buildSessionGreeting({ childName, dailySubjects }) {
   const safeName = String(childName || "").trim() || "there";
   const normalizedSubjects = Array.isArray(dailySubjects)
     ? dailySubjects
@@ -59,21 +44,11 @@ function buildSessionGreeting({ childName, dailySubjects, goalNotes, additionalC
         .filter(Boolean)
     : [];
   const focusText = formatNaturalList(normalizedSubjects);
-  const goalSnippet = normalizeSnippet(goalNotes);
-  const additionalSnippet = normalizeSnippet(additionalContext);
 
   const lines = [`Hi ${safeName}! I am excited to learn with you today.`];
 
   if (focusText) {
     lines.push(`Today we will focus on ${focusText}.`);
-  }
-
-  if (goalSnippet) {
-    lines.push(`Our goal is ${goalSnippet}`);
-  }
-
-  if (additionalSnippet) {
-    lines.push(`We will keep this in mind as we learn: ${additionalSnippet}`);
   }
 
   lines.push("Tell me what you want to start with, and we will work through it together.");
@@ -171,9 +146,7 @@ export async function startSessionForParent(parentId, payload, options = {}) {
 
   const greeting = buildSessionGreeting({
     childName: child.first_name,
-    dailySubjects: normalized.daily_subjects,
-    goalNotes: normalized.goal_notes,
-    additionalContext: normalized.additional_context
+    dailySubjects: normalized.daily_subjects
   });
 
   try {
