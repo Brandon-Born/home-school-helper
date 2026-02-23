@@ -148,6 +148,8 @@ npm run check:env     # Validate environment variables
 npm run check:handoff # Validate handoff log
 ```
 
+Note: use `npm run test:e2e` (or `node scripts/run-playwright.mjs ...`) instead of `npx playwright test` in this repo. The wrapper runs Playwright against an isolated app origin so auth-bootstrap storage state matches the server under test.
+
 ## Playwright Auth Bootstrap (Test-Only)
 
 To avoid manual Google OAuth during Playwright runs:
@@ -157,6 +159,8 @@ To avoid manual Google OAuth during Playwright runs:
    - `PLAYWRIGHT_TEST_AUTH_SECRET=...`
    - `PLAYWRIGHT_TEST_AUTH_EMAIL=playwright-parent@example.test`
 2. Run `npm run test:e2e` (or `npm test`).
+
+If you run `npx playwright test` directly, the auth bootstrap state may be written for a different origin than the app server Playwright launches, which can cause misleading `Signed in as` / parent-auth bootstrap failures.
 
 `tests/playwright/global.setup.mjs` calls `POST /api/test-auth/bootstrap`, opens the one-time admin-generated link in Chromium, and writes `tests/playwright/.auth/parent.json` for re-use by all Playwright tests.
 Playwright starts the app server automatically through `playwright.config.mjs` `webServer` settings.

@@ -39,6 +39,8 @@ export default function ParentPage() {
   }, [state.parentProfile, state.loading.refreshParentData, hasAutoSelected, state.activeSessions.length, state.children.length]);
 
   const switchSection = useCallback((id) => {
+    // A manual section selection should not be overridden by a later auto-select pass.
+    setHasAutoSelected(true);
     setActiveSectionId(id);
     if (id === "sessions") {
       actions.setSelectedChildId("");
