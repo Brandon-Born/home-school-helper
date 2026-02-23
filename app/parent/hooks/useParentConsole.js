@@ -302,6 +302,62 @@ export function createUseParentConsole({
       return outcome.ok;
     }, [applyConsentToParentProfile, clearActionAlert, parentRequest, setActionAlert, setError, setLoadingState]);
 
+    const startBillingCheckout = useCallback(async () => {
+      const outcome = await runAsyncActionStatus({
+        actionKey: "consent",
+        setLoadingState,
+        setError,
+        clearActionAlert,
+        setActionAlert,
+        fallbackErrorMessage: "We couldn't start secure billing checkout. Please try again.",
+        run: async () =>
+          parentRequest("/api/billing/checkout-session", {
+            method: "POST"
+          }),
+        onSuccess: (payload) => {
+          const url = payload?.checkout?.url;
+          if (typeof url === "string" && url) {
+            if (typeof window !== "undefined" && window.location) {
+              window.location.assign(url);
+            }
+            return "Redirecting to secure checkout…";
+          }
+
+          return "Billing checkout is ready.";
+        }
+      });
+
+      return outcome.ok ? outcome.result : null;
+    }, [clearActionAlert, parentRequest, setActionAlert, setError, setLoadingState]);
+
+    const openBillingPortal = useCallback(async () => {
+      const outcome = await runAsyncActionStatus({
+        actionKey: "consent",
+        setLoadingState,
+        setError,
+        clearActionAlert,
+        setActionAlert,
+        fallbackErrorMessage: "We couldn't open billing management. Please try again.",
+        run: async () =>
+          parentRequest("/api/billing/portal-session", {
+            method: "POST"
+          }),
+        onSuccess: (payload) => {
+          const url = payload?.portal?.url;
+          if (typeof url === "string" && url) {
+            if (typeof window !== "undefined" && window.location) {
+              window.location.assign(url);
+            }
+            return "Opening billing management…";
+          }
+
+          return "Billing management is ready.";
+        }
+      });
+
+      return outcome.ok ? outcome.result : null;
+    }, [clearActionAlert, parentRequest, setActionAlert, setError, setLoadingState]);
+
     const requestPrivacyExport = useCallback(
       async ({ reason = "" } = {}) => {
         const outcome = await runAsyncActionStatus({
@@ -405,6 +461,8 @@ export function createUseParentConsole({
         setOverride,
         grantCoppaConsent,
         revokeCoppaConsent,
+        startBillingCheckout,
+        openBillingPortal,
         requestPrivacyExport,
         requestPrivacyDelete,
         refreshParentData: fetchParentData,

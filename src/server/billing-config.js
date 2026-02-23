@@ -1,0 +1,83 @@
+function parseBooleanEnv(rawValue, fallbackValue) {
+  if (rawValue === undefined || rawValue === null || String(rawValue).trim() === "") {
+    return fallbackValue;
+  }
+
+  const normalized = String(rawValue).trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+
+  if (["0", "false", "no", "off"].includes(normalized)) {
+    return false;
+  }
+
+  return fallbackValue;
+}
+
+let cachedConfig;
+
+export function isBillingEnabled(env = process.env) {
+  return parseBooleanEnv(env.BILLING_ENABLED, false);
+}
+
+export function isSelfAttestationConsentGrantAllowed(env = process.env) {
+  const fallback = !isBillingEnabled(env);
+  return parseBooleanEnv(env.ALLOW_SELF_ATTESTATION_CONSENT_GRANT, fallback);
+}
+
+export function shouldGrantCoppaOnTrialSignup(env = process.env) {
+  const nodeEnv = String(env.NODE_ENV ?? "").trim().toLowerCase();
+  const fallback = nodeEnv !== "production";
+  return parseBooleanEnv(env.BILLING_GRANT_COPPA_ON_TRIAL_SIGNUP, fallback);
+}
+
+export function getStripeBillingConfig(env = process.env) {
+  if (env === process.env && cachedConfig) {
+    return cachedConfig;
+  }
+
+  const enabled = isBillingEnabled(env);
+  const provider = String(env.BILLING_PROVIDER || "stripe").trim().toLowerCase() || "stripe";
+
+  const config = {
+    enabled,
+    provider,
+    stripe: {
+      secretKey: String(env.STRIPE_SECRET_KEY || "").trim(),
+      webhookSecret: String(env.STRIPE_WEBHOOK_SECRET || "").trim(),
+      priceIdFamilyMonthly: String(env.STRIPE_PRICE_ID_FAMILY_MONTHLY || "").trim(),
+      billingPortalConfigId: String(env.STRIPE_BILLING_PORTAL_CONFIG_ID || "").trim() || null
+    },
+    appUrl: String(env.NEXT_PUBLIC_APP_URL || env.APP_URL || "").trim() || null,
+    allowSelfAttestationConsentGrant: isSelfAttestationConsentGrantAllowed(env),
+    grantCoppaOnTrialSignup: shouldGrantCoppaOnTrialSignup(env)
+  };
+
+  if (enabled) {
+    if (provider !== "stripe") {
+      throw new Error(`Unsupported BILLING_PROVIDER: ${provider}`);
+    }
+
+    const missing = [];
+    if (!config.stripe.secretKey) {
+      missing.push("STRIPE_SECRET_KEY");
+    }
+    if (!config.stripe.priceIdFamilyMonthly) {
+      missing.push("STRIPE_PRICE_ID_FAMILY_MONTHLY");
+    }
+    if (missing.length > 0) {
+      throw new Error(`Missing required billing environment variables: ${missing.join(", ")}`);
+    }
+  }
+
+  if (env === process.env) {
+    cachedConfig = config;
+  }
+
+  return config;
+}
+
+export function resetBillingConfigCache() {
+  cachedConfig = undefined;
+}

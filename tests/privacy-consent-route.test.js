@@ -105,6 +105,23 @@ test("createPrivacyConsentPostHandler stores granted consent with request metada
   assert.equal(body.consent.status, "granted");
 });
 
+test("createPrivacyConsentPostHandler blocks self-attestation grant when billing-backed flow is required", async () => {
+  const handler = createPrivacyConsentPostHandler({
+    allowSelfAttestationConsentGrant: false,
+    requireParentContext: async () => ({
+      parent: { id: "parent_1" }
+    })
+  });
+
+  const response = await handler(createJsonRequest("https://example.test/api/privacy/consent", { action: "grant" }));
+
+  await assertApiErrorResponse(response, {
+    status: 409,
+    error: "billing_required_for_coppa_grant",
+    message: "Complete subscription billing verification to grant parental consent."
+  });
+});
+
 test("createPrivacyConsentPostHandler returns route errors from consent service", async () => {
   const handler = createPrivacyConsentPostHandler({
     requireParentContext: async () => ({
