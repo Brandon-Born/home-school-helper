@@ -147,9 +147,9 @@ test("critical path covers parent onboarding through child tutoring turn", async
   );
   assert.deepEqual(
     childVisibleMessages.map((message) => message.actor_type),
-    ["child", "assistant"]
+    ["assistant", "child", "assistant"]
   );
-  assert.equal(childVisibleMessages[1].content.includes("greatest common factor"), true);
+  assert.equal(childVisibleMessages[2].content.includes("greatest common factor"), true);
 
   assert.equal(serviceClient.tables.policy_events.length, 2);
   assert.deepEqual(

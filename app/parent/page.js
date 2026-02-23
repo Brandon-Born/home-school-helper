@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActiveSessionsPanel } from "./components/ActiveSessionsPanel.js";
 import { AuthPanel } from "./components/AuthPanel.js";
 import { ChildListPanel } from "./components/ChildListPanel.js";
@@ -16,6 +16,27 @@ import { PARENT_CONSOLE_SECTIONS, resolveParentConsoleSection } from "./section-
 export default function ParentPage() {
   const { state, actions } = useParentConsole();
   const [activeSectionId, setActiveSectionId] = useState(PARENT_CONSOLE_SECTIONS[0].id);
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
+
+  const displaySections = useMemo(() => {
+    if (state.children.length > 0) {
+      const childrenSection = PARENT_CONSOLE_SECTIONS.find((s) => s.id === "children");
+      const sessionsSection = PARENT_CONSOLE_SECTIONS.find((s) => s.id === "sessions");
+      const managedSection = PARENT_CONSOLE_SECTIONS.find((s) => s.id === "managed");
+      return [sessionsSection, childrenSection, managedSection].filter(Boolean);
+    }
+    return PARENT_CONSOLE_SECTIONS;
+  }, [state.children.length]);
+
+  useEffect(() => {
+    if (state.parentProfile && !state.loading.refreshParentData && !hasAutoSelected) {
+      // If there are live sessions, or if we have children and session tab is now first, default to session tab
+      if (state.activeSessions.length > 0 || state.children.length > 0) {
+        setActiveSectionId("sessions");
+      }
+      setHasAutoSelected(true);
+    }
+  }, [state.parentProfile, state.loading.refreshParentData, hasAutoSelected, state.activeSessions.length, state.children.length]);
 
   const switchSection = useCallback((id) => {
     setActiveSectionId(id);
@@ -50,7 +71,7 @@ export default function ParentPage() {
         <div className="parent-workspace">
           <aside className="parent-workspace__sidebar card card--glass" aria-label="Parent console sections">
             <nav className="parent-section-nav" aria-label="Parent workspace">
-              {PARENT_CONSOLE_SECTIONS.map((section) => {
+              {displaySections.map((section) => {
                 const isActive = section.id === activeSection.id;
                 return (
                   <button

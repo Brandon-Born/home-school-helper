@@ -59,7 +59,7 @@ export function ActiveSessionsPanel({
     if (!children || children.length === 0) {
         return (
             <section className="card" data-testid="active-sessions-panel">
-                <h2 className="section-title">Your children</h2>
+                <h2 className="section-title">Your children's sessions</h2>
                 <p className="empty-state">No children added yet — add one in the Children section.</p>
             </section>
         );
@@ -99,7 +99,7 @@ export function ActiveSessionsPanel({
 
     return (
         <section className="card" data-testid="active-sessions-panel" aria-busy={loading}>
-            <h2 className="section-title">Your children</h2>
+            <h2 className="section-title">Your children's sessions</h2>
             <StatusAlert
                 tone={actionAlert?.tone}
                 message={actionAlert?.message}
