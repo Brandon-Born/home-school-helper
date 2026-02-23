@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { AppShell } from "../components/layout/AppShell.js";
-import { buildMarketingMetadata, serializeJsonLd } from "../../src/lib/seo.js";
+import {
+  buildMarketingMetadata,
+  getBreadcrumbJsonLd,
+  serializeJsonLd
+} from "../../src/lib/seo.js";
 import styles from "./page.module.css";
 
 export const metadata = buildMarketingMetadata({
@@ -48,9 +52,17 @@ function buildFaqJsonLd() {
 
 export default function AiTutorForHomeschoolPage() {
   const faqJsonLd = serializeJsonLd(buildFaqJsonLd());
+  const breadcrumbJsonLd = serializeJsonLd(
+    getBreadcrumbJsonLd([
+      { name: "Home", path: "/" },
+      { name: "Guides", path: "/guides" },
+      { name: "AI Tutor for Homeschool", path: "/ai-tutor-for-homeschool" }
+    ])
+  );
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqJsonLd }} />
 
       <AppShell
@@ -137,11 +149,12 @@ export default function AiTutorForHomeschoolPage() {
         <section className={`${styles.related} card`} aria-labelledby="ai-related-guides-heading">
           <h2 id="ai-related-guides-heading" className={styles.heading}>Related parent guides</h2>
           <p className={styles.body}>
-            If your child learns better by talking than typing, pair this with our voice-first guide for choosing and using a voice tutor for kids.
+            Start with the voice-first guide if your child learns better by talking, or use the math guide for a tighter daily practice workflow.
           </p>
           <div className="btn-row">
             <Link href="/voice-tutor-for-kids" className="btn btn--secondary">Voice tutor for kids guide</Link>
-            <Link href="/" className="btn btn--ghost">Back to homepage</Link>
+            <Link href="/math-help-for-homeschool" className="btn btn--secondary">Math help for homeschool guide</Link>
+            <Link href="/guides" className="btn btn--ghost">Browse all guides</Link>
           </div>
         </section>
 

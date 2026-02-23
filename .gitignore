@@ -12,3 +12,4 @@ playwright-report
 test-results
 tests/playwright/.auth
 trace-out
+output/

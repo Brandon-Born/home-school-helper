@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { AppShell } from "../components/layout/AppShell.js";
-import { buildMarketingMetadata, serializeJsonLd } from "../../src/lib/seo.js";
+import {
+  buildMarketingMetadata,
+  getBreadcrumbJsonLd,
+  serializeJsonLd
+} from "../../src/lib/seo.js";
 import styles from "./page.module.css";
 
 export const metadata = buildMarketingMetadata({
@@ -48,9 +52,17 @@ function buildFaqJsonLd() {
 
 export default function VoiceTutorForKidsPage() {
   const faqJsonLd = serializeJsonLd(buildFaqJsonLd());
+  const breadcrumbJsonLd = serializeJsonLd(
+    getBreadcrumbJsonLd([
+      { name: "Home", path: "/" },
+      { name: "Guides", path: "/guides" },
+      { name: "Voice Tutor for Kids", path: "/voice-tutor-for-kids" }
+    ])
+  );
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqJsonLd }} />
 
       <AppShell
@@ -137,11 +149,12 @@ export default function VoiceTutorForKidsPage() {
         <section className={`${styles.related} card`} aria-labelledby="voice-related-guides-heading">
           <h2 id="voice-related-guides-heading" className={styles.heading}>Related parent guides</h2>
           <p className={styles.body}>
-            Looking for the broader setup? Start with the parent-guided homeschool AI tutor guide, then come back to tune the voice workflow.
+            Start with the broader parent-guided AI homeschool guide, and add the math guide if you want a focused daily practice routine.
           </p>
           <div className="btn-row">
             <Link href="/ai-tutor-for-homeschool" className="btn btn--secondary">AI tutor for homeschool guide</Link>
-            <Link href="/" className="btn btn--ghost">Back to homepage</Link>
+            <Link href="/math-help-for-homeschool" className="btn btn--secondary">Math help for homeschool guide</Link>
+            <Link href="/guides" className="btn btn--ghost">Browse all guides</Link>
           </div>
         </section>
 

@@ -144,6 +144,32 @@ export default function HomePage() {
                 Read the guide
               </Link>
             </div>
+
+            <div className={`${styles.guidesCard} card card--glass`}>
+              <div>
+                <p className={styles.guidesEyebrow}>Parent guide</p>
+                <h3 className="section-title">Math help for homeschool (hints-first)</h3>
+                <p className="section-muted">
+                  A practical way to use AI tutoring for math practice, repeated explanations, and voice-first reasoning while parents control the lesson goal.
+                </p>
+              </div>
+              <Link href="/math-help-for-homeschool" className="btn btn--secondary">
+                Read the guide
+              </Link>
+            </div>
+
+            <div className={`${styles.guidesCard} card card--glass`}>
+              <div>
+                <p className={styles.guidesEyebrow}>Guides hub</p>
+                <h3 className="section-title">Browse all parent guides</h3>
+                <p className="section-muted">
+                  See every guide in one place and pick the best starting point for homeschool setup, voice tutoring, or math practice support.
+                </p>
+              </div>
+              <Link href="/guides" className="btn btn--ghost">
+                Open guides hub
+              </Link>
+            </div>
           </div>
         </section>
       </AppShell>
