@@ -4,6 +4,9 @@ Last updated: 2026-02-23
 Owner: Product + Engineering (+ Legal review required)
 Status: Proposed plan
 
+## Decision (2026-02-23)
+- Selected provider: **Stripe Billing**
+
 ## Goal
 - Add a parent-paid credit card subscription with:
 - a first 7 days free trial
