@@ -1,6 +1,6 @@
 # Product Backlog (Rolling Open Items)
 
-Last updated: 2026-02-21
+Last updated: 2026-02-23
 
 Purpose:
 - Capture high-impact product and engineering improvements beyond the current "working" baseline.
@@ -202,6 +202,35 @@ Scope:
 - Remove remaining `NO_COLOR`/`FORCE_COLOR` warning noise by normalizing env propagation across Playwright + webServer subprocesses.
 - Keep logs clean without altering test behavior.
 
+### 26) SEO growth foundations (schema + semantics + indexing hardening)
+Status: Open
+Why:
+- Baseline technical SEO is now in place (metadata/canonicals/robots/sitemap/noindex on app routes), but rankings will benefit from stronger semantic signals and richer search result eligibility.
+Scope:
+- Add JSON-LD schema to public marketing pages:
+- `Organization` + `WebSite` (sitewide/root)
+- `WebApplication`/`SoftwareApplication` (homepage)
+- `FAQPage` on any page that gains an FAQ section
+- Improve homepage semantic structure for crawlers/accessibility:
+- Convert feature/step sublabels from presentation-only `<strong>` text to heading elements (`h3`) where appropriate
+- Add a proper `<main>` landmark in shared page shell
+- Add social preview image metadata scaffolding (`opengraph-image`, Twitter image), with a production asset path and fallback behavior
+- Ensure preview/staging deployments are `noindex` to avoid duplicate-content indexing (for example via env-driven metadata/header rule)
+Implementation notes (starter files):
+- `app/layout.js`
+- `app/page.js`
+- `app/components/layout/AppShell.js`
+- `app/opengraph-image.*` / `app/twitter-image.*` (new, if generated)
+- `src/lib/seo.js`
+Definition of done:
+- Public pages emit valid JSON-LD and continue rendering existing metadata/canonical tags.
+- Homepage heading hierarchy is semantically stronger without visual regressions.
+- Preview deployments are protected from indexing while production remains indexable.
+Validation:
+- Verify rendered HTML contains schema + social image tags (`curl`/browser inspect)
+- Run a rich-results/schema validator on homepage markup
+- Manual spot-check of preview/prod robots behavior
+
 ---
 
 ## P2 (Quality / Delight)
@@ -227,6 +256,61 @@ Definition of done:
 - Clear owner/action path exists for each alert class.
 Validation:
 - Run report generation command locally and attach sample output in handoff.
+
+### 27) SEO content expansion for high-intent parent search queries
+Status: Open
+Why:
+- Ranking gains will come primarily from intent-targeted content (not additional meta tags) that matches how homeschool parents actually search.
+Scope:
+- Publish dedicated landing pages for high-intent queries (initial targets):
+- AI tutor for homeschool families
+- voice tutor for kids / voice-first learning support
+- math help for homeschool students
+- COPPA-safe / parent-guided AI tutoring
+- Each page should target one core intent and include:
+- clear problem/solution framing
+- screenshots or workflow examples
+- parent trust/safety guidance (privacy, parental controls)
+- FAQ section and strong CTA
+- Add internal linking from homepage/about/privacy where contextually relevant
+Implementation notes (starter files):
+- `app/` (new route pages, e.g. `app/ai-tutor-for-homeschool/page.js`)
+- `app/page.js` (internal links)
+- `docs/IMPLEMENTATION_SPEC.md` (content/page template guidance if desired)
+Definition of done:
+- At least 3 high-quality intent pages are shipped with unique metadata and clear internal links.
+- Pages are substantive (not thin keyword pages) and aligned to real user intent.
+Validation:
+- Manual QA on mobile/desktop
+- Verify metadata/canonical/OG tags on each new page
+- Submit URLs in Search Console after deploy
+
+### 28) SEO growth ops: authority, performance, and search-console feedback loop
+Status: Open
+Why:
+- Sustainable ranking improvements require ongoing iteration across backlinks, CWV performance, and search query feedback.
+Scope:
+- Search ops:
+- Set up and monitor Google Search Console + Bing Webmaster Tools
+- Submit sitemap, monitor index coverage, and review query CTR/impressions
+- Create a simple monthly SEO review checklist/report
+- Performance:
+- Measure and improve Core Web Vitals on public pages (focus on LCP/INP/CLS)
+- Optimize future marketing images/social preview assets for size and stability
+- Authority:
+- Build outreach/backlink program targeting homeschool blogs, parent communities, edtech roundups, and founder-story placements
+- Add trust signals/testimonials/case studies on public pages as available
+Implementation notes (starter files):
+- `docs/ANALYTICS_BASELINE.md` (or new SEO ops doc)
+- `docs/README.md` / `docs/START_HERE.md` (ops checklist links)
+- public marketing pages for trust/testimonial sections
+Definition of done:
+- Search Console/Bing ownership is verified and sitemap submitted.
+- A repeatable SEO review checklist/report exists with owners and cadence.
+- At least one CWV-focused optimization pass is completed and measured.
+Validation:
+- Capture baseline + post-change CWV metrics (Lighthouse/PageSpeed/Web Vitals)
+- Record monthly query/click/indexing review notes in handoff/docs
 
 ---
 

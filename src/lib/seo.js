@@ -1,6 +1,16 @@
 const SITE_NAME = "Homeschool Sidekick";
 const SITE_DESCRIPTION = "Your AI-powered homeschool sidekick — parents steer, kids learn, step by step.";
 
+function shouldNoIndexCurrentEnvironment() {
+  const vercelEnv = String(process.env.VERCEL_ENV || "").trim().toLowerCase();
+  if (vercelEnv) {
+    return vercelEnv !== "production";
+  }
+
+  const nodeEnv = String(process.env.NODE_ENV || "").trim().toLowerCase();
+  return nodeEnv !== "production";
+}
+
 function toUrlCandidate(value) {
   const raw = String(value || "").trim();
   if (!raw) {
@@ -37,7 +47,7 @@ export function getSiteUrl() {
 }
 
 export function buildRootMetadata() {
-  return {
+  const metadata = {
     metadataBase: getSiteUrl(),
     title: SITE_NAME,
     description: SITE_DESCRIPTION,
@@ -49,11 +59,26 @@ export function buildRootMetadata() {
       description: SITE_DESCRIPTION
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: SITE_NAME,
       description: SITE_DESCRIPTION
     }
   };
+
+  if (shouldNoIndexCurrentEnvironment()) {
+    metadata.robots = {
+      index: false,
+      follow: false,
+      nocache: true,
+      googleBot: {
+        index: false,
+        follow: false,
+        noimageindex: true
+      }
+    };
+  }
+
+  return metadata;
 }
 
 export function buildMarketingMetadata({ title, description, path }) {
@@ -71,7 +96,7 @@ export function buildMarketingMetadata({ title, description, path }) {
       siteName: SITE_NAME
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title,
       description
     }
@@ -93,6 +118,57 @@ export function buildNoIndexMetadata({ title, description }) {
       }
     }
   };
+}
+
+export function getOrganizationJsonLd() {
+  const siteUrl = getSiteUrl();
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: SITE_NAME,
+    url: siteUrl.toString(),
+    legalName: "Freyr And Sons LLC"
+  };
+}
+
+export function getWebsiteJsonLd() {
+  const siteUrl = getSiteUrl();
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: SITE_NAME,
+    url: siteUrl.toString(),
+    description: SITE_DESCRIPTION
+  };
+}
+
+export function getHomepageWebApplicationJsonLd() {
+  const siteUrl = getSiteUrl();
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: SITE_NAME,
+    applicationCategory: "EducationalApplication",
+    operatingSystem: "Web",
+    url: siteUrl.toString(),
+    description: SITE_DESCRIPTION,
+    audience: {
+      "@type": "Audience",
+      audienceType: "Homeschool parents and students"
+    },
+    isFamilyFriendly: true,
+    creator: {
+      "@type": "Organization",
+      name: "Freyr And Sons LLC"
+    }
+  };
+}
+
+export function serializeJsonLd(value) {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 
 export const SEO_SITE_NAME = SITE_NAME;

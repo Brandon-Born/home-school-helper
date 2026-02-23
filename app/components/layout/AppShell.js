@@ -45,7 +45,7 @@ export function AppShell({ title, subtitle, role = "home", actions = null, child
         {subtitle ? <p className="page-subtitle">{subtitle}</p> : null}
       </section>
 
-      <section className="app-shell__content">{children}</section>
+      <main className="app-shell__content">{children}</main>
 
       <Footer />
     </div>
