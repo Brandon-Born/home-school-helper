@@ -71,6 +71,10 @@ export function ActiveSessionsPanel({
     }
 
     const handleCardClick = (child) => {
+        if (loading) {
+            return;
+        }
+
         const session = sessionsByChildId.get(child.id);
         if (session) {
             onRejoin({
@@ -97,6 +101,17 @@ export function ActiveSessionsPanel({
         setConfirmEndId(null);
     };
 
+    const handleCardKeyDown = (event, child) => {
+        if (event.target !== event.currentTarget) {
+            return;
+        }
+
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            handleCardClick(child);
+        }
+    };
+
     return (
         <section className="card" data-testid="active-sessions-panel" aria-busy={loading}>
             <h2 className="section-title">Your children's sessions</h2>
@@ -117,13 +132,15 @@ export function ActiveSessionsPanel({
                     const subjects = session?.daily_context?.daily_subjects;
 
                     return (
-                        <button
+                        <div
                             key={child.id}
-                            type="button"
                             className={`active-session-card${isSelected ? " is-selected" : ""}${session ? " has-session" : ""}`}
                             data-testid={session ? `active-session-card-${session.session_id}` : `child-session-card-${child.id}`}
+                            role="button"
+                            tabIndex={loading ? -1 : 0}
+                            aria-disabled={loading ? "true" : undefined}
                             onClick={() => handleCardClick(child)}
-                            disabled={loading}
+                            onKeyDown={(event) => handleCardKeyDown(event, child)}
                         >
                             <div className="active-session-card__header">
                                 <span className="active-session-card__name">{child.first_name}</span>
@@ -157,8 +174,6 @@ export function ActiveSessionsPanel({
                                         Started {timeAgo(session.started_at)}
                                     </span>
 
-                                    {/* Stop propagation so action buttons don't trigger card click */}
-                                    {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
                                     <div className="active-session-card__actions" onClick={(e) => e.stopPropagation()} role="toolbar" aria-label={`Session actions for ${child.first_name}`}>
                                         <button
                                             type="button"
@@ -209,7 +224,7 @@ export function ActiveSessionsPanel({
                                     </div>
                                 </>
                             ) : null}
-                        </button>
+                        </div>
                     );
                 })}
             </div>
