@@ -1,11 +1,13 @@
 import { AppShell } from "../components/layout/AppShell.js";
+import { buildMarketingMetadata } from "../../src/lib/seo.js";
 import styles from "./page.module.css";
 
-export const metadata = {
+export const metadata = buildMarketingMetadata({
     title: "Contact Us | Homeschool Sidekick",
     description:
-        "Get in touch with the Homeschool Sidekick team. Questions, feedback, or partnership inquiries — we'd love to hear from you."
-};
+        "Get in touch with the Homeschool Sidekick team. Questions, feedback, or partnership inquiries — we'd love to hear from you.",
+    path: "/contact"
+});
 
 export default function ContactPage() {
     return (

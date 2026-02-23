@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { AppShell } from "./components/layout/AppShell.js";
 import styles from "./page.module.css";
+import { buildMarketingMetadata } from "../src/lib/seo.js";
+
+export const metadata = buildMarketingMetadata({
+  title: "Homeschool Sidekick",
+  description: "Your AI-powered homeschool sidekick — parents steer, kids learn, step by step.",
+  path: "/"
+});
 
 export default function HomePage() {
   return (

@@ -1,11 +1,13 @@
 import { AppShell } from "../components/layout/AppShell.js";
+import { buildMarketingMetadata } from "../../src/lib/seo.js";
 import styles from "./page.module.css";
 
-export const metadata = {
+export const metadata = buildMarketingMetadata({
     title: "About Us | Homeschool Sidekick",
     description:
-        "Learn about Homeschool Sidekick — an AI-powered tutor built by Freyr And Sons LLC that helps homeschool parents guide their children through patient, step-by-step learning."
-};
+        "Learn about Homeschool Sidekick — an AI-powered tutor built by Freyr And Sons LLC that helps homeschool parents guide their children through patient, step-by-step learning.",
+    path: "/about"
+});
 
 export default function AboutPage() {
     return (

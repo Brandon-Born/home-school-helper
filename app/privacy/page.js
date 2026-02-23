@@ -1,11 +1,13 @@
 import { AppShell } from "../components/layout/AppShell.js";
+import { buildMarketingMetadata } from "../../src/lib/seo.js";
 import styles from "./page.module.css";
 
-export const metadata = {
+export const metadata = buildMarketingMetadata({
     title: "Privacy Policy | Homeschool Sidekick",
     description:
-        "Read the Homeschool Sidekick privacy policy. Learn how we collect, use, and protect your data — including our commitment to children's privacy."
-};
+        "Read the Homeschool Sidekick privacy policy. Learn how we collect, use, and protect your data — including our commitment to children's privacy.",
+    path: "/privacy"
+});
 
 export default function PrivacyPage() {
     return (

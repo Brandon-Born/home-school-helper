@@ -1,10 +1,8 @@
 import "./globals.css";
 import { ThemeProvider } from "./components/theme/ThemeProvider.js";
+import { buildRootMetadata } from "../src/lib/seo.js";
 
-export const metadata = {
-  title: "Homeschool Sidekick",
-  description: "Your AI-powered homeschool sidekick — parents steer, kids learn, step by step."
-};
+export const metadata = buildRootMetadata();
 
 export default function RootLayout({ children }) {
   return (
