@@ -36,6 +36,7 @@ export function createUseParentConsole({
     const [messages, setMessages] = useState([]);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(initialLoadingState);
+    const [parentDataLoaded, setParentDataLoaded] = useState(false);
     const [actionAlerts, setActionAlerts] = useState(initialActionAlerts);
     const [childForm, setChildForm] = useState(initialChildForm);
     const [sessionForm, setSessionForm] = useState(initialSessionForm);
@@ -75,6 +76,7 @@ export function createUseParentConsole({
       setActiveSessions([]);
       setMessages([]);
       setLoading(initialLoadingState);
+      setParentDataLoaded(false);
       setActionAlerts(initialActionAlerts);
     }, []);
 
@@ -138,9 +140,18 @@ export function createUseParentConsole({
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : "We couldn't load your parent data. Please try again.");
       } finally {
+        setParentDataLoaded(true);
         setLoadingState("refreshParentData", false);
       }
     }, [parentRequest, session?.access_token, setLoadingState]);
+
+    useEffect(() => {
+      if (!session?.access_token) {
+        setParentDataLoaded(true);
+        return;
+      }
+      setParentDataLoaded(false);
+    }, [session?.access_token]);
 
     useEffect(() => {
       fetchParentData();
@@ -370,6 +381,7 @@ export function createUseParentConsole({
         messages,
         error,
         loading,
+        parentDataLoaded,
         actionAlerts,
         coppaConsentRequired,
         coppaConsentStatus,

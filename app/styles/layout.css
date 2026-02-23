@@ -245,6 +245,183 @@
   transform: scaleY(1) translateX(0);
 }
 
+.parent-workspace--loading .parent-workspace__sidebar,
+.parent-workspace--loading .parent-workspace__main {
+  animation: fade-up 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.parent-workspace--loading .parent-workspace__main {
+  animation-delay: 60ms;
+}
+
+.parent-section-nav__button--loading {
+  cursor: default;
+  color: color-mix(in oklab, var(--text) 70%, var(--text-muted) 30%);
+  border-color: color-mix(in oklab, var(--role-accent) 16%, var(--border) 84%);
+  background:
+    linear-gradient(90deg,
+      color-mix(in oklab, var(--role-accent) 10%, var(--surface) 90%),
+      color-mix(in oklab, var(--surface) 92%, transparent) 42%,
+      color-mix(in oklab, var(--role-accent) 8%, var(--surface) 92%));
+  box-shadow: inset 0 1px 0 color-mix(in oklab, white 35%, transparent);
+}
+
+.parent-section-nav__button--loading::before {
+  opacity: 0.35;
+  transform: scaleY(0.75) translateX(0);
+}
+
+.parent-section-nav__button--loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 10%,
+    color-mix(in oklab, white 55%, transparent) 40%,
+    transparent 70%
+  );
+  transform: translateX(-120%);
+  animation: parent-skeleton-shimmer 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.parent-loading-panel {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(in oklab, var(--role-accent) 14%, var(--border) 86%);
+  background:
+    radial-gradient(120% 120% at 100% 0%, color-mix(in oklab, var(--role-accent) 8%, transparent), transparent 60%),
+    radial-gradient(90% 90% at 0% 100%, color-mix(in oklab, var(--brand) 5%, transparent), transparent 65%),
+    var(--surface);
+}
+
+.parent-loading-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--role-accent) 70%, var(--brand) 30%),
+    color-mix(in oklab, var(--brand) 35%, var(--role-accent) 65%),
+    color-mix(in oklab, var(--role-accent) 75%, white 25%)
+  );
+  opacity: 0.45;
+}
+
+.parent-loading-panel--hero {
+  box-shadow: var(--shadow-lg);
+}
+
+.parent-loading-panel__eyebrow {
+  color: color-mix(in oklab, var(--role-accent) 58%, var(--text-muted) 42%);
+}
+
+.parent-loading-stack {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.parent-skeleton-line,
+.parent-skeleton-dot,
+.parent-skeleton-pill {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--role-accent) 10%, var(--surface-muted) 90%);
+  border: 1px solid color-mix(in oklab, var(--role-accent) 12%, var(--border) 88%);
+}
+
+.parent-skeleton-line::after,
+.parent-skeleton-dot::after,
+.parent-skeleton-pill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 18%,
+    color-mix(in oklab, white 65%, transparent) 45%,
+    transparent 72%
+  );
+  transform: translateX(-130%);
+  animation: parent-skeleton-shimmer 1.7s ease-in-out infinite;
+}
+
+.parent-skeleton-line {
+  display: block;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.parent-skeleton-line--sm {
+  width: 36%;
+}
+
+.parent-skeleton-line--md {
+  width: 52%;
+}
+
+.parent-skeleton-line--lg {
+  width: 68%;
+}
+
+.parent-skeleton-line--xl {
+  width: 86%;
+}
+
+.parent-skeleton-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  margin-top: 2px;
+  flex: 0 0 auto;
+}
+
+.parent-skeleton-pill {
+  width: 82px;
+  height: 26px;
+  border-radius: var(--radius-full);
+  flex: 0 0 auto;
+  justify-self: end;
+  background: color-mix(in oklab, var(--role-accent) 12%, var(--surface-muted) 88%);
+}
+
+.parent-skeleton-pill--muted {
+  width: 72px;
+  background: color-mix(in oklab, var(--brand) 8%, var(--surface-muted) 92%);
+}
+
+.parent-loading-card-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.parent-loading-card-grid__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  border-radius: calc(var(--radius) - 4px);
+  border: 1px solid color-mix(in oklab, var(--role-accent) 10%, var(--border) 90%);
+  background: color-mix(in oklab, var(--surface) 76%, var(--surface-muted) 24%);
+  padding: 10px 12px;
+}
+
+@keyframes parent-skeleton-shimmer {
+  0% {
+    transform: translateX(-130%);
+  }
+
+  100% {
+    transform: translateX(130%);
+  }
+}
+
 .console-centered {
   max-width: 520px;
 }
@@ -386,8 +563,27 @@
     border-color: transparent;
   }
 
+  .parent-section-nav__button--loading {
+    border: 1px solid color-mix(in oklab, var(--role-accent) 18%, var(--border) 82%);
+    background: color-mix(in oklab, var(--surface) 88%, var(--role-accent) 12%);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, white 20%, transparent);
+  }
+
   .parent-section-nav__button::before {
     display: none;
+  }
+
+  .parent-loading-card-grid__row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .parent-skeleton-dot {
+    display: none;
+  }
+
+  .parent-skeleton-pill {
+    justify-self: start;
   }
 }
 
