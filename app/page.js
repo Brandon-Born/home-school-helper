@@ -115,6 +115,37 @@ export default function HomePage() {
             </Link>
           </div>
         </section>
+
+        <section className={`${styles.guidesSection} reveal`} aria-labelledby="parent-guides-heading">
+          <h2 id="parent-guides-heading" className="sr-only">Parent guides</h2>
+          <div className={styles.guidesGrid}>
+            <div className={`${styles.guidesCard} card card--glass`}>
+              <div>
+                <p className={styles.guidesEyebrow}>Parent guide</p>
+                <h3 className="section-title">How to use an AI tutor for homeschool learning</h3>
+                <p className="section-muted">
+                  A practical walkthrough for using AI tutoring as support practice while parents stay in control of goals, pacing, and privacy.
+                </p>
+              </div>
+              <Link href="/ai-tutor-for-homeschool" className="btn btn--secondary">
+                Read the guide
+              </Link>
+            </div>
+
+            <div className={`${styles.guidesCard} card card--glass`}>
+              <div>
+                <p className={styles.guidesEyebrow}>Parent guide</p>
+                <h3 className="section-title">Voice tutor for kids (voice-first setup)</h3>
+                <p className="section-muted">
+                  How to use a voice-first tutor flow for younger learners while keeping parents in control of topic, pacing, and coaching.
+                </p>
+              </div>
+              <Link href="/voice-tutor-for-kids" className="btn btn--secondary">
+                Read the guide
+              </Link>
+            </div>
+          </div>
+        </section>
       </AppShell>
     </>
   );

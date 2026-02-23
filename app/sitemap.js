@@ -2,6 +2,8 @@ import { getSiteUrl } from "../src/lib/seo.js";
 
 const PUBLIC_PAGES = [
   { path: "/", changeFrequency: "weekly", priority: 1.0 },
+  { path: "/ai-tutor-for-homeschool", changeFrequency: "weekly", priority: 0.85 },
+  { path: "/voice-tutor-for-kids", changeFrequency: "weekly", priority: 0.82 },
   { path: "/about", changeFrequency: "monthly", priority: 0.7 },
   { path: "/contact", changeFrequency: "monthly", priority: 0.6 },
   { path: "/privacy", changeFrequency: "monthly", priority: 0.5 }

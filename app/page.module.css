@@ -122,6 +122,32 @@
   max-width: 36ch;
 }
 
+.guidesSection {
+  margin-top: 4px;
+}
+
+.guidesGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.guidesCard {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  align-items: start;
+  gap: 16px;
+}
+
+.guidesEyebrow {
+  margin: 0 0 6px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--role-accent) 65%, var(--text-muted) 35%);
+}
+
 /* ── Responsive ────────────────────────────────── */
 
 @media (max-width: 600px) {
@@ -130,6 +156,15 @@
   }
 
   .ctaSection {
+    grid-template-columns: 1fr;
+  }
+
+  .guidesCard {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .guidesGrid {
     grid-template-columns: 1fr;
   }
 }
