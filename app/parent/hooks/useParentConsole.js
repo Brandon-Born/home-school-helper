@@ -262,14 +262,29 @@ export function createUseParentConsole({
         clearActionAlert,
         setActionAlert,
         fallbackErrorMessage: "We couldn't record parental consent. Please try again.",
-        run: async () =>
-          parentRequest("/api/privacy/consent", {
-            method: "POST",
-            body: {
-              action: "grant"
-            }
-          }),
+        run: async () => {
+          try {
+            return await parentRequest("/api/billing/checkout-session", {
+              method: "POST"
+            });
+          } catch {
+            return parentRequest("/api/privacy/consent", {
+              method: "POST",
+              body: {
+                action: "grant"
+              }
+            });
+          }
+        },
         onSuccess: (payload) => {
+          const checkoutUrl = payload?.checkout?.url;
+          if (typeof checkoutUrl === "string" && checkoutUrl) {
+            if (typeof window !== "undefined" && window.location) {
+              window.location.assign(checkoutUrl);
+            }
+            return "Redirecting to secure checkout…";
+          }
+
           applyConsentToParentProfile(payload?.consent);
           return "Parental consent confirmed.";
         }
