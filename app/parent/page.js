@@ -177,6 +177,7 @@ export default function ParentPage() {
                   loading={state.loading.childMutation}
                   actionAlert={state.actionAlerts.childMutation}
                   consentGranted={state.hasCoppaConsent}
+                  billingEnabled={state.billingEnabled}
                   onGrantConsent={actions.grantCoppaConsent}
                   consentLoading={state.loading.consent}
                   consentAlert={state.actionAlerts.consent}
@@ -233,9 +234,11 @@ export default function ParentPage() {
                     parentProfile={state.parentProfile}
                     consentRequired={state.coppaConsentRequired}
                     hasCoppaConsent={state.hasCoppaConsent}
+                    billing={state.billing}
                     loading={state.loading.consent}
                     actionAlert={state.actionAlerts.consent}
                     onGrantConsent={actions.grantCoppaConsent}
+                    onOpenBillingPortal={actions.openBillingPortal}
                     onRevokeConsent={actions.revokeCoppaConsent}
                   />
 

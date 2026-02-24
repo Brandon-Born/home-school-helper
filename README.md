@@ -78,7 +78,11 @@ tests/                         Unit tests
 |--------|-------|------|---------|
 | GET | `/api/parent/me` | Parent | Get/sync parent profile |
 | GET | `/api/privacy/consent` | Parent | Get parent consent checkpoint state |
-| POST | `/api/privacy/consent` | Parent | Grant/revoke parent consent checkpoint |
+| POST | `/api/privacy/consent` | Parent | Grant/revoke parent consent checkpoint (grant may require billing-backed verification) |
+| GET | `/api/billing/subscription` | Parent | Get normalized billing subscription state |
+| POST | `/api/billing/checkout-session` | Parent | Create Stripe Checkout session URL for family subscription |
+| POST | `/api/billing/portal-session` | Parent | Create Stripe Billing Portal session URL |
+| POST | `/api/billing/webhook` | Stripe | Process Stripe billing webhooks (subscription lifecycle + consent activation) |
 | GET | `/api/privacy/child-data-summary` | Parent | Get aggregate child-data category summary |
 | GET | `/api/privacy/requests` | Parent | List recent privacy export/delete requests |
 | POST | `/api/privacy/export` | Parent | Generate a child-data export snapshot |

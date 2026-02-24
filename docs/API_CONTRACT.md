@@ -155,6 +155,39 @@ Rate limit:
 }
 ```
 
+## GET `/api/billing/subscription`
+Returns normalized billing state for the authenticated parent.
+
+### Response (200)
+```json
+{
+  "billing": {
+    "enabled": true,
+    "provider": "stripe",
+    "subscription": {
+      "provider": "stripe",
+      "status": "trialing",
+      "has_access": true,
+      "provider_customer_id": "cus_123",
+      "provider_subscription_id": "sub_123",
+      "provider_price_id": "price_123",
+      "trial_start_at": "timestamp",
+      "trial_end_at": "timestamp",
+      "current_period_start_at": "timestamp",
+      "current_period_end_at": "timestamp",
+      "cancel_at_period_end": false,
+      "canceled_at": null,
+      "updated_at": "timestamp"
+    }
+  }
+}
+```
+
+When billing is disabled, the route returns:
+- `billing.enabled=false`
+- `billing.provider=null`
+- `billing.subscription=null`
+
 ## POST `/api/privacy/consent`
 Sets parent consent status.
 
@@ -185,8 +218,53 @@ Allowed `action` values:
 
 ### Errors
 - `400 validation_error`: Action must be `grant` or `revoke`.
+- `409 billing_required_for_coppa_grant`: Billing-backed verification is required before `grant`.
 - `500 coppa_consent_update_failed`: Consent state could not be persisted.
 - `500 coppa_consent_audit_failed`: Consent audit event could not be persisted.
+
+## POST `/api/billing/checkout-session`
+Creates a Stripe Checkout Session URL for the authenticated parent family subscription.
+
+### Response (200)
+```json
+{
+  "checkout": {
+    "id": "cs_123",
+    "url": "https://checkout.stripe.com/c/pay/...",
+    "trial_days": 7
+  }
+}
+```
+
+## POST `/api/billing/portal-session`
+Creates a Stripe Billing Portal session URL for the authenticated parent.
+
+### Response (200)
+```json
+{
+  "portal": {
+    "url": "https://billing.stripe.com/p/session/..."
+  }
+}
+```
+
+## POST `/api/billing/webhook`
+Consumes Stripe webhook events for subscription lifecycle updates and billing-linked COPPA consent activation.
+
+### Headers
+- `stripe-signature: <signed-header>`
+
+### Response (200)
+```json
+{
+  "ok": true,
+  "result": {
+    "duplicate": false,
+    "processed": true,
+    "event_type": "customer.subscription.updated"
+  }
+}
+```
 
 ## POST `/api/privacy/export`
 Creates and processes a parent export request, then returns a snapshot payload for immediate review/download workflows.

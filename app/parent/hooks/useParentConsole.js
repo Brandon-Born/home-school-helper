@@ -18,6 +18,25 @@ import { useParentTranscriptStream } from "./useParentTranscriptStream.js";
 
 export { mergeMessages, buildSessionForUi } from "./parent-console-shared.js";
 
+const DEFAULT_BILLING_STATE = Object.freeze({
+  enabled: false,
+  provider: null,
+  subscription: null
+});
+
+function normalizeBillingState(payload) {
+  const billing = payload?.billing;
+  if (!billing || typeof billing !== "object") {
+    return { ...DEFAULT_BILLING_STATE };
+  }
+
+  return {
+    enabled: Boolean(billing.enabled),
+    provider: billing.provider ?? null,
+    subscription: billing.subscription ?? null
+  };
+}
+
 export function createUseParentConsole({
   useParentSessionHook = useParentSession,
   useParentTranscriptStreamHook = useParentTranscriptStream,
@@ -30,6 +49,7 @@ export function createUseParentConsole({
     const [children, setChildren] = useState([]);
     const [privacySummary, setPrivacySummary] = useState(null);
     const [privacyRequests, setPrivacyRequests] = useState([]);
+    const [billing, setBilling] = useState({ ...DEFAULT_BILLING_STATE });
     const [selectedChildId, setSelectedChildId] = useState("");
     const [activeSession, setActiveSession] = useState(null);
     const [activeSessions, setActiveSessions] = useState([]);
@@ -71,6 +91,7 @@ export function createUseParentConsole({
       setChildren([]);
       setPrivacySummary(null);
       setPrivacyRequests([]);
+      setBilling({ ...DEFAULT_BILLING_STATE });
       setSelectedChildId("");
       setActiveSession(null);
       setActiveSessions([]);
@@ -102,12 +123,15 @@ export function createUseParentConsole({
       setError("");
 
       try {
-        const [profilePayload, childrenPayload, sessionsPayload, privacyPayload, privacyRequestsPayload] = await Promise.all([
+        const [profilePayload, childrenPayload, sessionsPayload, privacyPayload, privacyRequestsPayload, billingResult] = await Promise.all([
           parentRequest("/api/parent/me"),
           parentRequest("/api/children"),
           parentRequest("/api/session/active"),
           parentRequest("/api/privacy/child-data-summary"),
-          parentRequest("/api/privacy/requests")
+          parentRequest("/api/privacy/requests"),
+          parentRequest("/api/billing/subscription")
+            .then((payload) => ({ ok: true, payload }))
+            .catch(() => ({ ok: false, payload: null }))
         ]);
 
         setParentProfile(profilePayload.parent);
@@ -117,6 +141,7 @@ export function createUseParentConsole({
         setActiveSessions(nextActiveSessions);
         setPrivacySummary(privacyPayload.summary ?? null);
         setPrivacyRequests(privacyRequestsPayload.requests ?? []);
+        setBilling(normalizeBillingState(billingResult.payload));
 
         setSelectedChildId((previous) => {
           if (previous && nextChildren.some((child) => child.id === previous)) {
@@ -445,6 +470,9 @@ export function createUseParentConsole({
         parentProfile,
         privacySummary,
         privacyRequests,
+        billing,
+        billingEnabled: Boolean(billing?.enabled),
+        billingSubscription: billing?.subscription ?? null,
         children,
         selectedChildId,
         activeSession,

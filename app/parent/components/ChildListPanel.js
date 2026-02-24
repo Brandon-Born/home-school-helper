@@ -28,6 +28,7 @@ export function ChildListPanel({
     loading,
     actionAlert,
     consentGranted,
+    billingEnabled = false,
     onGrantConsent,
     consentLoading,
     consentAlert
@@ -81,6 +82,7 @@ export function ChildListPanel({
                     onGrantConsent={onGrantConsent}
                     loading={consentLoading}
                     actionAlert={consentAlert}
+                    billingEnabled={billingEnabled}
                 />
             ) : null}
 

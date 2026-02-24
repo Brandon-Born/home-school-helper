@@ -19,9 +19,11 @@ export function CoppaConsentPanel({
   parentProfile,
   consentRequired,
   hasCoppaConsent,
+  billing,
   loading,
   actionAlert,
   onGrantConsent,
+  onOpenBillingPortal,
   onRevokeConsent
 }) {
   if (!parentProfile) {
@@ -35,6 +37,11 @@ export function CoppaConsentPanel({
   const consentLabel = hasCoppaConsent ? "Active" : "Required";
   const updatedAtLabel = formatConsentTimestamp(parentProfile.coppa_consent_updated_at);
   const policyVersion = parentProfile.coppa_policy_version || "2026-02-19";
+  const billingEnabled = Boolean(billing?.enabled);
+  const billingSubscription = billing?.subscription ?? null;
+  const billingStatus = billingSubscription?.status ? String(billingSubscription.status).replaceAll("_", " ") : "";
+  const trialEndLabel = formatConsentTimestamp(billingSubscription?.trial_end_at);
+  const canOpenBillingPortal = Boolean(billingEnabled && billingSubscription?.provider_customer_id && onOpenBillingPortal);
 
   return (
     <section className={`card ${hasCoppaConsent ? "card--accent" : "card--elevated"}`} aria-busy={loading}>
@@ -46,8 +53,18 @@ export function CoppaConsentPanel({
       <p className="section-muted">
         {hasCoppaConsent
           ? "Consent is on file. New child profiles and sessions are allowed."
-          : "COPPA parental consent is required before adding child profiles or starting new sessions."}
+          : billingEnabled
+            ? "COPPA parental consent is required before adding child profiles or starting new sessions. Start your 7-day family trial to verify a parent payment method."
+            : "COPPA parental consent is required before adding child profiles or starting new sessions."}
       </p>
+
+      {billingEnabled ? (
+        <p className="section-muted" style={{ marginTop: 4 }}>
+          Family plan: 7-day free trial, then $10/month.
+          {billingStatus ? ` Billing status: ${billingStatus}.` : ""}
+          {trialEndLabel ? ` Trial ends: ${trialEndLabel}.` : ""}
+        </p>
+      ) : null}
 
       <p className="section-muted consent-panel__meta">
         Policy version: {policyVersion}
@@ -61,9 +78,15 @@ export function CoppaConsentPanel({
           </button>
         ) : (
           <button type="button" onClick={onGrantConsent} disabled={loading} className="btn btn--primary">
-            I am the parent or legal guardian
+            {billingEnabled ? "Start free week" : "I am the parent or legal guardian"}
           </button>
         )}
+
+        {canOpenBillingPortal ? (
+          <button type="button" onClick={onOpenBillingPortal} disabled={loading} className="btn btn--secondary">
+            Manage billing
+          </button>
+        ) : null}
 
         <a href="/privacy" className="btn btn--secondary">
           Review privacy policy
