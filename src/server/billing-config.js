@@ -34,11 +34,6 @@ export function isBillingEnabled(env = process.env) {
   return parseBooleanEnv(env.BILLING_ENABLED, false);
 }
 
-export function isSelfAttestationConsentGrantAllowed(env = process.env) {
-  const fallback = !isBillingEnabled(env);
-  return parseBooleanEnv(env.ALLOW_SELF_ATTESTATION_CONSENT_GRANT, fallback);
-}
-
 export function getStripeBillingConfig(env = process.env) {
   if (env === process.env && cachedConfig) {
     return cachedConfig;
@@ -59,8 +54,7 @@ export function getStripeBillingConfig(env = process.env) {
       parentVerificationCurrency:
         String(env.STRIPE_PARENT_VERIFICATION_CURRENCY || "usd").trim().toLowerCase() || "usd"
     },
-    appUrl: String(env.NEXT_PUBLIC_APP_URL || env.APP_URL || "").trim() || null,
-    allowSelfAttestationConsentGrant: isSelfAttestationConsentGrantAllowed(env)
+    appUrl: String(env.NEXT_PUBLIC_APP_URL || env.APP_URL || "").trim() || null
   };
 
   if (enabled) {

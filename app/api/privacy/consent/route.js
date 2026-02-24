@@ -1,6 +1,6 @@
 import { ApiError } from "../../../../src/server/api-error.js";
 import { requireParentContext } from "../../../../src/server/auth.js";
-import { isSelfAttestationConsentGrantAllowed } from "../../../../src/server/billing-config.js";
+import { isBillingEnabled } from "../../../../src/server/billing-config.js";
 import { handleRouteError } from "../../../../src/server/route-errors.js";
 import {
   COPPA_CONSENT_STATUS,
@@ -11,9 +11,8 @@ import {
 function resolveConsentStatusFromAction(action, options = {}) {
   const normalized = String(action ?? "").trim().toLowerCase();
   if (normalized === "grant") {
-    const allowSelfAttestationGrant =
-      options.allowSelfAttestationConsentGrant ?? isSelfAttestationConsentGrantAllowed(options.env);
-    if (!allowSelfAttestationGrant) {
+    const billingEnabled = options.billingEnabled ?? isBillingEnabled(options.env);
+    if (billingEnabled) {
       throw new ApiError(
         409,
         "billing_required_for_coppa_grant",
@@ -55,7 +54,7 @@ export function createPrivacyConsentPostHandler(dependencies = {}) {
     try {
       const payload = await request.json().catch(() => ({}));
       const status = resolveConsentStatusFromAction(payload.action, {
-        allowSelfAttestationConsentGrant: dependencies.allowSelfAttestationConsentGrant,
+        billingEnabled: dependencies.billingEnabled,
         env: dependencies.env
       });
       const { parent } = await requireParent(request);

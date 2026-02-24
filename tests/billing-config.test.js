@@ -4,16 +4,14 @@ import assert from "node:assert/strict";
 import {
   getStripeBillingConfig,
   isBillingEnabled,
-  isSelfAttestationConsentGrantAllowed,
   resetBillingConfigCache
 } from "../src/server/billing-config.js";
 
-test("billing config defaults to disabled and self-attestation allowed", () => {
+test("billing config defaults to disabled", () => {
   resetBillingConfigCache();
   const env = { NODE_ENV: "test" };
 
   assert.equal(isBillingEnabled(env), false);
-  assert.equal(isSelfAttestationConsentGrantAllowed(env), true);
 
   const config = getStripeBillingConfig(env);
   assert.equal(config.enabled, false);
@@ -37,7 +35,7 @@ test("billing config requires Stripe secret key and price id when enabled", () =
   );
 });
 
-test("billing config disables self-attestation grant by default when billing enabled", () => {
+test("billing config enables stripe billing when required vars are present", () => {
   resetBillingConfigCache();
   const env = {
     BILLING_ENABLED: "true",
@@ -47,7 +45,6 @@ test("billing config disables self-attestation grant by default when billing ena
 
   const config = getStripeBillingConfig(env);
   assert.equal(config.enabled, true);
-  assert.equal(config.allowSelfAttestationConsentGrant, false);
   assert.equal(config.stripe.parentVerificationAmountCents, 100);
   assert.equal(config.stripe.parentVerificationCurrency, "usd");
 });

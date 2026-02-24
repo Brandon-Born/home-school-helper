@@ -107,7 +107,7 @@ test("createPrivacyConsentPostHandler stores granted consent with request metada
 
 test("createPrivacyConsentPostHandler blocks self-attestation grant when billing-backed flow is required", async () => {
   const handler = createPrivacyConsentPostHandler({
-    allowSelfAttestationConsentGrant: false,
+    billingEnabled: true,
     requireParentContext: async () => ({
       parent: { id: "parent_1" }
     })

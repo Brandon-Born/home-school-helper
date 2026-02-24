@@ -23,7 +23,6 @@ function buildBillingConfig() {
       parentVerificationCurrency: "usd"
     },
     appUrl: "https://example.test",
-    allowSelfAttestationConsentGrant: false
   };
 }
 
