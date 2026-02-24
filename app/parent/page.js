@@ -52,13 +52,15 @@ export default function ParentPage() {
   const activeSection = resolveParentConsoleSection(activeSectionId);
   const showInitialWorkspaceLoading = Boolean(state.session) && !state.parentDataLoaded;
   const hasBillingSubscriptionStarted = Boolean(state.billingSubscription?.provider_subscription_id);
+  const billingStatus = String(state.billingSubscription?.status || "").trim().toLowerCase();
+  const shouldReturnToSignupOnboarding = billingStatus === "canceled";
   const showTrialSetupOnboarding = Boolean(
     state.session &&
       state.billingEnabled &&
       state.coppaConsentRequired &&
       !showInitialWorkspaceLoading &&
       !state.billingHasAccess &&
-      (!state.hasCoppaConsent || !hasBillingSubscriptionStarted)
+      (!state.hasCoppaConsent || !hasBillingSubscriptionStarted || shouldReturnToSignupOnboarding)
   );
   const shellTitle = showTrialSetupOnboarding ? "Start for $1.99" : "Your command center";
   const shellSubtitle = showTrialSetupOnboarding

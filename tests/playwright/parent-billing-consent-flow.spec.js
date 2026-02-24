@@ -208,6 +208,53 @@ test("first-time onboarding shows subscription CTA after parent verification and
   await expect(page).toHaveURL(/billing=checkout_success/, { timeout: 30000 });
 });
 
+test("canceled subscription returns parent to signup onboarding without revoking consent", async ({ page }) => {
+  await mockParentWorkspaceApis(page, {
+    parent: {
+      id: "parent_1",
+      email: "parent@example.test",
+      full_name: "Parent",
+      coppa_consent_required: true,
+      coppa_consent_status: "granted",
+      coppa_consent_method: "stripe_subscription_checkout_payment",
+      coppa_consent_updated_at: "2026-02-24T00:00:00.000Z",
+      coppa_policy_version: "2026-02-19"
+    },
+    billing: {
+      enabled: true,
+      provider: "stripe",
+      subscription: {
+        provider: "stripe",
+        status: "canceled",
+        has_access: false,
+        provider_customer_id: "cus_123",
+        provider_subscription_id: "sub_123",
+        provider_price_id: "price_123",
+        current_period_start_at: "2026-02-01T00:00:00.000Z",
+        current_period_end_at: "2026-03-01T00:00:00.000Z",
+        cancel_at_period_end: false,
+        canceled_at: "2026-02-24T00:00:00.000Z",
+        updated_at: "2026-02-24T00:00:00.000Z"
+      }
+    },
+    checkoutUrl: "__same_origin_parent_success__"
+  });
+
+  await page.goto("/parent", { waitUntil: "domcontentloaded" });
+  await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByTestId("parent-trial-onboarding")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByTestId("parent-section-link-managed")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Restart subscription" })).toBeVisible({ timeout: 30000 });
+
+  const checkoutResponsePromise = page.waitForResponse(
+    (response) => response.url().includes("/api/billing/checkout-session") && response.request().method() === "POST"
+  );
+  await page.getByRole("button", { name: "Restart subscription" }).click();
+  const checkoutResponse = await checkoutResponsePromise;
+  expect(checkoutResponse.status()).toBe(200);
+  await expect(page).toHaveURL(/billing=checkout_success/, { timeout: 30000 });
+});
+
 test("session controls disable start when billing is past_due", async ({ page }) => {
   await mockParentWorkspaceApis(page, {
     parent: {

@@ -64,15 +64,30 @@ export function CoppaConsentPanel({
   const billingEnabled = Boolean(billing?.enabled);
   const billingSubscription = billing?.subscription ?? null;
   const hasSubscriptionStarted = Boolean(billingSubscription?.provider_subscription_id);
+  const billingHasAccess = Boolean(billingSubscription?.has_access);
   const billingStatus = billingSubscription?.status ? String(billingSubscription.status).replaceAll("_", " ") : "";
+  const normalizedBillingStatus = String(billingSubscription?.status || "").trim().toLowerCase();
   const trialEndLabel = formatConsentTimestamp(billingSubscription?.trial_end_at);
   const trialWarningLabel = getTrialWarningLabel(billingSubscription?.trial_end_at);
   const canOpenBillingPortal = Boolean(billingEnabled && billingSubscription?.provider_customer_id && onOpenBillingPortal);
-  const canStartSubscription = Boolean(billingEnabled && hasCoppaConsent && !hasSubscriptionStarted && onStartBillingCheckout);
+  const canStartSubscription = Boolean(
+    billingEnabled &&
+      hasCoppaConsent &&
+      !billingHasAccess &&
+      onStartBillingCheckout &&
+      (!hasSubscriptionStarted || normalizedBillingStatus === "canceled")
+  );
+  const isCanceledResubscribe = Boolean(
+    billingEnabled &&
+      hasCoppaConsent &&
+      hasSubscriptionStarted &&
+      !billingHasAccess &&
+      normalizedBillingStatus === "canceled"
+  );
   const primaryActionLabel = billingEnabled && focusMode
-    ? (hasCoppaConsent ? "Complete subscription signup" : "Start subscription for $1.99")
+    ? (hasCoppaConsent ? (isCanceledResubscribe ? "Restart subscription" : "Complete subscription signup") : "Start subscription for $1.99")
     : hasCoppaConsent
-      ? "Complete subscription signup"
+      ? (isCanceledResubscribe ? "Restart subscription" : "Complete subscription signup")
       : billingEnabled
         ? "Start subscription for $1.99"
         : "I am the parent or legal guardian";
@@ -80,7 +95,9 @@ export function CoppaConsentPanel({
   const title = focusMode && billingEnabled ? "Start for $1.99 (first month)" : "Parental consent";
   const introText = focusMode && billingEnabled
     ? hasCoppaConsent
-      ? "Your parent billing verification is on file. Complete checkout to activate your family subscription."
+      ? isCanceledResubscribe
+        ? "Your previous subscription is no longer active. Start checkout to reactivate your family subscription."
+        : "Your parent billing verification is on file. Complete checkout to activate your family subscription."
       : "Start your family subscription for $1.99 for the first month, then $9.99/month."
     : hasCoppaConsent
       ? billingEnabled && !hasSubscriptionStarted
