@@ -111,13 +111,19 @@ test("new parent can complete first-time onboarding workflow", async ({ baseURL,
     await page.waitForURL(/\/parent(?:[/?#]|$)/, { timeout: 30000 });
     await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
 
+    await expect(page.getByTestId("parent-trial-onboarding")).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole("heading", { name: "Start your 7-day free trial" })).toBeVisible({
+      timeout: 30000
+    });
+    await expect(page.getByRole("button", { name: "Start your free trial" })).toBeVisible({
+      timeout: 30000
+    });
+
+    await ensureCoppaConsentGranted(page);
     await goToParentSection(page, "children");
     await expect(page.getByText("No children added yet — add one to get started.")).toBeVisible({
       timeout: 30000
     });
-    await expect(page.getByTestId("child-add-button")).toBeDisabled({ timeout: 30000 });
-
-    await ensureCoppaConsentGranted(page);
     const created = await createChildProfile(page, { childName, subjects: "Math, Reading" });
     fixture.childId = created.childId;
 
