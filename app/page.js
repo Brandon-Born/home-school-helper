@@ -116,6 +116,21 @@ export default function HomePage() {
           </div>
         </section>
 
+        <section className={`${styles.howItWorks} reveal`} aria-labelledby="pricing-heading">
+          <h2 id="pricing-heading" className={styles.howItWorksTitle}>Family plan pricing</h2>
+          <div className={`${styles.ctaCard} card card--elevated`}>
+            <p className="section-muted">
+              <strong>7-day free trial</strong> for your family plan, then <strong>$10/month</strong>.
+              Parent payment verification is required before the free trial starts. You can cancel anytime
+              from the parent billing portal.
+            </p>
+            <p className="section-muted">
+              See our <Link href="/billing-policy">Billing Policy</Link> and{" "}
+              <Link href="/terms">Terms of Service</Link> for full details.
+            </p>
+          </div>
+        </section>
+
         <section className={`${styles.guidesSection} reveal`} aria-labelledby="parent-guides-heading">
           <h2 id="parent-guides-heading" className="sr-only">Parent guides</h2>
           <div className={styles.guidesGrid}>
