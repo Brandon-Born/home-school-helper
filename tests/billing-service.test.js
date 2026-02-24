@@ -2,7 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { ApiError } from "../src/server/api-error.js";
-import { ensureParentHasBillingAccess, processStripeWebhookEvent } from "../src/server/billing-service.js";
+import {
+  createStripeCheckoutSessionForParent,
+  ensureParentHasBillingAccess,
+  processStripeWebhookEvent
+} from "../src/server/billing-service.js";
 import { createFakeServiceClient } from "./helpers/fake-service-client.js";
 
 function buildBillingConfig({ grantCoppaOnTrialSignup = true } = {}) {
@@ -107,6 +111,41 @@ test("processStripeWebhookEvent grants COPPA consent from trialing subscription 
   assert.equal(serviceClient.tables.parents[0].coppa_consent_status, "granted");
   assert.equal(serviceClient.tables.parent_consents.length, 1);
   assert.equal(serviceClient.tables.parent_consents[0].method, "stripe_subscription_trial_signup");
+});
+
+test("createStripeCheckoutSessionForParent enables promotion codes in Stripe Checkout", async () => {
+  const serviceClient = createFakeServiceClient({
+    billing_subscriptions: []
+  });
+
+  let recordedCheckoutPayload = null;
+  const stripeClient = {
+    customers: {
+      create: async () => ({ id: "cus_123" })
+    },
+    checkout: {
+      sessions: {
+        create: async (payload) => {
+          recordedCheckoutPayload = payload;
+          return {
+            id: "cs_test_123",
+            url: "https://checkout.stripe.test/session"
+          };
+        }
+      }
+    }
+  };
+
+  const checkout = await createStripeCheckoutSessionForParent(buildParent(), {
+    serviceClient,
+    stripeClient,
+    config: buildBillingConfig(),
+    request: new Request("https://example.test/api/billing/checkout-session", { method: "POST" })
+  });
+
+  assert.equal(checkout.id, "cs_test_123");
+  assert.equal(recordedCheckoutPayload.allow_promotion_codes, true);
+  assert.equal(recordedCheckoutPayload.subscription_data.trial_period_days, 7);
 });
 
 test("processStripeWebhookEvent does not grant trial-based consent when trial grant policy is disabled", async () => {

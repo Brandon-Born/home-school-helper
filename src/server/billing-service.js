@@ -330,6 +330,7 @@ export async function createStripeCheckoutSessionForParent(parent, options = {})
   const session = await stripeClient.checkout.sessions.create({
     mode: "subscription",
     customer: providerCustomerId,
+    allow_promotion_codes: true,
     line_items: [
       {
         price: config.stripe.priceIdFamilyMonthly,
