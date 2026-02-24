@@ -5,6 +5,10 @@ import { StatusAlert } from "../../components/feedback/StatusAlert.js";
 export function SessionControlPanel({
   selectedChild,
   consentGranted,
+  billingEnabled = false,
+  billingHasAccess = true,
+  billingStatus = "",
+  billingTrialEndsAt = null,
   sessionForm,
   setSessionForm,
   onStartSession,
@@ -23,6 +27,10 @@ export function SessionControlPanel({
       </section>
     );
   }
+
+  const normalizedBillingStatus = String(billingStatus || "").trim().toLowerCase().replaceAll("_", " ");
+  const sessionStartBlockedByBilling = billingEnabled && !billingHasAccess;
+  const trialEndsLabel = billingTrialEndsAt ? new Date(billingTrialEndsAt).toLocaleString() : "";
 
   return (
     <section className="card" aria-busy={loading}>
@@ -88,13 +96,21 @@ export function SessionControlPanel({
           />
           {!consentGranted ? (
             <p className="section-muted" style={{ fontSize: "0.88rem" }}>
-              Complete parental consent in Managed before starting a new session.
+              {billingEnabled
+                ? "Complete parental consent and billing verification in Managed before starting a new session."
+                : "Complete parental consent in Managed before starting a new session."}
+            </p>
+          ) : null}
+          {sessionStartBlockedByBilling ? (
+            <p className="section-muted" style={{ fontSize: "0.88rem" }}>
+              Billing status is {normalizedBillingStatus || "not active"}, so new sessions are paused.
+              {trialEndsLabel ? ` Trial end on file: ${trialEndsLabel}.` : ""} Use Manage billing in Managed to update your subscription.
             </p>
           ) : null}
           <div className="btn-row">
             <button
               type="submit"
-              disabled={loading || !consentGranted}
+              disabled={loading || !consentGranted || sessionStartBlockedByBilling}
               className="btn btn--primary"
               data-testid="session-start-submit"
             >

@@ -1,4 +1,5 @@
 import { ApiError } from "../api-error.js";
+import { isBillingEnabled } from "../billing-config.js";
 import { getClientAddress } from "../rate-limit.js";
 import { getServiceSupabaseClient } from "../supabase-clients.js";
 
@@ -18,6 +19,7 @@ const COPPA_SCHEMA_FALLBACK_ENV_KEY = "ALLOW_COPPA_SCHEMA_FALLBACK";
 const DEFAULT_POLICY_VERSION = "2026-02-19";
 const DEFAULT_POLICY_URL = "/privacy";
 const DEFAULT_CONSENT_METHOD = "parent_self_attestation";
+const BILLING_VERIFIED_CONSENT_METHOD = "stripe_card_verification_charge";
 
 const PARENT_CONSENT_SELECT =
   "coppa_consent_status, coppa_consent_updated_at, coppa_policy_version, coppa_consent_method";
@@ -154,6 +156,7 @@ export async function getParentCoppaConsentState(parentId, options = {}) {
 
 export async function ensureParentHasCoppaConsent(parentId, options = {}) {
   const consent = await getParentCoppaConsentState(parentId, options);
+  const env = options.env ?? process.env;
   if (!consent.required) {
     return consent;
   }
@@ -163,6 +166,14 @@ export async function ensureParentHasCoppaConsent(parentId, options = {}) {
       403,
       "coppa_consent_required",
       "Parental consent is required before creating child profiles or starting sessions."
+    );
+  }
+
+  if (isBillingEnabled(env) && consent.method !== BILLING_VERIFIED_CONSENT_METHOD) {
+    throw new ApiError(
+      403,
+      "coppa_parent_verification_required",
+      "Parent payment verification is required before creating child profiles or starting sessions."
     );
   }
 

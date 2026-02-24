@@ -9,6 +9,7 @@ import {
   assertCoppaSchemaReady,
   shouldRunCoppaStartupSchemaCheck
 } from "../src/server/session-foundation/coppa-schema-health.js";
+import { getStripeBillingConfig, resetBillingConfigCache } from "../src/server/billing-config.js";
 import { getSupabaseConfig, resetSupabaseConfigCache } from "../src/server/supabase-config.js";
 import { getServiceSupabaseClient, resetSupabaseClientCache } from "../src/server/supabase-clients.js";
 
@@ -66,11 +67,13 @@ function loadDotEnvFiles() {
 async function main() {
   loadDotEnvFiles();
   resetTutorConfigCache();
+  resetBillingConfigCache();
   resetSupabaseConfigCache();
   resetGoogleSpeechConfigCache();
   resetSupabaseClientCache();
 
   const config = getTutorConfig(process.env);
+  const billingConfig = getStripeBillingConfig(process.env);
   const supabase = getSupabaseConfig(process.env);
   const shouldValidateGoogleSpeech =
     Boolean(process.env.GOOGLE_CLOUD_PROJECT_ID) || Boolean(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
@@ -84,7 +87,7 @@ async function main() {
 
   const supabaseHost = new URL(supabase.url).host;
   console.log(
-    `Tutor environment valid. Model=${config.model}, PromptVersion=${config.promptVersion}, SupabaseHost=${supabaseHost}, Speech=${speechConfig ? "configured" : "disabled"}, CoppaSchema=${shouldCheckCoppaSchema ? "checked" : "skipped"}`
+    `Tutor environment valid. Model=${config.model}, PromptVersion=${config.promptVersion}, SupabaseHost=${supabaseHost}, Speech=${speechConfig ? "configured" : "disabled"}, CoppaSchema=${shouldCheckCoppaSchema ? "checked" : "skipped"}, Billing=${billingConfig.enabled ? billingConfig.provider : "disabled"}`
   );
 }
 

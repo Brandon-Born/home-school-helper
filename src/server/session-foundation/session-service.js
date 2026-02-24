@@ -10,6 +10,7 @@ import {
   normalizeSessionStartPayload
 } from "./payload-normalizers.js";
 import { ensureParentHasCoppaConsent } from "./coppa-consent-service.js";
+import { ensureParentHasBillingAccess } from "../billing-service.js";
 import { persistSessionMessage } from "./message-service.js";
 
 const JOIN_CODE_TTL_MINUTES = 10;
@@ -59,6 +60,7 @@ export async function startSessionForParent(parentId, payload, options = {}) {
   const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
   const normalized = normalizeSessionStartPayload(payload);
   await ensureParentHasCoppaConsent(parentId, { serviceClient, env: options.env });
+  await ensureParentHasBillingAccess(parentId, { serviceClient, env: options.env });
 
   const joinCode = generateJoinCode(8);
   const codeHash = hashOpaqueToken(joinCode);

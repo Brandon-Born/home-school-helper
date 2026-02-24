@@ -85,6 +85,65 @@ test("useParentConsole merges snapshot+append stream events", async () => {
   await renderer.unmount();
 });
 
+test("useParentConsole loads billing state when billing endpoint is available", async () => {
+  const parentRequest = async (path) => {
+    if (path === "/api/parent/me") {
+      return { parent: { id: "parent_1", coppa_consent_status: "pending", coppa_policy_version: "2026-02-19" } };
+    }
+    if (path === "/api/children") {
+      return { children: [] };
+    }
+    if (path === "/api/session/active") {
+      return { sessions: [] };
+    }
+    if (path === "/api/privacy/child-data-summary") {
+      return { summary: { generated_at: "2026-02-19T00:00:00.000Z", counts: { children: 0, sessions: 0 } } };
+    }
+    if (path === "/api/privacy/requests") {
+      return { requests: [] };
+    }
+    if (path === "/api/billing/subscription") {
+      return {
+        billing: {
+          enabled: true,
+          provider: "stripe",
+          subscription: {
+            status: "trialing",
+            trial_end_at: "2026-02-26T00:00:00.000Z",
+            provider_customer_id: "cus_123"
+          }
+        }
+      };
+    }
+    throw new Error(`Unexpected path: ${path}`);
+  };
+
+  const parentSessionValue = {
+    session: { access_token: "parent-token" },
+    needsReauth: false,
+    parentRequest,
+    refreshParentSession: async () => null,
+    invalidateParentSession: async () => {},
+    signInWithGoogle: async () => {},
+    signOut: async () => {}
+  };
+
+  const useParentConsoleHook = createUseParentConsole({
+    useParentSessionHook: () => parentSessionValue,
+    useParentTranscriptStreamHook: () => {}
+  });
+
+  const renderer = await createHookRenderer(() => useParentConsoleHook());
+  await flushEffects();
+
+  const hookValue = renderer.getCurrent();
+  assert.equal(hookValue.state.billingEnabled, true);
+  assert.equal(hookValue.state.billing.provider, "stripe");
+  assert.equal(hookValue.state.billingSubscription.status, "trialing");
+
+  await renderer.unmount();
+});
+
 test("useParentConsole regenerateCode updates active session data and loading state", async () => {
   const parentRequest = async (path, options = {}) => {
     if (path === "/api/parent/me") {
@@ -280,6 +339,76 @@ test("useParentConsole grantCoppaConsent updates parent profile consent state", 
   assert.equal(hookValue.state.actionAlerts.consent.tone, "success");
   assert.equal(hookValue.state.actionAlerts.consent.message, "Parental consent confirmed.");
 
+  await renderer.unmount();
+});
+
+test("useParentConsole grantCoppaConsent starts parent verification when billing is enabled", async () => {
+  let verificationRequested = false;
+  const parentRequest = async (path, options = {}) => {
+    if (path === "/api/parent/me") {
+      return {
+        parent: {
+          id: "parent_1",
+          coppa_consent_status: "pending",
+          coppa_policy_version: "2026-02-19"
+        }
+      };
+    }
+    if (path === "/api/children") {
+      return { children: [] };
+    }
+    if (path === "/api/session/active") {
+      return { sessions: [] };
+    }
+    if (path === "/api/privacy/child-data-summary") {
+      return { summary: { generated_at: "2026-02-19T00:00:00.000Z", counts: { children: 0, sessions: 0 } } };
+    }
+    if (path === "/api/privacy/requests") {
+      return { requests: [] };
+    }
+    if (path === "/api/billing/subscription") {
+      return { billing: { enabled: true, provider: "stripe", subscription: null } };
+    }
+    if (path === "/api/billing/verification-session" && options.method === "POST") {
+      verificationRequested = true;
+      return {
+        verification: {
+          id: "cs_test_verify_123",
+          url: "http://localhost/parent?billing=verification_success",
+          verification_amount_cents: 100
+        }
+      };
+    }
+
+    throw new Error(`Unexpected request: ${path}`);
+  };
+
+  const parentSessionValue = {
+    session: { access_token: "parent-token" },
+    needsReauth: false,
+    parentRequest,
+    refreshParentSession: async () => null,
+    invalidateParentSession: async () => {},
+    signInWithGoogle: async () => {},
+    signOut: async () => {}
+  };
+
+  const useParentConsoleHook = createUseParentConsole({
+    useParentSessionHook: () => parentSessionValue,
+    useParentTranscriptStreamHook: () => {}
+  });
+
+  const renderer = await createHookRenderer(() => useParentConsoleHook());
+  await flushEffects();
+
+  await act(async () => {
+    await renderer.getCurrent().actions.grantCoppaConsent();
+  });
+
+  const hookValue = renderer.getCurrent();
+  assert.equal(verificationRequested, true);
+  assert.equal(hookValue.state.actionAlerts.consent.tone, "success");
+  assert.equal(hookValue.state.actionAlerts.consent.message, "Redirecting to secure parent verification…");
   await renderer.unmount();
 });
 

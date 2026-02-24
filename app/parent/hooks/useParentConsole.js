@@ -18,6 +18,25 @@ import { useParentTranscriptStream } from "./useParentTranscriptStream.js";
 
 export { mergeMessages, buildSessionForUi } from "./parent-console-shared.js";
 
+const DEFAULT_BILLING_STATE = Object.freeze({
+  enabled: false,
+  provider: null,
+  subscription: null
+});
+
+function normalizeBillingState(payload) {
+  const billing = payload?.billing;
+  if (!billing || typeof billing !== "object") {
+    return { ...DEFAULT_BILLING_STATE };
+  }
+
+  return {
+    enabled: Boolean(billing.enabled),
+    provider: billing.provider ?? null,
+    subscription: billing.subscription ?? null
+  };
+}
+
 export function createUseParentConsole({
   useParentSessionHook = useParentSession,
   useParentTranscriptStreamHook = useParentTranscriptStream,
@@ -30,6 +49,7 @@ export function createUseParentConsole({
     const [children, setChildren] = useState([]);
     const [privacySummary, setPrivacySummary] = useState(null);
     const [privacyRequests, setPrivacyRequests] = useState([]);
+    const [billing, setBilling] = useState({ ...DEFAULT_BILLING_STATE });
     const [selectedChildId, setSelectedChildId] = useState("");
     const [activeSession, setActiveSession] = useState(null);
     const [activeSessions, setActiveSessions] = useState([]);
@@ -71,6 +91,7 @@ export function createUseParentConsole({
       setChildren([]);
       setPrivacySummary(null);
       setPrivacyRequests([]);
+      setBilling({ ...DEFAULT_BILLING_STATE });
       setSelectedChildId("");
       setActiveSession(null);
       setActiveSessions([]);
@@ -102,12 +123,15 @@ export function createUseParentConsole({
       setError("");
 
       try {
-        const [profilePayload, childrenPayload, sessionsPayload, privacyPayload, privacyRequestsPayload] = await Promise.all([
+        const [profilePayload, childrenPayload, sessionsPayload, privacyPayload, privacyRequestsPayload, billingResult] = await Promise.all([
           parentRequest("/api/parent/me"),
           parentRequest("/api/children"),
           parentRequest("/api/session/active"),
           parentRequest("/api/privacy/child-data-summary"),
-          parentRequest("/api/privacy/requests")
+          parentRequest("/api/privacy/requests"),
+          parentRequest("/api/billing/subscription")
+            .then((payload) => ({ ok: true, payload }))
+            .catch(() => ({ ok: false, payload: null }))
         ]);
 
         setParentProfile(profilePayload.parent);
@@ -117,6 +141,7 @@ export function createUseParentConsole({
         setActiveSessions(nextActiveSessions);
         setPrivacySummary(privacyPayload.summary ?? null);
         setPrivacyRequests(privacyRequestsPayload.requests ?? []);
+        setBilling(normalizeBillingState(billingResult.payload));
 
         setSelectedChildId((previous) => {
           if (previous && nextChildren.some((child) => child.id === previous)) {
@@ -255,6 +280,7 @@ export function createUseParentConsole({
     });
 
     const grantCoppaConsent = useCallback(async () => {
+      const isBillingEnabled = Boolean(billing?.enabled);
       const outcome = await runAsyncActionStatus({
         actionKey: "consent",
         setLoadingState,
@@ -262,21 +288,72 @@ export function createUseParentConsole({
         clearActionAlert,
         setActionAlert,
         fallbackErrorMessage: "We couldn't record parental consent. Please try again.",
-        run: async () =>
-          parentRequest("/api/privacy/consent", {
+        run: async () => {
+          if (isBillingEnabled) {
+            return parentRequest("/api/billing/verification-session", {
+              method: "POST"
+            });
+          }
+
+          return parentRequest("/api/privacy/consent", {
             method: "POST",
             body: {
               action: "grant"
             }
-          }),
+          });
+        },
         onSuccess: (payload) => {
+          const verificationUrl = payload?.verification?.url;
+          if (typeof verificationUrl === "string" && verificationUrl) {
+            if (typeof window !== "undefined" && window.location) {
+              window.location.assign(verificationUrl);
+            }
+            return "Redirecting to secure parent verification…";
+          }
+
+          const checkoutUrl = payload?.checkout?.url;
+          if (typeof checkoutUrl === "string" && checkoutUrl) {
+            if (typeof window !== "undefined" && window.location) {
+              window.location.assign(checkoutUrl);
+            }
+            return "Redirecting to secure checkout…";
+          }
+
           applyConsentToParentProfile(payload?.consent);
           return "Parental consent confirmed.";
         }
       });
 
       return outcome.ok;
-    }, [applyConsentToParentProfile, clearActionAlert, parentRequest, setActionAlert, setError, setLoadingState]);
+    }, [applyConsentToParentProfile, billing?.enabled, clearActionAlert, parentRequest, setActionAlert, setError, setLoadingState]);
+
+    const startParentVerification = useCallback(async () => {
+      const outcome = await runAsyncActionStatus({
+        actionKey: "consent",
+        setLoadingState,
+        setError,
+        clearActionAlert,
+        setActionAlert,
+        fallbackErrorMessage: "We couldn't start parent verification. Please try again.",
+        run: async () =>
+          parentRequest("/api/billing/verification-session", {
+            method: "POST"
+          }),
+        onSuccess: (payload) => {
+          const url = payload?.verification?.url;
+          if (typeof url === "string" && url) {
+            if (typeof window !== "undefined" && window.location) {
+              window.location.assign(url);
+            }
+            return "Redirecting to secure parent verification…";
+          }
+
+          return "Parent verification is ready.";
+        }
+      });
+
+      return outcome.ok ? outcome.result : null;
+    }, [clearActionAlert, parentRequest, setActionAlert, setError, setLoadingState]);
 
     const revokeCoppaConsent = useCallback(async () => {
       const outcome = await runAsyncActionStatus({
@@ -301,6 +378,62 @@ export function createUseParentConsole({
 
       return outcome.ok;
     }, [applyConsentToParentProfile, clearActionAlert, parentRequest, setActionAlert, setError, setLoadingState]);
+
+    const startBillingCheckout = useCallback(async () => {
+      const outcome = await runAsyncActionStatus({
+        actionKey: "consent",
+        setLoadingState,
+        setError,
+        clearActionAlert,
+        setActionAlert,
+        fallbackErrorMessage: "We couldn't start secure billing checkout. Please try again.",
+        run: async () =>
+          parentRequest("/api/billing/checkout-session", {
+            method: "POST"
+          }),
+        onSuccess: (payload) => {
+          const url = payload?.checkout?.url;
+          if (typeof url === "string" && url) {
+            if (typeof window !== "undefined" && window.location) {
+              window.location.assign(url);
+            }
+            return "Redirecting to secure checkout…";
+          }
+
+          return "Billing checkout is ready.";
+        }
+      });
+
+      return outcome.ok ? outcome.result : null;
+    }, [clearActionAlert, parentRequest, setActionAlert, setError, setLoadingState]);
+
+    const openBillingPortal = useCallback(async () => {
+      const outcome = await runAsyncActionStatus({
+        actionKey: "consent",
+        setLoadingState,
+        setError,
+        clearActionAlert,
+        setActionAlert,
+        fallbackErrorMessage: "We couldn't open billing management. Please try again.",
+        run: async () =>
+          parentRequest("/api/billing/portal-session", {
+            method: "POST"
+          }),
+        onSuccess: (payload) => {
+          const url = payload?.portal?.url;
+          if (typeof url === "string" && url) {
+            if (typeof window !== "undefined" && window.location) {
+              window.location.assign(url);
+            }
+            return "Opening billing management…";
+          }
+
+          return "Billing management is ready.";
+        }
+      });
+
+      return outcome.ok ? outcome.result : null;
+    }, [clearActionAlert, parentRequest, setActionAlert, setError, setLoadingState]);
 
     const requestPrivacyExport = useCallback(
       async ({ reason = "" } = {}) => {
@@ -365,7 +498,14 @@ export function createUseParentConsole({
 
     const coppaConsentRequired = parentProfile?.coppa_consent_required !== false;
     const coppaConsentStatus = String(parentProfile?.coppa_consent_status || "pending").toLowerCase();
-    const hasCoppaConsent = !coppaConsentRequired || coppaConsentStatus === "granted";
+    const billingEnabled = Boolean(billing?.enabled);
+    const coppaConsentMethod = String(parentProfile?.coppa_consent_method || "").trim();
+    const hasCoppaConsent =
+      !coppaConsentRequired ||
+      (coppaConsentStatus === "granted" &&
+        (!billingEnabled || coppaConsentMethod === "stripe_card_verification_charge"));
+    const billingSubscription = billing?.subscription ?? null;
+    const billingHasAccess = !billingEnabled || Boolean(billingSubscription?.has_access);
 
     return {
       state: {
@@ -374,6 +514,10 @@ export function createUseParentConsole({
         parentProfile,
         privacySummary,
         privacyRequests,
+        billing,
+        billingEnabled,
+        billingSubscription,
+        billingHasAccess,
         children,
         selectedChildId,
         activeSession,
@@ -404,7 +548,10 @@ export function createUseParentConsole({
         sendNudge,
         setOverride,
         grantCoppaConsent,
+        startParentVerification,
         revokeCoppaConsent,
+        startBillingCheckout,
+        openBillingPortal,
         requestPrivacyExport,
         requestPrivacyDelete,
         refreshParentData: fetchParentData,

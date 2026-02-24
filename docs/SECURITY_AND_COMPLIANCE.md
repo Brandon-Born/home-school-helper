@@ -12,7 +12,7 @@ This project is designed with COPPA-first defaults for U.S. minors.
 1. Consent and access
 - Parent must authenticate before creating child profiles.
 - Parent consent checkpoint must be active (`coppa_consent_status='granted'`) before child profile creation or session start.
-- Production launch target: `granted` status must come from billing-backed verifiable parental consent (subscription verification), not self-attestation alone.
+- Production launch target: `granted` status must come from billing-backed verifiable parental consent (separate parent payment verification before trial/subscription), not self-attestation alone.
 - Child joins by parent-issued code only.
 
 2. Data minimization
@@ -58,7 +58,7 @@ Mitigation: server-only LLM module and env validation.
 5. Document in decisions log and handoff log.
 
 ## Open Compliance Work
-- COPPA consent gating + audit logging are implemented; current grant flow is parent self-attestation and must be upgraded to billing-backed verifiable parental consent (subscription verification) before production launch.
+- COPPA consent gating + audit logging are implemented; production grant flow must use billing-backed verifiable parental consent (separate parent payment verification before trial/subscription), not self-attestation.
 - Parent rights APIs are implemented (`GET /api/privacy/child-data-summary`, `GET /api/privacy/requests`, `POST /api/privacy/export`, `POST /api/privacy/delete`); UX hardening and delivery/SLA decisions remain.
 - COPPA implementation details remain tracked in `/Users/bborn/home-school-helper/docs/COPPA_LAUNCH_PLAN.md` and must be completed before production launch.
 - Legal review and provider written-assurance signoff are required before production launch.

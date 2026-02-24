@@ -1,5 +1,6 @@
 import { ApiError } from "../../../../src/server/api-error.js";
 import { requireParentContext } from "../../../../src/server/auth.js";
+import { isBillingEnabled } from "../../../../src/server/billing-config.js";
 import { handleRouteError } from "../../../../src/server/route-errors.js";
 import {
   COPPA_CONSENT_STATUS,
@@ -7,9 +8,17 @@ import {
   setParentCoppaConsentState
 } from "../../../../src/server/session-foundation-service.js";
 
-function resolveConsentStatusFromAction(action) {
+function resolveConsentStatusFromAction(action, options = {}) {
   const normalized = String(action ?? "").trim().toLowerCase();
   if (normalized === "grant") {
+    const billingEnabled = options.billingEnabled ?? isBillingEnabled(options.env);
+    if (billingEnabled) {
+      throw new ApiError(
+        409,
+        "billing_required_for_coppa_grant",
+        "Complete parent payment verification to grant parental consent."
+      );
+    }
     return COPPA_CONSENT_STATUS.granted;
   }
 
@@ -44,7 +53,10 @@ export function createPrivacyConsentPostHandler(dependencies = {}) {
   return async function POST(request) {
     try {
       const payload = await request.json().catch(() => ({}));
-      const status = resolveConsentStatusFromAction(payload.action);
+      const status = resolveConsentStatusFromAction(payload.action, {
+        billingEnabled: dependencies.billingEnabled,
+        env: dependencies.env
+      });
       const { parent } = await requireParent(request);
       const consent = await writeConsent(
         parent.id,

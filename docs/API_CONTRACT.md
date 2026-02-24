@@ -155,6 +155,39 @@ Rate limit:
 }
 ```
 
+## GET `/api/billing/subscription`
+Returns normalized billing state for the authenticated parent.
+
+### Response (200)
+```json
+{
+  "billing": {
+    "enabled": true,
+    "provider": "stripe",
+    "subscription": {
+      "provider": "stripe",
+      "status": "trialing",
+      "has_access": true,
+      "provider_customer_id": "cus_123",
+      "provider_subscription_id": "sub_123",
+      "provider_price_id": "price_123",
+      "trial_start_at": "timestamp",
+      "trial_end_at": "timestamp",
+      "current_period_start_at": "timestamp",
+      "current_period_end_at": "timestamp",
+      "cancel_at_period_end": false,
+      "canceled_at": null,
+      "updated_at": "timestamp"
+    }
+  }
+}
+```
+
+When billing is disabled, the route returns:
+- `billing.enabled=false`
+- `billing.provider=null`
+- `billing.subscription=null`
+
 ## POST `/api/privacy/consent`
 Sets parent consent status.
 
@@ -185,8 +218,79 @@ Allowed `action` values:
 
 ### Errors
 - `400 validation_error`: Action must be `grant` or `revoke`.
+- `409 billing_required_for_coppa_grant`: Parent payment verification is required before `grant`.
 - `500 coppa_consent_update_failed`: Consent state could not be persisted.
 - `500 coppa_consent_audit_failed`: Consent audit event could not be persisted.
+
+## POST `/api/billing/verification-session`
+Creates a Stripe Checkout Session URL for the authenticated parent payment verification step (COPPA VPC), before the subscription trial begins.
+
+### Response (200)
+```json
+{
+  "verification": {
+    "id": "cs_123",
+    "url": "https://checkout.stripe.com/c/pay/...",
+    "verification_amount_cents": 100,
+    "verification_currency": "usd"
+  }
+}
+```
+
+## POST `/api/billing/checkout-session`
+Creates a Stripe Checkout Session URL for the authenticated parent family subscription trial (`7 days free`, then `$10/month`).
+
+Notes:
+- Requires completed parent payment verification / COPPA consent first.
+- Stripe Checkout allows promotion codes for tester/friends/family discounts.
+
+### Response (200)
+```json
+{
+  "checkout": {
+    "id": "cs_123",
+    "url": "https://checkout.stripe.com/c/pay/...",
+    "trial_days": 7
+  }
+}
+```
+
+### Errors
+- `409 billing_parent_verification_required`: Parent payment verification / billing-backed COPPA consent is required before starting the trial checkout.
+
+## POST `/api/billing/portal-session`
+Creates a Stripe Billing Portal session URL for the authenticated parent.
+
+### Response (200)
+```json
+{
+  "portal": {
+    "url": "https://billing.stripe.com/p/session/..."
+  }
+}
+```
+
+## POST `/api/billing/webhook`
+Consumes Stripe webhook events for parent verification completion and subscription lifecycle updates.
+
+### Headers
+- `stripe-signature: <signed-header>`
+
+### Response (200)
+```json
+{
+  "ok": true,
+  "result": {
+    "duplicate": false,
+    "processed": true,
+    "event_type": "checkout.session.completed",
+    "outcome": {
+      "skipped": false,
+      "reason": null
+    }
+  }
+}
+```
 
 ## POST `/api/privacy/export`
 Creates and processes a parent export request, then returns a snapshot payload for immediate review/download workflows.
@@ -343,6 +447,7 @@ Creates a child profile for authenticated parent.
 
 ### Errors
 - `403 coppa_consent_required`: Parent consent must be granted first.
+- `402 billing_subscription_required`: An active/trialing family subscription is required before starting new sessions when billing is enabled.
 
 ## PUT `/api/children/:id`
 Updates a child profile for authenticated parent. Parent must own the child.

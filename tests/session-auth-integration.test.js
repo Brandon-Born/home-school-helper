@@ -145,6 +145,85 @@ test("startSessionForParent seeds a child-visible assistant greeting based on pa
   assert.equal(sessionMessages[0].content.includes("Private note"), false);
 });
 
+test("startSessionForParent rejects when billing is enabled and subscription is not trialing/active", async () => {
+  const serviceClient = createFakeServiceClient({
+    parents: [buildConsentReadyParent({ coppa_consent_method: "stripe_card_verification_charge" })],
+    children: [
+      {
+        id: "child_1",
+        parent_id: "parent_1",
+        first_name: "Ava"
+      }
+    ],
+    billing_subscriptions: [
+      {
+        id: "billing_1",
+        parent_id: "parent_1",
+        provider: "stripe",
+        provider_customer_id: "cus_1",
+        provider_subscription_id: "sub_1",
+        provider_price_id: "price_1",
+        status: "past_due",
+        cancel_at_period_end: false
+      }
+    ]
+  });
+
+  await assert.rejects(
+    () =>
+      startSessionForParent(
+        "parent_1",
+        {
+          child_id: "child_1",
+          daily_subjects: ["Math"]
+        },
+        {
+          serviceClient,
+          env: {
+            BILLING_ENABLED: "true",
+            STRIPE_SECRET_KEY: "sk_test_123",
+            STRIPE_PRICE_ID_FAMILY_MONTHLY: "price_test_123"
+          }
+        }
+      ),
+    (error) =>
+      error instanceof ApiError &&
+      error.status === 402 &&
+      error.code === "billing_subscription_required"
+  );
+});
+
+test("createChildForParent rejects self-attested consent when billing-backed verification is enabled", async () => {
+  const serviceClient = createFakeServiceClient({
+    parents: [buildConsentReadyParent({ coppa_consent_method: "parent_self_attestation" })]
+  });
+
+  await assert.rejects(
+    () =>
+      createChildForParent(
+        "parent_1",
+        {
+          child_name: "Ava",
+          age: 9,
+          grade: "4",
+          subjects: ["Math"]
+        },
+        {
+          serviceClient,
+          env: {
+            BILLING_ENABLED: "true",
+            STRIPE_SECRET_KEY: "sk_test_123",
+            STRIPE_PRICE_ID_FAMILY_MONTHLY: "price_test_123"
+          }
+        }
+      ),
+    (error) =>
+      error instanceof ApiError &&
+      error.status === 403 &&
+      error.code === "coppa_parent_verification_required"
+  );
+});
+
 test("ensureParentOwnsSession enforces parent/session ownership", async () => {
   const serviceClient = createFakeServiceClient({
     sessions: [

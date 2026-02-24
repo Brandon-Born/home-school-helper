@@ -108,10 +108,11 @@ export default function PrivacyPage() {
                     </p>
                     <p>
                         Before creating a child profile or starting a session, the parent
-                        must complete our parental consent checkpoint. In the current
-                        implementation, consent is recorded as a parent self-attestation, with
-                        consent status, policy version, timestamp, and request metadata logged
-                        for auditing.
+                        must complete our parental consent checkpoint. Our current flow requires
+                        a parent payment-method verification step (which may include a small
+                        temporary authorization or refundable verification charge) before free
+                        trial activation. We record consent status, policy version, timestamp,
+                        and related request metadata for auditing.
                     </p>
                     <p>
                         Parents can review child-data categories, request export or deletion,
@@ -151,6 +152,10 @@ export default function PrivacyPage() {
                         <li>
                             <strong>Google Cloud</strong> — Speech-to-text and text-to-speech
                             (optional, when voice features are used)
+                        </li>
+                        <li>
+                            <strong>Stripe</strong> — Payment processing, subscription billing,
+                            and billing portal management
                         </li>
                         <li>
                             <strong>Vercel</strong> — Application hosting

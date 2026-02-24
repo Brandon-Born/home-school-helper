@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import { expect } from "@playwright/test";
 
 export function createUniqueChildName(prefix = "PWChild") {
@@ -8,6 +9,78 @@ export function createUniqueChildName(prefix = "PWChild") {
 
 function resolveBaseOrigin(page) {
   return new URL(page.url()).origin;
+}
+
+function readSecretFromEnvFiles() {
+  for (const filePath of [".env", ".env.local"]) {
+    if (!fs.existsSync(filePath)) {
+      continue;
+    }
+
+    const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) {
+        continue;
+      }
+      const separator = trimmed.indexOf("=");
+      if (separator < 0) {
+        continue;
+      }
+      const key = trimmed.slice(0, separator).trim();
+      if (key !== "PLAYWRIGHT_TEST_AUTH_SECRET") {
+        continue;
+      }
+      return trimmed.slice(separator + 1).trim().replace(/^['"]|['"]$/g, "");
+    }
+  }
+
+  return "";
+}
+
+async function readParentAccessToken(page) {
+  return page.evaluate(() => {
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (!key || !key.includes("-auth-token")) {
+        continue;
+      }
+
+      try {
+        const payload = JSON.parse(window.localStorage.getItem(key) || "{}");
+        const token = String(payload?.access_token || "").trim();
+        if (token) {
+          return token;
+        }
+      } catch {
+        // Ignore malformed localStorage entries and continue scanning.
+      }
+    }
+
+    return "";
+  });
+}
+
+async function seedBillingBackedConsentForPlaywright(page) {
+  const secret =
+    String(process.env.PLAYWRIGHT_TEST_AUTH_SECRET || "").trim() || readSecretFromEnvFiles();
+  if (!secret) {
+    throw new Error("PLAYWRIGHT_TEST_AUTH_SECRET is required to seed billing-backed consent in Playwright.");
+  }
+
+  const parentAccessToken = await readParentAccessToken(page);
+  if (!parentAccessToken) {
+    throw new Error("Unable to read parent auth token from localStorage for Playwright billing seed.");
+  }
+
+  const response = await page.request.post(`${resolveBaseOrigin(page)}/api/test-auth/seed-parent-billing`, {
+    headers: {
+      "x-test-auth-secret": secret,
+      Authorization: `Bearer ${parentAccessToken}`
+    }
+  });
+
+  expect(response.status()).toBe(200);
 }
 
 export async function goToParentSection(page, sectionId) {
@@ -29,7 +102,9 @@ export async function openParentConsole(page, { section = "children" } = {}) {
 
 export async function ensureCoppaConsentGranted(page) {
   const addChildButton = page.getByTestId("child-add-button");
-  const grantButton = page.getByRole("button", { name: "I am the parent or legal guardian" });
+  const grantButton = page.getByRole("button", {
+    name: /I am the parent or legal guardian|Verify parent payment method|Start free week/i
+  });
 
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
@@ -45,6 +120,16 @@ export async function ensureCoppaConsentGranted(page) {
 
     await goToParentSection(page, "managed");
     if ((await grantButton.count()) > 0 && (await grantButton.isVisible())) {
+      const buttonLabel = ((await grantButton.textContent()) || "").trim().toLowerCase();
+      const isBillingFlowCta = buttonLabel.includes("verify parent payment method") || buttonLabel.includes("start free week");
+
+      if (isBillingFlowCta) {
+        await seedBillingBackedConsentForPlaywright(page);
+        await page.reload({ waitUntil: "domcontentloaded" });
+        await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
+        continue;
+      }
+
       const consentResponsePromise = page.waitForResponse(
         (response) =>
           response.url().includes("/api/privacy/consent") &&

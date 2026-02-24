@@ -177,6 +177,7 @@ export default function ParentPage() {
                   loading={state.loading.childMutation}
                   actionAlert={state.actionAlerts.childMutation}
                   consentGranted={state.hasCoppaConsent}
+                  billingEnabled={state.billingEnabled}
                   onGrantConsent={actions.grantCoppaConsent}
                   consentLoading={state.loading.consent}
                   consentAlert={state.actionAlerts.consent}
@@ -201,6 +202,10 @@ export default function ParentPage() {
                     <>
                       <SessionControlPanel
                         selectedChild={selectedChild}
+                        billingEnabled={state.billingEnabled}
+                        billingHasAccess={state.billingHasAccess}
+                        billingStatus={state.billingSubscription?.status ?? ""}
+                        billingTrialEndsAt={state.billingSubscription?.trial_end_at ?? null}
                         sessionForm={state.sessionForm}
                         setSessionForm={actions.setSessionForm}
                         onStartSession={actions.startSession}
@@ -233,9 +238,12 @@ export default function ParentPage() {
                     parentProfile={state.parentProfile}
                     consentRequired={state.coppaConsentRequired}
                     hasCoppaConsent={state.hasCoppaConsent}
+                    billing={state.billing}
                     loading={state.loading.consent}
                     actionAlert={state.actionAlerts.consent}
                     onGrantConsent={actions.grantCoppaConsent}
+                    onStartBillingCheckout={actions.startBillingCheckout}
+                    onOpenBillingPortal={actions.openBillingPortal}
                     onRevokeConsent={actions.revokeCoppaConsent}
                   />
 
