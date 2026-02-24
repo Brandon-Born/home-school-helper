@@ -144,16 +144,18 @@ test("first-time onboarding starts parent verification checkout when consent is 
   await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
   await expect(page.getByTestId("parent-trial-onboarding")).toBeVisible({ timeout: 30000 });
   await expect(page.getByTestId("parent-section-link-managed")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Start your 7-day free trial" })).toBeVisible({ timeout: 30000 });
-  await expect(page.getByRole("button", { name: "Start your free trial" })).toBeVisible({ timeout: 30000 });
+  await expect(
+    page.getByTestId("parent-trial-setup-card").getByRole("heading", { name: "Get started for $1 (1-week trial)" })
+  ).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole("button", { name: "Get started for $1" })).toBeVisible({ timeout: 30000 });
   await expect(page.getByText("Family plan: $10/month")).toBeVisible({ timeout: 30000 });
-  await expect(page.getByText("7-day free trial before monthly billing. The free trial starts after parent payment verification succeeds.")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("$1 to get started for a 1-week trial, then $10/month. The 1-week trial starts after parent payment verification succeeds.")).toBeVisible({ timeout: 30000 });
 
   const verificationResponsePromise = page.waitForResponse(
     (response) => response.url().includes("/api/billing/verification-session") && response.request().method() === "POST"
   );
 
-  await page.getByRole("button", { name: "Start your free trial" }).click();
+  await page.getByRole("button", { name: "Get started for $1" }).click();
 
   const verificationResponse = await verificationResponsePromise;
   expect(verificationResponse.status()).toBe(200);
@@ -193,12 +195,12 @@ test("first-time onboarding shows free-trial CTA after parent verification and s
   await page.goto("/parent", { waitUntil: "domcontentloaded" });
   await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
   await expect(page.getByTestId("parent-trial-onboarding")).toBeVisible({ timeout: 30000 });
-  await expect(page.getByRole("button", { name: "Start your free trial" })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole("button", { name: "Start your 1-week trial" })).toBeVisible({ timeout: 30000 });
 
   const checkoutResponsePromise = page.waitForResponse(
     (response) => response.url().includes("/api/billing/checkout-session") && response.request().method() === "POST"
   );
-  await page.getByRole("button", { name: "Start your free trial" }).click();
+  await page.getByRole("button", { name: "Start your 1-week trial" }).click();
   const checkoutResponse = await checkoutResponsePromise;
   expect(checkoutResponse.status()).toBe(200);
   await expect(page).toHaveURL(/billing=checkout_success/, { timeout: 30000 });

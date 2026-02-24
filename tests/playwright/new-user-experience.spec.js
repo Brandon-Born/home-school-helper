@@ -112,10 +112,10 @@ test("new parent can complete first-time onboarding workflow", async ({ baseURL,
     await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
 
     await expect(page.getByTestId("parent-trial-onboarding")).toBeVisible({ timeout: 30000 });
-    await expect(page.getByRole("heading", { name: "Start your 7-day free trial" })).toBeVisible({
-      timeout: 30000
-    });
-    await expect(page.getByRole("button", { name: "Start your free trial" })).toBeVisible({
+    await expect(
+      page.getByTestId("parent-trial-setup-card").getByRole("heading", { name: "Get started for $1 (1-week trial)" })
+    ).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole("button", { name: "Get started for $1" })).toBeVisible({
       timeout: 30000
     });
 

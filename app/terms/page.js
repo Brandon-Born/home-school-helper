@@ -41,7 +41,8 @@ export default function TermsPage() {
           </p>
           <p>
             Current standard pricing is <strong>$10 USD per month</strong> after a
-            <strong> 7-day free trial</strong>, unless a valid promotion code applies.
+            <strong> 1-week trial</strong> that begins after a <strong>$1.00 parent verification
+            charge</strong>, unless a valid promotion code applies.
           </p>
           <p>
             Pricing, features, and availability may change in the future. Any material billing
@@ -52,7 +53,7 @@ export default function TermsPage() {
         <section>
           <h2 className={styles.heading}>4. Parent Payment Method Verification</h2>
           <p>
-            Before a free trial is activated, we verify a parent payment method as part of our
+            Before a trial is activated, we verify a parent payment method as part of our
             parental consent workflow. You may see a $1.00 temporary authorization or refundable
             verification charge before the trial begins.
           </p>
@@ -61,7 +62,7 @@ export default function TermsPage() {
         <section>
           <h2 className={styles.heading}>5. Trial and Renewal</h2>
           <p>
-            The 7-day trial begins only after parent payment verification succeeds and trial
+            The 1-week trial begins only after parent payment verification succeeds and trial
             checkout is completed. After the trial ends, the subscription renews monthly unless
             canceled before renewal.
           </p>

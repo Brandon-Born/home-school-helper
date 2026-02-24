@@ -26,10 +26,11 @@ export default function BillingPolicyPage() {
         </section>
 
         <section>
-          <h2 className={styles.heading}>2. 7-Day Free Trial</h2>
+          <h2 className={styles.heading}>2. 1-Week Trial</h2>
           <p>
-            We offer a 7-day free trial for the family plan. The free trial starts after parent
-            payment verification succeeds and the parent completes subscription checkout.
+            We offer a 1-week trial for the family plan. A $1.00 parent payment verification
+            charge is collected first, and the trial starts after parent payment verification
+            succeeds and the parent completes subscription checkout.
           </p>
           <p>
             If you cancel before the trial ends, you will not be charged the monthly subscription
@@ -40,7 +41,7 @@ export default function BillingPolicyPage() {
         <section>
           <h2 className={styles.heading}>3. Parent Payment Verification</h2>
           <p>
-            Before activating a free trial, we verify a parent payment method. This may appear as
+            Before activating a trial, we verify a parent payment method. This may appear as
             a $1.00 temporary authorization or a $1.00 refundable verification charge. Banks may
             display pending authorizations or reversals on different timelines.
           </p>
@@ -49,7 +50,7 @@ export default function BillingPolicyPage() {
         <section>
           <h2 className={styles.heading}>4. Promotion Codes</h2>
           <p>
-            Promotion codes may provide discounts, including free trial modifications or ongoing
+            Promotion codes may provide discounts, including trial modifications or ongoing
             discounts, subject to their terms, expiration, and redemption limits.
           </p>
         </section>
