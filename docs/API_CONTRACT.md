@@ -292,6 +292,26 @@ Consumes Stripe webhook events for paid signup consent confirmation and subscrip
 }
 ```
 
+## GET `/api/internal/billing/reconcile/hourly`
+Internal Vercel cron endpoint. Runs an hourly reconciliation sweep for billing rows in problem states (`incomplete`, `past_due`, `unpaid`, etc.) against Stripe.
+
+Auth:
+- `Authorization: Bearer <CRON_SECRET>` (Vercel cron)
+
+Optional query params:
+- `dry_run=1` (do not write DB updates)
+- `limit=<positive-int>` (override batch limit)
+
+## GET `/api/internal/billing/reconcile/nightly`
+Internal Vercel cron endpoint. Runs a nightly full reconciliation sweep across local Stripe billing rows.
+
+Auth:
+- `Authorization: Bearer <CRON_SECRET>` (Vercel cron)
+
+Optional query params:
+- `dry_run=1`
+- `limit=<positive-int>`
+
 ## POST `/api/privacy/export`
 Creates and processes a parent export request, then returns a snapshot payload for immediate review/download workflows.
 

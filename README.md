@@ -84,6 +84,8 @@ tests/                         Unit tests
 | POST | `/api/billing/checkout-session` | Parent | Create Stripe Checkout session URL for family subscription signup (single-step flow) |
 | POST | `/api/billing/portal-session` | Parent | Create Stripe Billing Portal session URL |
 | POST | `/api/billing/webhook` | Stripe | Process Stripe billing webhooks (paid signup consent + subscription lifecycle sync) |
+| GET | `/api/internal/billing/reconcile/hourly` | Vercel Cron (`CRON_SECRET`) | Hourly reconciliation of problem billing states against Stripe |
+| GET | `/api/internal/billing/reconcile/nightly` | Vercel Cron (`CRON_SECRET`) | Nightly full billing reconciliation sweep against Stripe |
 | GET | `/api/privacy/child-data-summary` | Parent | Get aggregate child-data category summary |
 | GET | `/api/privacy/requests` | Parent | List recent privacy export/delete requests |
 | POST | `/api/privacy/export` | Parent | Generate a child-data export snapshot |
@@ -118,6 +120,8 @@ tests/                         Unit tests
 | POST | `/api/analytics/event` | Public | Capture allowlisted funnel events (no transcript/audio content) |
 
 Full request/response shapes: [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md)
+
+`vercel.json` includes two Stripe billing reconciliation cron jobs (hourly problem-state sweep + nightly full sweep). Configure `CRON_SECRET` in Vercel so cron requests can call the internal endpoints.
 
 `POST /api/session/:id/child-turn` now returns persisted `input_message` and `assistant_message` rows inline so clients can render and speak immediately, without waiting for stream polling.
 

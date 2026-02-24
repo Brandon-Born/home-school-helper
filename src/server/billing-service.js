@@ -13,6 +13,15 @@ const STRIPE_VERIFICATION_FLOW = "coppa_parent_payment_verification";
 const STRIPE_VERIFICATION_CONSENT_METHOD = "stripe_card_verification_charge";
 const STRIPE_SUBSCRIPTION_CHECKOUT_CONSENT_METHOD = "stripe_subscription_checkout_payment";
 const BILLING_ACCESS_STATUSES = new Set(["trialing", "active"]);
+const BILLING_RECONCILE_SCOPES = new Set(["problem", "full"]);
+const BILLING_RECONCILE_PROBLEM_STATUSES = [
+  "incomplete",
+  "incomplete_expired",
+  "past_due",
+  "unpaid",
+  "paused",
+  "canceled"
+];
 const SYNCABLE_STRIPE_EVENT_TYPES = new Set([
   "customer.subscription.created",
   "customer.subscription.updated",
@@ -29,6 +38,14 @@ function isoOrNull(unixSeconds) {
 function normalizeStatus(rawStatus) {
   const value = String(rawStatus || "").trim().toLowerCase();
   return value || "incomplete";
+}
+
+function parsePositiveInteger(value, fallbackValue) {
+  const parsed = Number.parseInt(String(value ?? "").trim(), 10);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return fallbackValue;
+  }
+  return parsed;
 }
 
 function eventCreatedAtIso(event) {
@@ -129,6 +146,31 @@ async function findBillingRowByStripeIds({ providerSubscriptionId, providerCusto
   return data ?? null;
 }
 
+async function listBillingRowsForReconciliation({ serviceClient, scope = "problem", limit = 250 }) {
+  let query = serviceClient
+    .from("billing_subscriptions")
+    .select(
+      "id, parent_id, provider, provider_customer_id, provider_subscription_id, provider_price_id, status, trial_start_at, trial_end_at, current_period_start_at, current_period_end_at, cancel_at_period_end, canceled_at, parent_verification_completed_at, parent_verification_payment_intent_id, parent_verification_amount_cents, parent_verification_currency, last_webhook_event_created_at, updated_at"
+    )
+    .eq("provider", BILLING_PROVIDER)
+    .order("updated_at", { ascending: true });
+
+  if (scope === "problem") {
+    query = query.in("status", BILLING_RECONCILE_PROBLEM_STATUSES);
+  }
+
+  if (Number.isInteger(limit) && limit > 0) {
+    query = query.limit(limit);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    throw new ApiError(500, "billing_lookup_failed", "Unable to fetch billing subscriptions for reconciliation.");
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
 async function upsertBillingSubscription(row, { serviceClient }) {
   const payload = {
     provider: BILLING_PROVIDER,
@@ -149,6 +191,43 @@ async function upsertBillingSubscription(row, { serviceClient }) {
   }
 
   return data;
+}
+
+function isStripeResourceMissingError(error) {
+  if (!error) {
+    return false;
+  }
+
+  if (String(error?.code || "").trim().toLowerCase() === "resource_missing") {
+    return true;
+  }
+
+  const status = Number(error?.statusCode ?? error?.status ?? 0);
+  if (Number.isFinite(status) && status === 404) {
+    return true;
+  }
+
+  return false;
+}
+
+function buildCanceledRowFromMissingStripeResource(localRow, nowIso, config) {
+  return {
+    parent_id: localRow.parent_id,
+    provider_customer_id: localRow.provider_customer_id ?? null,
+    provider_subscription_id: localRow.provider_subscription_id ?? null,
+    provider_price_id: localRow.provider_price_id ?? config.stripe.priceIdFamilyMonthly,
+    status: "canceled",
+    trial_start_at: localRow.trial_start_at ?? null,
+    trial_end_at: localRow.trial_end_at ?? null,
+    current_period_start_at: localRow.current_period_start_at ?? null,
+    current_period_end_at: localRow.current_period_end_at ?? null,
+    cancel_at_period_end: false,
+    canceled_at: localRow.canceled_at ?? nowIso,
+    parent_verification_completed_at: localRow.parent_verification_completed_at ?? null,
+    parent_verification_payment_intent_id: localRow.parent_verification_payment_intent_id ?? null,
+    parent_verification_amount_cents: localRow.parent_verification_amount_cents ?? null,
+    parent_verification_currency: localRow.parent_verification_currency ?? null
+  };
 }
 
 async function ensureStripeCustomerForParent(parent, options = {}) {
@@ -664,6 +743,210 @@ async function syncFromStripeSubscription(subscription, options = {}) {
   );
 
   return { skipped: false, row };
+}
+
+async function reconcileBillingRowWithStripe(localRow, options = {}) {
+  const env = options.env ?? process.env;
+  const config = options.config ?? getStripeBillingConfig(env);
+  const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
+  const stripeClient = options.stripeClient ?? getStripeClient(env);
+  const dryRun = Boolean(options.dryRun);
+  const nowIso = typeof options.nowIso === "string" ? options.nowIso : new Date().toISOString();
+
+  const providerSubscriptionId = String(localRow?.provider_subscription_id || "").trim() || null;
+  const providerCustomerId = String(localRow?.provider_customer_id || "").trim() || null;
+
+  if (!providerSubscriptionId && !providerCustomerId) {
+    return { skipped: true, reason: "missing_stripe_ids" };
+  }
+
+  let subscription = null;
+
+  if (providerSubscriptionId) {
+    try {
+      subscription = await stripeClient.subscriptions.retrieve(providerSubscriptionId, {
+        expand: ["items.data.price"]
+      });
+    } catch (error) {
+      if (!isStripeResourceMissingError(error)) {
+        throw error;
+      }
+
+      if (!dryRun) {
+        await upsertBillingSubscription(
+          buildCanceledRowFromMissingStripeResource(localRow, nowIso, config),
+          { serviceClient }
+        );
+      }
+
+      return {
+        skipped: false,
+        reason: "stripe_subscription_missing",
+        marked_canceled: true
+      };
+    }
+  } else if (providerCustomerId) {
+    try {
+      const customer = await stripeClient.customers.retrieve(providerCustomerId);
+      if (customer?.deleted) {
+        if (!dryRun) {
+          await upsertBillingSubscription(
+            buildCanceledRowFromMissingStripeResource(localRow, nowIso, config),
+            { serviceClient }
+          );
+        }
+        return {
+          skipped: false,
+          reason: "stripe_customer_deleted",
+          marked_canceled: true
+        };
+      }
+    } catch (error) {
+      if (!isStripeResourceMissingError(error)) {
+        throw error;
+      }
+
+      if (!dryRun) {
+        await upsertBillingSubscription(
+          buildCanceledRowFromMissingStripeResource(localRow, nowIso, config),
+          { serviceClient }
+        );
+      }
+
+      return {
+        skipped: false,
+        reason: "stripe_customer_missing",
+        marked_canceled: true
+      };
+    }
+
+    const listed = await stripeClient.subscriptions.list({
+      customer: providerCustomerId,
+      status: "all",
+      limit: 1,
+      expand: ["data.items.data.price"]
+    });
+
+    subscription = Array.isArray(listed?.data) ? listed.data[0] ?? null : null;
+    if (!subscription) {
+      if (!dryRun) {
+        await upsertBillingSubscription(
+          buildCanceledRowFromMissingStripeResource(localRow, nowIso, config),
+          { serviceClient }
+        );
+      }
+      return {
+        skipped: false,
+        reason: "stripe_subscription_missing_for_customer",
+        marked_canceled: true
+      };
+    }
+  }
+
+  if (!subscription) {
+    return { skipped: true, reason: "no_subscription_found" };
+  }
+
+  if (dryRun) {
+    const parentId = await resolveParentIdForStripeSubscription(subscription, { serviceClient });
+    if (!parentId) {
+      return { skipped: true, reason: "missing_parent" };
+    }
+
+    return {
+      skipped: false,
+      reason: "dry_run_syncable_subscription",
+      status: normalizeStatus(subscription.status),
+      provider_subscription_id: subscription.id
+    };
+  }
+
+  return syncFromStripeSubscription(subscription, { env, config, serviceClient, event: null });
+}
+
+export async function reconcileStripeBillingSubscriptions(options = {}) {
+  const env = options.env ?? process.env;
+  const config = options.config ?? getStripeBillingConfig(env);
+  if (!config.enabled) {
+    throw new ApiError(409, "billing_not_enabled", "Subscription billing is not enabled.");
+  }
+
+  const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
+  const stripeClient = options.stripeClient ?? getStripeClient(env);
+  const scope = BILLING_RECONCILE_SCOPES.has(String(options.scope || "").trim())
+    ? String(options.scope || "").trim()
+    : "problem";
+  const dryRun = Boolean(options.dryRun);
+  const defaultLimit = scope === "full" ? 1000 : 250;
+  const envLimit =
+    scope === "full"
+      ? env.BILLING_RECONCILE_FULL_LIMIT
+      : env.BILLING_RECONCILE_PROBLEM_LIMIT;
+  const limit = parsePositiveInteger(options.limit, parsePositiveInteger(envLimit, defaultLimit));
+
+  const rows = await listBillingRowsForReconciliation({ serviceClient, scope, limit });
+
+  const result = {
+    scope,
+    dry_run: dryRun,
+    scanned: rows.length,
+    updated: 0,
+    skipped: 0,
+    marked_canceled: 0,
+    errors: 0,
+    limit,
+    details: []
+  };
+
+  for (const row of rows) {
+    try {
+      const outcome = await reconcileBillingRowWithStripe(row, {
+        env,
+        config,
+        serviceClient,
+        stripeClient,
+        dryRun
+      });
+
+      const skipped = Boolean(outcome?.skipped);
+      if (skipped) {
+        result.skipped += 1;
+      } else {
+        result.updated += 1;
+      }
+
+      if (outcome?.marked_canceled) {
+        result.marked_canceled += 1;
+      }
+
+      if (result.details.length < 25) {
+        result.details.push({
+          parent_id: row.parent_id,
+          provider_customer_id: row.provider_customer_id ?? null,
+          provider_subscription_id: row.provider_subscription_id ?? null,
+          previous_status: normalizeStatus(row.status),
+          skipped,
+          reason: outcome?.reason ?? null,
+          next_status: outcome?.status ?? null
+        });
+      }
+    } catch (error) {
+      result.errors += 1;
+      if (result.details.length < 25) {
+        result.details.push({
+          parent_id: row.parent_id,
+          provider_customer_id: row.provider_customer_id ?? null,
+          provider_subscription_id: row.provider_subscription_id ?? null,
+          previous_status: normalizeStatus(row.status),
+          skipped: true,
+          reason: "reconcile_error",
+          error: error instanceof Error ? error.message : "Unknown error"
+        });
+      }
+    }
+  }
+
+  return result;
 }
 
 export async function processStripeWebhookEvent(event, options = {}) {

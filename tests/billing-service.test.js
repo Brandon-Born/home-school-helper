@@ -6,7 +6,8 @@ import {
   createStripeCheckoutSessionForParent,
   createStripeParentVerificationSessionForParent,
   ensureParentHasBillingAccess,
-  processStripeWebhookEvent
+  processStripeWebhookEvent,
+  reconcileStripeBillingSubscriptions
 } from "../src/server/billing-service.js";
 import { createFakeServiceClient } from "./helpers/fake-service-client.js";
 
@@ -475,4 +476,126 @@ test("ensureParentHasBillingAccess allows trialing and blocks canceled/past_due 
     (error) =>
       error instanceof ApiError && error.status === 402 && error.code === "billing_subscription_required"
   );
+});
+
+test("reconcileStripeBillingSubscriptions syncs problem subscriptions from Stripe", async () => {
+  const serviceClient = createFakeServiceClient({
+    parents: [buildParent({ consentStatus: "granted" })],
+    billing_subscriptions: [
+      {
+        id: "billing_1",
+        parent_id: "parent_1",
+        provider: "stripe",
+        provider_customer_id: "cus_1",
+        provider_subscription_id: "sub_1",
+        provider_price_id: "price_test_123",
+        status: "past_due",
+        cancel_at_period_end: false,
+        canceled_at: null,
+        updated_at: "2026-02-24T00:00:00.000Z"
+      },
+      {
+        id: "billing_2",
+        parent_id: "parent_2",
+        provider: "stripe",
+        provider_customer_id: "cus_2",
+        provider_subscription_id: "sub_2",
+        provider_price_id: "price_test_123",
+        status: "active",
+        cancel_at_period_end: false,
+        canceled_at: null,
+        updated_at: "2026-02-24T00:00:00.000Z"
+      }
+    ]
+  });
+
+  const stripeClient = {
+    subscriptions: {
+      retrieve: async (subscriptionId) => {
+        assert.equal(subscriptionId, "sub_1");
+        return {
+          id: "sub_1",
+          object: "subscription",
+          customer: "cus_1",
+          status: "active",
+          trial_start: null,
+          trial_end: null,
+          current_period_start: 1_770_000_000,
+          current_period_end: 1_772_592_000,
+          cancel_at_period_end: false,
+          canceled_at: null,
+          metadata: { parent_id: "parent_1" },
+          items: { data: [{ price: { id: "price_test_123" } }] }
+        };
+      }
+    },
+    customers: {
+      retrieve: async () => {
+        throw new Error("customers.retrieve should not be called when provider_subscription_id exists");
+      }
+    }
+  };
+
+  const result = await reconcileStripeBillingSubscriptions({
+    scope: "problem",
+    serviceClient,
+    stripeClient,
+    config: buildBillingConfig(),
+    env: buildEnv()
+  });
+
+  assert.equal(result.scope, "problem");
+  assert.equal(result.scanned, 1);
+  assert.equal(result.updated, 1);
+  assert.equal(result.errors, 0);
+  assert.equal(serviceClient.tables.billing_subscriptions.find((row) => row.parent_id === "parent_1").status, "active");
+  assert.equal(serviceClient.tables.billing_subscriptions.find((row) => row.parent_id === "parent_2").status, "active");
+});
+
+test("reconcileStripeBillingSubscriptions marks missing Stripe subscriptions canceled", async () => {
+  const serviceClient = createFakeServiceClient({
+    billing_subscriptions: [
+      {
+        id: "billing_1",
+        parent_id: "parent_1",
+        provider: "stripe",
+        provider_customer_id: "cus_missing",
+        provider_subscription_id: "sub_missing",
+        provider_price_id: "price_test_123",
+        status: "active",
+        cancel_at_period_end: false,
+        canceled_at: null,
+        updated_at: "2026-02-24T00:00:00.000Z"
+      }
+    ]
+  });
+
+  const missingError = new Error("No such subscription");
+  missingError.code = "resource_missing";
+  missingError.statusCode = 404;
+
+  const stripeClient = {
+    subscriptions: {
+      retrieve: async () => {
+        throw missingError;
+      }
+    },
+    customers: {
+      retrieve: async () => ({ id: "cus_missing" })
+    }
+  };
+
+  const result = await reconcileStripeBillingSubscriptions({
+    scope: "full",
+    serviceClient,
+    stripeClient,
+    config: buildBillingConfig(),
+    env: buildEnv()
+  });
+
+  assert.equal(result.scanned, 1);
+  assert.equal(result.updated, 1);
+  assert.equal(result.marked_canceled, 1);
+  assert.equal(serviceClient.tables.billing_subscriptions[0].status, "canceled");
+  assert.ok(serviceClient.tables.billing_subscriptions[0].canceled_at);
 });

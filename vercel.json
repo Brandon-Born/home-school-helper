@@ -1,0 +1,13 @@
+{
+  "crons": [
+    {
+      "path": "/api/internal/billing/reconcile/hourly",
+      "schedule": "15 * * * *"
+    },
+    {
+      "path": "/api/internal/billing/reconcile/nightly",
+      "schedule": "17 5 * * *"
+    }
+  ]
+}
+
