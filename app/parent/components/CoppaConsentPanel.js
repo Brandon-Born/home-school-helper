@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { StatusAlert } from "../../components/feedback/StatusAlert.js";
 
 function formatConsentTimestamp(value) {
@@ -50,6 +51,13 @@ export function CoppaConsentPanel({
   onRevokeConsent,
   focusMode = false
 }) {
+  const [showConfirmRevoke, setShowConfirmRevoke] = useState(false);
+
+  const handleConfirmRevoke = async () => {
+    await onRevokeConsent();
+    setShowConfirmRevoke(false);
+  };
+
   if (!parentProfile) {
     return null;
   }
@@ -72,17 +80,17 @@ export function CoppaConsentPanel({
   const canOpenBillingPortal = Boolean(billingEnabled && billingSubscription?.provider_customer_id && onOpenBillingPortal);
   const canStartSubscription = Boolean(
     billingEnabled &&
-      hasCoppaConsent &&
-      !billingHasAccess &&
-      onStartBillingCheckout &&
-      (!hasSubscriptionStarted || normalizedBillingStatus === "canceled")
+    hasCoppaConsent &&
+    !billingHasAccess &&
+    onStartBillingCheckout &&
+    (!hasSubscriptionStarted || normalizedBillingStatus === "canceled")
   );
   const isCanceledResubscribe = Boolean(
     billingEnabled &&
-      hasCoppaConsent &&
-      hasSubscriptionStarted &&
-      !billingHasAccess &&
-      normalizedBillingStatus === "canceled"
+    hasCoppaConsent &&
+    hasSubscriptionStarted &&
+    !billingHasAccess &&
+    normalizedBillingStatus === "canceled"
   );
   const primaryActionLabel = billingEnabled && focusMode
     ? (hasCoppaConsent ? (isCanceledResubscribe ? "Restart subscription" : "Complete subscription signup") : "Start subscription for $1.99")
@@ -91,14 +99,20 @@ export function CoppaConsentPanel({
       : billingEnabled
         ? "Start subscription for $1.99"
         : "I am the parent or legal guardian";
+
   const focusStepLabel = "Subscription setup";
-  const title = focusMode && billingEnabled ? "Start for $1.99 (first month)" : "Parental consent";
+  const title = focusMode && billingEnabled
+    ? "Start for $1.99 (first month)"
+    : billingEnabled && hasSubscriptionStarted
+      ? "Subscription & consent"
+      : "Parental consent";
+
   const introText = focusMode && billingEnabled
     ? hasCoppaConsent
       ? isCanceledResubscribe
         ? "Your previous subscription is no longer active. Start checkout to reactivate your family subscription."
         : "Your parent billing verification is on file. Complete checkout to activate your family subscription."
-      : "Start your family subscription for $1.99 for the first month, then $9.99/month."
+      : "Start your family subscription for $1.99 for the first month, then $9.99/month. We use the initial parent payment as part of our COPPA parental consent workflow before child profiles and tutoring sessions can begin."
     : hasCoppaConsent
       ? billingEnabled && !hasSubscriptionStarted
         ? "Parent billing verification is complete. Finish checkout to activate your family subscription."
@@ -106,9 +120,6 @@ export function CoppaConsentPanel({
       : billingEnabled
         ? "COPPA parental consent is required before adding child profiles or starting new sessions. Start subscription checkout first ($1.99 for the first month, then $9.99/month)."
         : "COPPA parental consent is required before adding child profiles or starting new sessions.";
-  const secondaryCoppaText = focusMode && billingEnabled
-    ? "We use the initial parent subscription payment as part of our COPPA parental consent workflow before child profiles and tutoring sessions can begin."
-    : "";
 
   return (
     <section
@@ -128,29 +139,33 @@ export function CoppaConsentPanel({
       </p>
 
       {billingEnabled ? (
-        <>
-          <div className="btn-row" style={{ marginTop: 4 }}>
+        <div className="card card--glass" style={{ marginTop: 16, marginBottom: 16, padding: "12px 16px" }}>
+          <h3 className="section-title" style={{ fontSize: "0.9rem", marginBottom: 8 }}>Subscription details</h3>
+          <div className="btn-row">
             <span className={`pill${billingSubscription?.has_access ? "" : " pill--muted"}`}>
-              Billing: {billingStatus || "not started"}
+              Status: {billingStatus || "not started"}
             </span>
             <span className="pill pill--muted">Family plan: $9.99/month</span>
           </div>
-          <p className="section-muted" style={{ marginTop: 8 }}>
-            $1.99 for the first month, then $9.99/month.
-            {!hasCoppaConsent ? " Checkout completion is required before children and tutoring sessions are unlocked." : ""}
-            {trialEndLabel ? ` Trial ends: ${trialEndLabel}.` : ""}
-          </p>
+
+          {!billingSubscription?.has_access && !hasCoppaConsent ? (
+            <p className="section-muted" style={{ marginTop: 8, fontSize: "0.85rem" }}>
+              Checkout completion is required before children and tutoring sessions are unlocked.
+            </p>
+          ) : null}
+
+          {trialEndLabel ? (
+            <p className="section-muted" style={{ marginTop: 8, fontSize: "0.85rem" }}>
+              Trial ends: {trialEndLabel}.
+            </p>
+          ) : null}
+
           {trialWarningLabel ? (
-            <p className="section-muted" style={{ marginTop: 4 }}>
+            <p className="section-muted" style={{ marginTop: 4, fontSize: "0.85rem" }}>
               {trialWarningLabel}
             </p>
           ) : null}
-          {secondaryCoppaText ? (
-            <p className="section-muted" style={{ marginTop: 8 }}>
-              {secondaryCoppaText}
-            </p>
-          ) : null}
-        </>
+        </div>
       ) : null}
 
       <p className="section-muted consent-panel__meta">
@@ -158,7 +173,7 @@ export function CoppaConsentPanel({
         {updatedAtLabel ? ` · Last updated: ${updatedAtLabel}` : ""}
       </p>
 
-      <div className="btn-row" style={{ marginTop: 10 }}>
+      <div className="btn-row" style={{ marginTop: 12 }}>
         {hasCoppaConsent ? (
           <>
             {canStartSubscription ? (
@@ -166,10 +181,35 @@ export function CoppaConsentPanel({
                 {primaryActionLabel}
               </button>
             ) : null}
-            {!focusMode ? (
-              <button type="button" onClick={onRevokeConsent} disabled={loading} className="btn btn--ghost">
-                Revoke consent
+            {canOpenBillingPortal ? (
+              <button type="button" onClick={onOpenBillingPortal} disabled={loading} className="btn btn--primary">
+                Manage billing
               </button>
+            ) : null}
+            {!focusMode ? (
+              <>
+                <button type="button" onClick={() => setShowConfirmRevoke(true)} disabled={loading} className="btn btn--ghost text-destructive">
+                  Revoke consent
+                </button>
+                {showConfirmRevoke ? (
+                  <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div className="card card--elevated" style={{ padding: "24px", maxWidth: "400px", width: "95%", backgroundColor: "var(--surface-color)" }}>
+                      <h3 className="section-title text-destructive" style={{ marginTop: 0 }}>Are you sure?</h3>
+                      <p className="section-muted" style={{ marginBottom: 20 }}>
+                        Revoking consent will block all new child profiles and sessions immediately.
+                      </p>
+                      <div className="btn-row" style={{ justifyContent: "flex-end" }}>
+                        <button type="button" onClick={() => setShowConfirmRevoke(false)} disabled={loading} className="btn btn--ghost">
+                          Cancel
+                        </button>
+                        <button type="button" onClick={handleConfirmRevoke} disabled={loading} className="btn btn--primary text-destructive" style={{ backgroundColor: "var(--surface-color)", border: "1px solid var(--destructive-color)" }}>
+                          Yes, revoke consent
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </>
             ) : null}
           </>
         ) : (
@@ -177,12 +217,6 @@ export function CoppaConsentPanel({
             {primaryActionLabel}
           </button>
         )}
-
-        {canOpenBillingPortal ? (
-          <button type="button" onClick={onOpenBillingPortal} disabled={loading} className="btn btn--secondary">
-            Manage billing
-          </button>
-        ) : null}
 
         <a href="/privacy" className="btn btn--secondary">
           Review privacy policy

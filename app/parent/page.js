@@ -152,15 +152,6 @@ export default function ParentPage() {
           </div>
         ) : showTrialSetupOnboarding ? (
           <div className="stack" data-testid="parent-trial-onboarding">
-            <section className="card card--glass parent-workspace__summary" aria-live="polite">
-              <p className="parent-workspace__eyebrow">Get started</p>
-              <h2 className="section-title">Start for $1.99 (first month)</h2>
-              <p className="section-muted">
-                Start your family subscription for $1.99 for the first month, then $9.99/month.
-                We use the initial parent payment as part of our COPPA consent workflow before child profiles and tutoring sessions can begin.
-              </p>
-            </section>
-
             <CoppaConsentPanel
               parentProfile={state.parentProfile}
               consentRequired={state.coppaConsentRequired}

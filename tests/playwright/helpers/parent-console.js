@@ -110,13 +110,22 @@ export async function ensureCoppaConsentGranted(page) {
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
     const childrenSectionButton = page.getByTestId("parent-section-link-children");
+    const workspaceLoadingPanel = page.getByTestId("parent-workspace-loading");
     const hasWorkspaceNav =
       (await childrenSectionButton.count()) > 0 &&
       (await childrenSectionButton.isVisible().catch(() => false)) &&
       (await childrenSectionButton.isEnabled().catch(() => false));
+    const hasWorkspaceLoading =
+      (await workspaceLoadingPanel.count()) > 0 &&
+      (await workspaceLoadingPanel.isVisible().catch(() => false));
     const hasFocusedTrialOnboarding =
       (await page.getByTestId("parent-trial-onboarding").count()) > 0 &&
       (await page.getByTestId("parent-trial-onboarding").isVisible().catch(() => false));
+
+    if (hasWorkspaceLoading) {
+      await page.waitForTimeout(250);
+      continue;
+    }
 
     if (!hasWorkspaceNav && hasFocusedTrialOnboarding) {
       if ((await grantButton.count()) > 0 && (await grantButton.isVisible().catch(() => false))) {

@@ -45,9 +45,11 @@ async function parseError(response) {
 export async function apiRequest(path, { method = "GET", body, bearerToken } = {}) {
   const response = await fetch(path, {
     method,
+    cache: "no-store",
     headers: {
       ...buildAuthHeaders(bearerToken),
-      "content-type": "application/json"
+      "content-type": "application/json",
+      "cache-control": "no-cache, no-store, must-revalidate"
     },
     body: body ? JSON.stringify(body) : undefined
   });

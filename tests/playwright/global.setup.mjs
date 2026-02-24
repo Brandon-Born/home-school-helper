@@ -66,11 +66,28 @@ function requireEnv(name) {
 }
 
 function resolveBaseUrl(config) {
+  const topLevelBaseUrl = config.use?.baseURL;
+  if (topLevelBaseUrl) {
+    return String(topLevelBaseUrl);
+  }
+
+  const envBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL;
+  if (envBaseUrl) {
+    return String(envBaseUrl);
+  }
+
+  const webServerUrl = Array.isArray(config.webServer)
+    ? config.webServer[0]?.url
+    : config.webServer?.url;
+  if (webServerUrl) {
+    return String(webServerUrl);
+  }
+
   const configuredBaseUrl = config.projects[0]?.use?.baseURL;
   if (configuredBaseUrl) {
     return String(configuredBaseUrl);
   }
-  return process.env.PLAYWRIGHT_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://127.0.0.1:3000";
+  return "http://127.0.0.1:3000";
 }
 
 async function fetchBootstrapLink(baseURL, secret) {

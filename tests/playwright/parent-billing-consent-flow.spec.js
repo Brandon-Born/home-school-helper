@@ -151,7 +151,7 @@ test("first-time onboarding starts subscription checkout when consent is pending
   ).toBeVisible({ timeout: 30000 });
   await expect(page.getByRole("button", { name: "Start subscription for $1.99" })).toBeVisible({ timeout: 30000 });
   await expect(page.getByText("Family plan: $9.99/month")).toBeVisible({ timeout: 30000 });
-  await expect(page.getByText("$1.99 for the first month, then $9.99/month. Checkout completion is required before children and tutoring sessions are unlocked.")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("Start your family subscription for $1.99 for the first month, then $9.99/month. We use the initial parent payment as part of our COPPA parental consent workflow before child profiles and tutoring sessions can begin.")).toBeVisible({ timeout: 30000 });
 
   const checkoutResponsePromise = page.waitForResponse(
     (response) => response.url().includes("/api/billing/checkout-session") && response.request().method() === "POST"
@@ -349,6 +349,8 @@ test("managed consent panel shows trial warning and opens billing portal when su
   await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
 
   await goToParentSection(page, "managed");
+  await expect(page.getByRole("heading", { name: "Subscription & consent", exact: true })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole("heading", { name: "Subscription details", exact: true })).toBeVisible({ timeout: 30000 });
   await expect(page.getByRole("button", { name: "Manage billing" })).toBeVisible({ timeout: 30000 });
   await expect(page.getByText(/Trial ends in 1 day|Trial ends in 2 days/i)).toBeVisible({ timeout: 30000 });
 
