@@ -53,7 +53,7 @@ export default function TermsPage() {
           <h2 className={styles.heading}>4. Parent Payment Method Verification</h2>
           <p>
             Before a free trial is activated, we verify a parent payment method as part of our
-            parental consent workflow. You may see a small temporary authorization or refundable
+            parental consent workflow. You may see a $1.00 temporary authorization or refundable
             verification charge before the trial begins.
           </p>
         </section>

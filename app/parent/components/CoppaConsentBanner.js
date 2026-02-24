@@ -13,7 +13,7 @@ export function CoppaConsentBanner({ onGrantConsent, loading, actionAlert, billi
                     under the Children&rsquo;s Online Privacy Protection Act (COPPA). This helps
                     us keep your child&rsquo;s data safe.
                     {billingEnabled
-                        ? " Verify a parent payment method first (you may see a small temporary authorization or refundable verification charge), then start your 7-day family trial."
+                        ? " Verify a parent payment method first (you may see a $1.00 temporary authorization or refundable verification charge), then start your 7-day family trial."
                         : ""}
                 </p>
                 <div className="btn-row" style={{ marginTop: 12 }}>

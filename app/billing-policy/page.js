@@ -41,7 +41,7 @@ export default function BillingPolicyPage() {
           <h2 className={styles.heading}>3. Parent Payment Verification</h2>
           <p>
             Before activating a free trial, we verify a parent payment method. This may appear as
-            a small temporary authorization or a small refundable verification charge. Banks may
+            a $1.00 temporary authorization or a $1.00 refundable verification charge. Banks may
             display pending authorizations or reversals on different timelines.
           </p>
         </section>

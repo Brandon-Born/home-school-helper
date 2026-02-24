@@ -177,7 +177,7 @@ export default function ParentPage() {
               <h3 className="section-title" style={{ fontSize: "1.05rem" }}>What happens next</h3>
               <div className="stack" style={{ gap: 10 }}>
                 <p className="section-muted" style={{ margin: 0 }}>
-                  1. Verify a parent payment method (small temporary authorization or refundable verification charge).
+                  1. Verify a parent payment method (you may see a $1.00 temporary authorization or refundable verification charge).
                 </p>
                 <p className="section-muted" style={{ margin: 0 }}>
                   2. Start your 7-day free trial and unlock your family workspace.

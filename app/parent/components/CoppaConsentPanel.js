@@ -87,10 +87,10 @@ export function CoppaConsentPanel({
         ? "Parent verification is complete. Start your 7-day family trial to activate your family subscription."
         : "Consent is on file. New child profiles and sessions are allowed."
       : billingEnabled
-        ? "COPPA parental consent is required before adding child profiles or starting new sessions. Verify a parent payment method first (small temporary authorization or refundable verification charge), then start your 7-day family trial."
+        ? "COPPA parental consent is required before adding child profiles or starting new sessions. Verify a parent payment method first (you may see a $1.00 temporary authorization or refundable verification charge), then start your 7-day family trial."
         : "COPPA parental consent is required before adding child profiles or starting new sessions.";
   const secondaryCoppaText = focusMode && billingEnabled
-    ? "We use parent payment-method verification as part of our COPPA parental consent workflow before child profiles and tutoring sessions can begin."
+    ? "We use parent payment-method verification (you may see a $1.00 temporary authorization or refundable verification charge) as part of our COPPA parental consent workflow before child profiles and tutoring sessions can begin."
     : "";
 
   return (
