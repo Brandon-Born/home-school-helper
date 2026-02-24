@@ -122,7 +122,7 @@ async function mockParentWorkspaceApis(page, {
   }
 }
 
-test("managed consent panel starts parent verification checkout when consent is pending", async ({ page }) => {
+test("first-time onboarding starts parent verification checkout when consent is pending", async ({ page }) => {
   await mockParentWorkspaceApis(page, {
     parent: {
       id: "parent_1",
@@ -142,25 +142,25 @@ test("managed consent panel starts parent verification checkout when consent is 
 
   await page.goto("/parent", { waitUntil: "domcontentloaded" });
   await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
-
-  await goToParentSection(page, "managed");
-  await expect(page.getByRole("heading", { name: "Parental consent" })).toBeVisible({ timeout: 30000 });
-  await expect(page.getByRole("button", { name: "Verify parent payment method" })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByTestId("parent-trial-onboarding")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByTestId("parent-section-link-managed")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Start your 7-day free trial" })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole("button", { name: "Start your free trial" })).toBeVisible({ timeout: 30000 });
   await expect(page.getByText("Family plan: $10/month")).toBeVisible({ timeout: 30000 });
-  await expect(page.getByText(/7-day free trial/i)).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText("7-day free trial before monthly billing. The free trial starts after parent payment verification succeeds.")).toBeVisible({ timeout: 30000 });
 
   const verificationResponsePromise = page.waitForResponse(
     (response) => response.url().includes("/api/billing/verification-session") && response.request().method() === "POST"
   );
 
-  await page.getByRole("button", { name: "Verify parent payment method" }).click();
+  await page.getByRole("button", { name: "Start your free trial" }).click();
 
   const verificationResponse = await verificationResponsePromise;
   expect(verificationResponse.status()).toBe(200);
   await expect(page).toHaveURL(/billing=verification_success/, { timeout: 30000 });
 });
 
-test("managed consent panel shows free-trial CTA after parent verification and starts subscription checkout", async ({ page }) => {
+test("first-time onboarding shows free-trial CTA after parent verification and starts subscription checkout", async ({ page }) => {
   await mockParentWorkspaceApis(page, {
     parent: {
       id: "parent_1",
@@ -192,13 +192,13 @@ test("managed consent panel shows free-trial CTA after parent verification and s
 
   await page.goto("/parent", { waitUntil: "domcontentloaded" });
   await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
-  await goToParentSection(page, "managed");
-  await expect(page.getByRole("button", { name: "Start free week" })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByTestId("parent-trial-onboarding")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole("button", { name: "Start your free trial" })).toBeVisible({ timeout: 30000 });
 
   const checkoutResponsePromise = page.waitForResponse(
     (response) => response.url().includes("/api/billing/checkout-session") && response.request().method() === "POST"
   );
-  await page.getByRole("button", { name: "Start free week" }).click();
+  await page.getByRole("button", { name: "Start your free trial" }).click();
   const checkoutResponse = await checkoutResponsePromise;
   expect(checkoutResponse.status()).toBe(200);
   await expect(page).toHaveURL(/billing=checkout_success/, { timeout: 30000 });

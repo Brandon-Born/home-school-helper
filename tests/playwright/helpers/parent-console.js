@@ -87,6 +87,7 @@ export async function goToParentSection(page, sectionId) {
   const normalizedSection = String(sectionId || "").trim().toLowerCase();
   const sectionButton = page.getByTestId(`parent-section-link-${normalizedSection}`);
   await expect(sectionButton).toBeVisible({ timeout: 30000 });
+  await expect(sectionButton).toBeEnabled({ timeout: 30000 });
   await sectionButton.click();
   await expect(sectionButton).toHaveAttribute("aria-current", "page", { timeout: 30000 });
 }
@@ -94,20 +95,41 @@ export async function goToParentSection(page, sectionId) {
 export async function openParentConsole(page, { section = "children" } = {}) {
   await page.goto("/parent", { waitUntil: "domcontentloaded" });
   await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
+  await ensureCoppaConsentGranted(page);
   await expect(page.getByTestId("parent-section-link-children")).toBeVisible({ timeout: 30000 });
   await expect(page.getByRole("heading", { name: "Your children" })).toBeVisible({ timeout: 30000 });
-  await ensureCoppaConsentGranted(page);
   await goToParentSection(page, section);
 }
 
 export async function ensureCoppaConsentGranted(page) {
   const addChildButton = page.getByTestId("child-add-button");
   const grantButton = page.getByRole("button", {
-    name: /I am the parent or legal guardian|Verify parent payment method|Start free week/i
+    name: /I am the parent or legal guardian|Verify parent payment method|Start free week|Start your free trial/i
   });
 
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
+    const childrenSectionButton = page.getByTestId("parent-section-link-children");
+    const hasWorkspaceNav =
+      (await childrenSectionButton.count()) > 0 &&
+      (await childrenSectionButton.isVisible().catch(() => false)) &&
+      (await childrenSectionButton.isEnabled().catch(() => false));
+    const hasFocusedTrialOnboarding =
+      (await page.getByTestId("parent-trial-onboarding").count()) > 0 &&
+      (await page.getByTestId("parent-trial-onboarding").isVisible().catch(() => false));
+
+    if (!hasWorkspaceNav && hasFocusedTrialOnboarding) {
+      if ((await grantButton.count()) > 0 && (await grantButton.isVisible().catch(() => false))) {
+        await seedBillingBackedConsentForPlaywright(page);
+        await page.reload({ waitUntil: "domcontentloaded" });
+        await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
+        continue;
+      }
+
+      await page.waitForTimeout(250);
+      continue;
+    }
+
     await goToParentSection(page, "children");
     // If the add button is visible and enabled, or the form is already open (expanded), we have consent.
     if ((await addChildButton.count()) > 0) {
@@ -121,7 +143,10 @@ export async function ensureCoppaConsentGranted(page) {
     await goToParentSection(page, "managed");
     if ((await grantButton.count()) > 0 && (await grantButton.isVisible())) {
       const buttonLabel = ((await grantButton.textContent()) || "").trim().toLowerCase();
-      const isBillingFlowCta = buttonLabel.includes("verify parent payment method") || buttonLabel.includes("start free week");
+      const isBillingFlowCta =
+        buttonLabel.includes("verify parent payment method") ||
+        buttonLabel.includes("start free week") ||
+        buttonLabel.includes("start your free trial");
 
       if (isBillingFlowCta) {
         await seedBillingBackedConsentForPlaywright(page);

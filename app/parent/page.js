@@ -51,12 +51,25 @@ export default function ParentPage() {
   const selectedChild = state.children.find((c) => c.id === state.selectedChildId) ?? null;
   const activeSection = resolveParentConsoleSection(activeSectionId);
   const showInitialWorkspaceLoading = Boolean(state.session) && !state.parentDataLoaded;
+  const hasBillingSubscriptionStarted = Boolean(state.billingSubscription?.provider_subscription_id);
+  const showTrialSetupOnboarding = Boolean(
+    state.session &&
+      state.billingEnabled &&
+      state.coppaConsentRequired &&
+      !showInitialWorkspaceLoading &&
+      !state.billingHasAccess &&
+      (!state.hasCoppaConsent || !hasBillingSubscriptionStarted)
+  );
+  const shellTitle = showTrialSetupOnboarding ? "Start your family trial" : "Your command center";
+  const shellSubtitle = showTrialSetupOnboarding
+    ? "Complete two quick steps to unlock child profiles and tutoring sessions."
+    : "Set up sessions, share a code, and quietly guide the session while your child learns.";
 
   return (
     <AppShell
       role="parent"
-      title="Your command center"
-      subtitle="Set up sessions, share a code, and quietly guide the session while your child learns."
+      title={shellTitle}
+      subtitle={shellSubtitle}
     >
       <StatusAlert tone="error" message={state.error} />
 
@@ -134,6 +147,46 @@ export default function ParentPage() {
                 </div>
               </section>
             </div>
+          </div>
+        ) : showTrialSetupOnboarding ? (
+          <div className="stack" data-testid="parent-trial-onboarding">
+            <section className="card card--glass parent-workspace__summary" aria-live="polite">
+              <p className="parent-workspace__eyebrow">Get started</p>
+              <h2 className="section-title">Start your 7-day family trial</h2>
+              <p className="section-muted">
+                We will walk you through two steps: verify a parent payment method, then complete trial checkout.
+                After that, you can add children and start tutoring sessions.
+              </p>
+            </section>
+
+            <CoppaConsentPanel
+              parentProfile={state.parentProfile}
+              consentRequired={state.coppaConsentRequired}
+              hasCoppaConsent={state.hasCoppaConsent}
+              billing={state.billing}
+              loading={state.loading.consent}
+              actionAlert={state.actionAlerts.consent}
+              onGrantConsent={actions.grantCoppaConsent}
+              onStartBillingCheckout={actions.startBillingCheckout}
+              onOpenBillingPortal={actions.openBillingPortal}
+              onRevokeConsent={actions.revokeCoppaConsent}
+              focusMode
+            />
+
+            <section className="card" aria-label="What happens next">
+              <h3 className="section-title" style={{ fontSize: "1.05rem" }}>What happens next</h3>
+              <div className="stack" style={{ gap: 10 }}>
+                <p className="section-muted" style={{ margin: 0 }}>
+                  1. Verify a parent payment method (small temporary authorization or refundable verification charge).
+                </p>
+                <p className="section-muted" style={{ margin: 0 }}>
+                  2. Start your 7-day free trial and unlock your family workspace.
+                </p>
+                <p className="section-muted" style={{ margin: 0 }}>
+                  3. Add children and begin tutoring sessions.
+                </p>
+              </div>
+            </section>
           </div>
         ) : (
           <div className="parent-workspace">
