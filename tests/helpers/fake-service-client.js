@@ -190,7 +190,16 @@ class FakeQuery {
       let existing = null;
 
       if (this.upsertConflict) {
-        existing = rows.find((row) => row[this.upsertConflict] === payloadRow[this.upsertConflict]) ?? null;
+        const conflictFields = String(this.upsertConflict)
+          .split(",")
+          .map((field) => field.trim())
+          .filter(Boolean);
+
+        existing =
+          rows.find((row) =>
+            conflictFields.length > 0 &&
+            conflictFields.every((field) => row[field] === payloadRow[field])
+          ) ?? null;
       }
 
       if (existing) {

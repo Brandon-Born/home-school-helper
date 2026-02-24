@@ -421,6 +421,7 @@ Creates a child profile for authenticated parent.
 
 ### Errors
 - `403 coppa_consent_required`: Parent consent must be granted first.
+- `402 billing_subscription_required`: An active/trialing family subscription is required before starting new sessions when billing is enabled.
 
 ## PUT `/api/children/:id`
 Updates a child profile for authenticated parent. Parent must own the child.

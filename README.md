@@ -95,7 +95,7 @@ tests/                         Unit tests
 ### Sessions
 | Method | Route | Auth | Purpose |
 |--------|-------|------|---------|
-| POST | `/api/session/start` | Parent | Start session, get join code |
+| POST | `/api/session/start` | Parent | Start session, get join code (requires consent and active/trialing subscription when billing is enabled) |
 | GET | `/api/session/active` | Parent | List active sessions |
 | POST | `/api/session/join` | Code | Redeem join code, get child token |
 | POST | `/api/session/:id/child-turn` | Child | Submit tutoring turn |

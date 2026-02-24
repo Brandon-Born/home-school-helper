@@ -13,6 +13,7 @@ create table if not exists public.billing_subscriptions (
   cancel_at_period_end boolean not null default false,
   canceled_at timestamptz,
   last_webhook_event_id text,
+  last_webhook_event_created_at timestamptz,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );

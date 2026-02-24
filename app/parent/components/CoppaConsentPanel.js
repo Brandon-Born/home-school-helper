@@ -15,6 +15,28 @@ function formatConsentTimestamp(value) {
   return parsed.toLocaleString();
 }
 
+function getTrialWarningLabel(trialEndAt) {
+  if (!trialEndAt) {
+    return "";
+  }
+
+  const trialEnd = new Date(trialEndAt);
+  if (Number.isNaN(trialEnd.getTime())) {
+    return "";
+  }
+
+  const diffMs = trialEnd.getTime() - Date.now();
+  const daysLeft = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+  if (daysLeft < 0) {
+    return "Trial has ended.";
+  }
+  if (daysLeft <= 2) {
+    return `Trial ends in ${daysLeft} day${daysLeft === 1 ? "" : "s"}.`;
+  }
+
+  return "";
+}
+
 export function CoppaConsentPanel({
   parentProfile,
   consentRequired,
@@ -41,6 +63,7 @@ export function CoppaConsentPanel({
   const billingSubscription = billing?.subscription ?? null;
   const billingStatus = billingSubscription?.status ? String(billingSubscription.status).replaceAll("_", " ") : "";
   const trialEndLabel = formatConsentTimestamp(billingSubscription?.trial_end_at);
+  const trialWarningLabel = getTrialWarningLabel(billingSubscription?.trial_end_at);
   const canOpenBillingPortal = Boolean(billingEnabled && billingSubscription?.provider_customer_id && onOpenBillingPortal);
 
   return (
@@ -59,11 +82,23 @@ export function CoppaConsentPanel({
       </p>
 
       {billingEnabled ? (
-        <p className="section-muted" style={{ marginTop: 4 }}>
-          Family plan: 7-day free trial, then $10/month.
-          {billingStatus ? ` Billing status: ${billingStatus}.` : ""}
-          {trialEndLabel ? ` Trial ends: ${trialEndLabel}.` : ""}
-        </p>
+        <>
+          <div className="btn-row" style={{ marginTop: 4 }}>
+            <span className={`pill${billingSubscription?.has_access ? "" : " pill--muted"}`}>
+              Billing: {billingStatus || "not started"}
+            </span>
+            <span className="pill pill--muted">Family plan: $10/month</span>
+          </div>
+          <p className="section-muted" style={{ marginTop: 8 }}>
+            7-day free trial before monthly billing.
+            {trialEndLabel ? ` Trial ends: ${trialEndLabel}.` : ""}
+          </p>
+          {trialWarningLabel ? (
+            <p className="section-muted" style={{ marginTop: 4 }}>
+              {trialWarningLabel}
+            </p>
+          ) : null}
+        </>
       ) : null}
 
       <p className="section-muted consent-panel__meta">

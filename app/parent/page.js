@@ -202,6 +202,10 @@ export default function ParentPage() {
                     <>
                       <SessionControlPanel
                         selectedChild={selectedChild}
+                        billingEnabled={state.billingEnabled}
+                        billingHasAccess={state.billingHasAccess}
+                        billingStatus={state.billingSubscription?.status ?? ""}
+                        billingTrialEndsAt={state.billingSubscription?.trial_end_at ?? null}
                         sessionForm={state.sessionForm}
                         setSessionForm={actions.setSessionForm}
                         onStartSession={actions.startSession}

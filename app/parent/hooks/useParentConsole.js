@@ -462,6 +462,9 @@ export function createUseParentConsole({
     const coppaConsentRequired = parentProfile?.coppa_consent_required !== false;
     const coppaConsentStatus = String(parentProfile?.coppa_consent_status || "pending").toLowerCase();
     const hasCoppaConsent = !coppaConsentRequired || coppaConsentStatus === "granted";
+    const billingEnabled = Boolean(billing?.enabled);
+    const billingSubscription = billing?.subscription ?? null;
+    const billingHasAccess = !billingEnabled || Boolean(billingSubscription?.has_access);
 
     return {
       state: {
@@ -471,8 +474,9 @@ export function createUseParentConsole({
         privacySummary,
         privacyRequests,
         billing,
-        billingEnabled: Boolean(billing?.enabled),
-        billingSubscription: billing?.subscription ?? null,
+        billingEnabled,
+        billingSubscription,
+        billingHasAccess,
         children,
         selectedChildId,
         activeSession,

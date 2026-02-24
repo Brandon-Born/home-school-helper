@@ -123,6 +123,7 @@
 - `cancel_at_period_end boolean not null default false`
 - `canceled_at timestamptz`
 - `last_webhook_event_id text`
+- `last_webhook_event_created_at timestamptz`
 - `created_at timestamptz default now()`
 - `updated_at timestamptz default now()`
 

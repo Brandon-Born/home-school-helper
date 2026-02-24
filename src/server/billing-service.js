@@ -29,6 +29,25 @@ function normalizeStatus(rawStatus) {
   return value || "incomplete";
 }
 
+function eventCreatedAtIso(event) {
+  return isoOrNull(event?.created);
+}
+
+function isIncomingEventStale(existingRow, incomingEventCreatedAtIso) {
+  const previous = existingRow?.last_webhook_event_created_at ?? null;
+  if (!previous || !incomingEventCreatedAtIso) {
+    return false;
+  }
+
+  const previousMs = Date.parse(previous);
+  const incomingMs = Date.parse(incomingEventCreatedAtIso);
+  if (Number.isNaN(previousMs) || Number.isNaN(incomingMs)) {
+    return false;
+  }
+
+  return incomingMs < previousMs;
+}
+
 function normalizeBillingRow(row) {
   if (!row) {
     return null;
@@ -48,6 +67,7 @@ function normalizeBillingRow(row) {
     current_period_end_at: row.current_period_end_at ?? null,
     cancel_at_period_end: Boolean(row.cancel_at_period_end),
     canceled_at: row.canceled_at ?? null,
+    last_webhook_event_created_at: row.last_webhook_event_created_at ?? null,
     updated_at: row.updated_at ?? null
   };
 }
@@ -68,7 +88,7 @@ async function findBillingRowByParent(parentId, { serviceClient }) {
   const { data, error } = await serviceClient
     .from("billing_subscriptions")
     .select(
-      "id, parent_id, provider, provider_customer_id, provider_subscription_id, provider_price_id, status, trial_start_at, trial_end_at, current_period_start_at, current_period_end_at, cancel_at_period_end, canceled_at, updated_at"
+      "id, parent_id, provider, provider_customer_id, provider_subscription_id, provider_price_id, status, trial_start_at, trial_end_at, current_period_start_at, current_period_end_at, cancel_at_period_end, canceled_at, last_webhook_event_created_at, updated_at"
     )
     .eq("parent_id", parentId)
     .eq("provider", BILLING_PROVIDER)
@@ -84,7 +104,7 @@ async function findBillingRowByParent(parentId, { serviceClient }) {
 async function findBillingRowByStripeIds({ providerSubscriptionId, providerCustomerId, serviceClient }) {
   let query = serviceClient
     .from("billing_subscriptions")
-    .select("id, parent_id, provider_customer_id, provider_subscription_id, status")
+    .select("id, parent_id, provider_customer_id, provider_subscription_id, status, last_webhook_event_created_at")
     .eq("provider", BILLING_PROVIDER);
 
   if (providerSubscriptionId) {
@@ -114,7 +134,7 @@ async function upsertBillingSubscription(row, { serviceClient }) {
     .from("billing_subscriptions")
     .upsert(payload, { onConflict: "parent_id,provider" })
     .select(
-      "id, parent_id, provider, provider_customer_id, provider_subscription_id, provider_price_id, status, trial_start_at, trial_end_at, current_period_start_at, current_period_end_at, cancel_at_period_end, canceled_at, updated_at"
+      "id, parent_id, provider, provider_customer_id, provider_subscription_id, provider_price_id, status, trial_start_at, trial_end_at, current_period_start_at, current_period_end_at, cancel_at_period_end, canceled_at, last_webhook_event_created_at, updated_at"
     )
     .single();
 
@@ -165,9 +185,11 @@ async function ensureStripeCustomerForParent(parent, options = {}) {
   };
 }
 
-function mapStripeSubscriptionToBillingRow(parentId, subscription) {
+function mapStripeSubscriptionToBillingRow(parentId, subscription, options = {}) {
   const items = Array.isArray(subscription?.items?.data) ? subscription.items.data : [];
   const firstPrice = items[0]?.price;
+  const incomingEventCreatedAt = options.eventCreatedAt ?? null;
+  const incomingEventId = options.eventId ?? null;
 
   return {
     parent_id: parentId,
@@ -181,7 +203,9 @@ function mapStripeSubscriptionToBillingRow(parentId, subscription) {
     current_period_start_at: isoOrNull(subscription.current_period_start),
     current_period_end_at: isoOrNull(subscription.current_period_end),
     cancel_at_period_end: Boolean(subscription.cancel_at_period_end),
-    canceled_at: isoOrNull(subscription.canceled_at)
+    canceled_at: isoOrNull(subscription.canceled_at),
+    last_webhook_event_id: incomingEventId,
+    last_webhook_event_created_at: incomingEventCreatedAt
   };
 }
 
@@ -249,6 +273,38 @@ export async function getParentBillingSubscription(parentId, options = {}) {
     enabled: true,
     provider: BILLING_PROVIDER,
     subscription: normalizeBillingRow(row)
+  };
+}
+
+export async function ensureParentHasBillingAccess(parentId, options = {}) {
+  const billing = await getParentBillingSubscription(parentId, options);
+  if (!billing.enabled) {
+    return {
+      required: false,
+      provider: null,
+      status: null,
+      has_access: true,
+      subscription: null
+    };
+  }
+
+  const status = normalizeStatus(billing.subscription?.status);
+  const hasAccess = Boolean(billing.subscription?.has_access);
+
+  if (!billing.subscription || !hasAccess) {
+    throw new ApiError(
+      402,
+      "billing_subscription_required",
+      "An active family subscription is required before starting new sessions."
+    );
+  }
+
+  return {
+    required: true,
+    provider: billing.provider,
+    status,
+    has_access: true,
+    subscription: billing.subscription
   };
 }
 
@@ -439,15 +495,34 @@ async function syncFromStripeSubscription(subscription, options = {}) {
   const env = options.env ?? process.env;
   const config = options.config ?? getStripeBillingConfig(env);
   const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
+  const event = options.event ?? null;
+  const incomingEventCreatedAt = eventCreatedAtIso(event);
+  const incomingEventId = String(event?.id || "").trim() || null;
   const parentId = await resolveParentIdForStripeSubscription(subscription, { serviceClient });
 
   if (!parentId) {
-    return null;
+    return { skipped: true, reason: "missing_parent" };
   }
 
-  const row = await upsertBillingSubscription(mapStripeSubscriptionToBillingRow(parentId, subscription), {
+  const existing = await findBillingRowByStripeIds({
+    providerSubscriptionId: subscription?.id ?? null,
+    providerCustomerId: typeof subscription?.customer === "string" ? subscription.customer : null,
     serviceClient
   });
+
+  if (isIncomingEventStale(existing, incomingEventCreatedAt)) {
+    return { skipped: true, reason: "stale_event" };
+  }
+
+  const row = await upsertBillingSubscription(
+    mapStripeSubscriptionToBillingRow(parentId, subscription, {
+      eventCreatedAt: incomingEventCreatedAt,
+      eventId: incomingEventId
+    }),
+    {
+      serviceClient
+    }
+  );
 
   await maybeGrantCoppaConsentFromBilling(parentId, normalizeStatus(subscription.status), {
     env,
@@ -455,7 +530,7 @@ async function syncFromStripeSubscription(subscription, options = {}) {
     serviceClient
   });
 
-  return row;
+  return { skipped: false, row };
 }
 
 export async function processStripeWebhookEvent(event, options = {}) {
@@ -477,7 +552,7 @@ export async function processStripeWebhookEvent(event, options = {}) {
   if (event.type === "checkout.session.completed") {
     await syncFromCheckoutSession(object, { serviceClient, config });
   } else if (SYNCABLE_STRIPE_EVENT_TYPES.has(event.type)) {
-    await syncFromStripeSubscription(object, { env, config, serviceClient });
+    await syncFromStripeSubscription(object, { env, config, serviceClient, event });
   }
 
   await markWebhookEventProcessed(event, { serviceClient });
