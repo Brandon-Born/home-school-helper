@@ -28,7 +28,7 @@ export function SessionControlPanel({
     );
   }
 
-  const normalizedBillingStatus = String(billingStatus || "").trim().toLowerCase();
+  const normalizedBillingStatus = String(billingStatus || "").trim().toLowerCase().replaceAll("_", " ");
   const sessionStartBlockedByBilling = billingEnabled && !billingHasAccess;
   const trialEndsLabel = billingTrialEndsAt ? new Date(billingTrialEndsAt).toLocaleString() : "";
 

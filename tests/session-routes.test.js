@@ -79,3 +79,29 @@ test("createSessionStartPostHandler starts session when auth and payload are val
     }
   });
 });
+
+test("createSessionStartPostHandler returns billing error when subscription is required", async () => {
+  const handler = createSessionStartPostHandler({
+    enforceRateLimit: () => {},
+    requireParentContext: async () => ({
+      parent: { id: "parent_1" }
+    }),
+    startSessionForParent: async () => {
+      throw new ApiError(
+        402,
+        "billing_subscription_required",
+        "An active family subscription is required before starting new sessions."
+      );
+    }
+  });
+
+  const response = await handler(
+    createJsonRequest("https://example.test/api/session/start", { child_id: "child_1", daily_subjects: ["Math"] })
+  );
+
+  await assertApiErrorResponse(response, {
+    status: 402,
+    error: "billing_subscription_required",
+    message: "An active family subscription is required before starting new sessions."
+  });
+});

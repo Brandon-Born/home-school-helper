@@ -29,7 +29,7 @@ export async function openParentConsole(page, { section = "children" } = {}) {
 
 export async function ensureCoppaConsentGranted(page) {
   const addChildButton = page.getByTestId("child-add-button");
-  const grantButton = page.getByRole("button", { name: "I am the parent or legal guardian" });
+  const grantButton = page.getByRole("button", { name: /I am the parent or legal guardian|Start free week/i });
 
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
