@@ -223,6 +223,47 @@ test("createStripeCheckoutSessionForParent enables promotion codes in Stripe Che
   assert.equal(recordedCheckoutPayload.subscription_data?.trial_period_days, undefined);
 });
 
+test("createStripeCheckoutSessionForParent applies intro coupon and disables promotion code field to satisfy Stripe constraints", async () => {
+  const serviceClient = createFakeServiceClient({
+    parents: [buildParent({ consentStatus: "pending" })],
+    billing_subscriptions: []
+  });
+
+  let recordedCheckoutPayload = null;
+  const stripeClient = {
+    customers: {
+      create: async () => ({ id: "cus_123" })
+    },
+    checkout: {
+      sessions: {
+        create: async (payload) => {
+          recordedCheckoutPayload = payload;
+          return {
+            id: "cs_test_123",
+            url: "https://checkout.stripe.test/session"
+          };
+        }
+      }
+    }
+  };
+
+  const config = buildBillingConfig();
+  config.stripe.introCouponIdFirstMonth = "coupon_first_month_intro_199";
+
+  const checkout = await createStripeCheckoutSessionForParent(buildParent({ consentStatus: "pending" }), {
+    serviceClient,
+    stripeClient,
+    config,
+    env: buildEnv(),
+    request: new Request("https://example.test/api/billing/checkout-session", { method: "POST" })
+  });
+
+  assert.equal(checkout.id, "cs_test_123");
+  assert.deepEqual(recordedCheckoutPayload.discounts, [{ coupon: "coupon_first_month_intro_199" }]);
+  assert.equal("allow_promotion_codes" in recordedCheckoutPayload, false);
+  assert.equal(checkout.intro_offer?.first_month_discount_coupon_applied, true);
+});
+
 test("createStripeCheckoutSessionForParent no longer requires pre-granted COPPA consent", async () => {
   const serviceClient = createFakeServiceClient({
     parents: [buildParent({ consentStatus: "pending" })],

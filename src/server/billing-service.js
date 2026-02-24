@@ -407,7 +407,6 @@ export async function createStripeCheckoutSessionForParent(parent, options = {})
   const sessionPayload = {
     mode: "subscription",
     customer: providerCustomerId,
-    allow_promotion_codes: true,
     line_items: [
       {
         price: config.stripe.priceIdFamilyMonthly,
@@ -429,7 +428,11 @@ export async function createStripeCheckoutSessionForParent(parent, options = {})
   };
 
   if (config.stripe.introCouponIdFirstMonth) {
+    // Stripe Checkout rejects `allow_promotion_codes` together with `discounts`.
+    // We prioritize the automatic intro coupon to preserve the advertised $1.99 first month flow.
     sessionPayload.discounts = [{ coupon: config.stripe.introCouponIdFirstMonth }];
+  } else {
+    sessionPayload.allow_promotion_codes = true;
   }
 
   const session = await stripeClient.checkout.sessions.create(sessionPayload);
