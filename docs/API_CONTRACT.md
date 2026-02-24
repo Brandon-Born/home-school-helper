@@ -223,7 +223,7 @@ Allowed `action` values:
 - `500 coppa_consent_audit_failed`: Consent audit event could not be persisted.
 
 ## POST `/api/billing/verification-session`
-Creates a Stripe Checkout Session URL for the authenticated parent payment verification step (COPPA VPC), before the subscription trial begins.
+Legacy/deprecated flow endpoint. Creates a Stripe Checkout Session URL for a separate parent payment verification step (older 2-step COPPA flow) before subscription signup.
 
 ### Response (200)
 ```json
@@ -238,11 +238,12 @@ Creates a Stripe Checkout Session URL for the authenticated parent payment verif
 ```
 
 ## POST `/api/billing/checkout-session`
-Creates a Stripe Checkout Session URL for the authenticated parent family subscription trial (`7 days free`, then `$10/month`).
+Creates a Stripe Checkout Session URL for the authenticated parent family subscription signup (single-step hosted checkout).
 
 Notes:
-- Requires completed parent payment verification / COPPA consent first.
+- Intended pricing model: `$1.99 first month`, then `$9.99/month` (typically implemented with the standard monthly price plus a one-time intro coupon/discount).
 - Stripe Checkout allows promotion codes for tester/friends/family discounts.
+- COPPA consent is granted after a successful paid signup webhook is processed.
 
 ### Response (200)
 ```json
@@ -250,13 +251,12 @@ Notes:
   "checkout": {
     "id": "cs_123",
     "url": "https://checkout.stripe.com/c/pay/...",
-    "trial_days": 7
+    "intro_offer": {
+      "first_month_discount_coupon_applied": true
+    }
   }
 }
 ```
-
-### Errors
-- `409 billing_parent_verification_required`: Parent payment verification / billing-backed COPPA consent is required before starting the trial checkout.
 
 ## POST `/api/billing/portal-session`
 Creates a Stripe Billing Portal session URL for the authenticated parent.
@@ -271,7 +271,7 @@ Creates a Stripe Billing Portal session URL for the authenticated parent.
 ```
 
 ## POST `/api/billing/webhook`
-Consumes Stripe webhook events for parent verification completion and subscription lifecycle updates.
+Consumes Stripe webhook events for paid signup consent confirmation and subscription lifecycle updates.
 
 ### Headers
 - `stripe-signature: <signed-header>`

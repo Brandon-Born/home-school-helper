@@ -9,8 +9,8 @@ Status: Selected direction (implementation in progress)
 
 ## Goal
 - Add a parent-paid credit card subscription with:
-- a first 7 days free trial
-- then `$10/month` per family (one parent account, unlimited kids)
+- `$1.99` for the first month
+- then `$9.99/month` per family (one parent account, unlimited kids)
 - billing flow support for COPPA verifiable parental consent (VPC) for the parent account
 
 ## Executive Recommendation
@@ -25,12 +25,12 @@ When a competitor may be better:
 - **Paddle Billing** if near-term priority becomes merchant-of-record handling for global sales tax/VAT/compliance operations.
 - **Braintree** if you strongly prefer PayPal/Braintree merchant setup and accept more custom billing-management UI work.
 
-## Important COPPA Note (Free Trial vs VPC)
+## Important COPPA Note (Paid Signup and VPC)
 - A payment provider can support VPC, but it does **not** make the product COPPA-compliant by itself.
 - COPPA still requires direct notice, auditable consent records, parental rights workflows, and policy coverage.
 - The FTC FAQ still describes card-based VPC as collecting a debit/credit card number **in connection with a monetary transaction**.
 - The current eCFR text for `16 CFR 312.5` (amended April 22, 2025) now says **in connection with a transaction**.
-- Product decision (2026-02-24): use the conservative path by default and in production: a small parent card verification charge/authorization must complete before the 7-day trial subscription checkout.
+- Product decision update (2026-02-24): simplify signup to a single paid subscription checkout (`$1.99` first month, then `$9.99/month`) and use the initial paid signup transaction in the webhook-driven consent workflow.
 
 ## Current Repo Findings (Why this plan is low-risk)
 - Parent/child household model already exists in Supabase (`parents`, `children`, `sessions`).
@@ -88,32 +88,31 @@ Fit for this repo
 
 ## Recommended Product/Billing Model
 - **Plan name:** Family Plan
-- **Price:** `$10/month`
+- **Price:** `$9.99/month` (with intro first-month offer to `$1.99`)
 - **Billing unit:** 1 household subscription per parent account (not per child)
 - **Children limit:** Unlimited (app-enforced)
-- **Trial:** 7-day free trial
-- **Access during trial:** Full parent + child functionality (subject to consent and policy gates)
-- **Post-trial:** Auto-renew monthly unless canceled
-- **Cancellation behavior:** Keep access through current paid period or trial end; retain parent privacy rights access after cancellation
+- **Intro offer:** First month `$1.99` via Stripe discount/coupon on subscription checkout
+- **Access after initial paid signup:** Full parent + child functionality (subject to consent and policy gates)
+- **Renewal:** Auto-renew monthly at `$9.99/month` unless canceled
+- **Cancellation behavior:** Keep access through the current paid period; retain parent privacy rights access after cancellation
 
 ## Proposed COPPA + Billing Design (Recommended Flow)
 
 ### Parent onboarding / consent flow
 1. Parent signs in with Google (existing flow).
-2. Parent sees COPPA direct notice + plan summary (`7 days free`, then `$10/month`).
-3. Parent clicks `Verify parent payment method`.
-4. App creates a server-side Stripe Checkout Session in `payment` mode for a small verification transaction.
+2. Parent sees COPPA direct notice + plan summary (`$1.99` first month, then `$9.99/month`).
+3. Parent clicks `Start subscription for $1.99`.
+4. App creates a server-side Stripe Checkout Session in `subscription` mode with optional intro coupon/discount and promo code support.
 5. Parent completes hosted Stripe Checkout (card entered by parent).
 6. App waits for Stripe webhook(s) and **does not trust the client redirect alone**.
-7. Webhook records verification evidence and grants COPPA consent with billing-backed method.
-8. Parent console refresh shows `Consent active` and a separate `Start free week` CTA.
-9. Parent starts the subscription Checkout (`7-day trial`, then `$10/month`) with optional promo code support.
-10. Webhook marks subscription/trial billing state for access control and billing UI.
+7. Webhook records billing evidence and grants COPPA consent with billing-backed method after paid checkout completion.
+8. Parent console refresh shows subscription access state and billing controls.
+9. Webhook marks subscription billing state for access control and billing UI.
 
 ### Selected Policy (Canonical)
-- Conservative COPPA posture only (no trial-signup consent grant path in production logic)
-- COPPA consent is granted only after the separate parent verification transaction webhook succeeds
-- Subscription trial activation is a separate step after consent verification
+- Conservative COPPA posture only (no client-side/self-attested consent grant path in production logic)
+- COPPA consent is granted only after the paid Stripe subscription checkout webhook succeeds
+- Introductory pricing is part of the same subscription checkout transaction that establishes billing-backed consent evidence
 
 ## Repo-Specific Implementation Plan
 
@@ -193,10 +192,9 @@ Suggested routes
 
 - `POST /api/billing/checkout-session`
   - Requires `requireParentContext`
-  - Requires completed parent verification / COPPA consent first
   - Creates/looks up Stripe customer for the parent
   - Creates Stripe Checkout Session in `subscription` mode
-  - Uses 7-day trial and the configured family price
+  - Uses configured family price (`$9.99/month`) and optional first-month intro coupon (`$1.99`)
   - Allows promotion codes (tester/friends/family discounts)
   - Sets metadata (`parent_id`, `coppa_policy_version`, `consent_intent_version`)
   - Returns `{ url }`
@@ -229,16 +227,16 @@ Replace the current consent CTA with billing-backed activation.
 
 UI changes
 - `app/parent/components/CoppaConsentPanel.js`
-  - Replace self-attestation CTA with `Verify parent payment method`
-  - After verification is complete, show separate `Start free week` CTA
-  - Show plan summary (`7-day free trial`, then `$10/month`)
-  - Show billing/trial status once available
+  - Replace self-attestation CTA with `Start subscription for $1.99`
+  - Show plan summary (`$1.99` first month, then `$9.99/month`)
+  - Explain Stripe-hosted checkout payment is also the COPPA billing-backed consent step
+  - Show billing/subscription status once available
   - Keep `Revoke consent` action, but separate it from `Cancel subscription` to avoid conflating legal consent and billing status
 
 - `app/parent/hooks/useParentConsole.js`
-  - Replace `grantCoppaConsent()` self-attestation request with Stripe parent verification checkout:
-  - `POST /api/billing/verification-session` -> `window.location = url`
-  - Keep separate `startBillingCheckout()` -> `POST /api/billing/checkout-session` for the trial subscription step
+  - Replace `grantCoppaConsent()` self-attestation request with Stripe subscription checkout:
+  - `POST /api/billing/checkout-session` -> `window.location = url`
+  - Keep separate `startBillingCheckout()` -> `POST /api/billing/checkout-session` for the subscription checkout step
   - Add `openBillingPortal()` action
   - Fetch billing state in the same initial parent-data load bundle (or a new request)
 
@@ -304,12 +302,11 @@ Rollout plan
 4. **International rollout timing:** If non-U.S. launch is near-term, reconsider Paddle (MoR) before implementation starts.
 
 ## Suggested Acceptance Criteria (v1)
-- Parent can complete a small hosted verification transaction before child access is enabled.
-- Parent can then start a 7-day free trial and enter/apply subscription billing details via hosted checkout.
-- Parent sees billing status/trial end date in the parent console.
-- COPPA consent is granted only by the server-side verification webhook path, not by client button click.
+- Parent can complete hosted Stripe subscription checkout with intro pricing (`$1.99` first month) before child access is enabled.
+- Parent sees billing status and current period/renewal details in the parent console.
+- COPPA consent is granted only by the server-side paid Stripe webhook path, not by client button click.
 - Child profile creation and session start remain blocked until consent is granted.
-- After trial, successful billing keeps access; failed/canceled subscription blocks new paid usage.
+- After the intro period, successful billing keeps access; failed/canceled subscription blocks new paid usage.
 - Parent can still review/export/delete/revoke after cancellation.
 
 ## Source Notes (for provider/COPPA comparisons)

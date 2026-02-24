@@ -9,9 +9,9 @@ import {
 } from "./session-foundation/coppa-consent-service.js";
 
 const BILLING_PROVIDER = "stripe";
-const STRIPE_TRIAL_DAYS = 7;
 const STRIPE_VERIFICATION_FLOW = "coppa_parent_payment_verification";
 const STRIPE_VERIFICATION_CONSENT_METHOD = "stripe_card_verification_charge";
+const STRIPE_SUBSCRIPTION_CHECKOUT_CONSENT_METHOD = "stripe_subscription_checkout_payment";
 const BILLING_ACCESS_STATUSES = new Set(["trialing", "active"]);
 const SYNCABLE_STRIPE_EVENT_TYPES = new Set([
   "customer.subscription.created",
@@ -317,18 +317,6 @@ export async function createStripeCheckoutSessionForParent(parent, options = {})
   const stripeClient = options.stripeClient ?? getStripeClient(env);
   const request = options.request;
   const baseUrl = resolveBaseUrl(request, config);
-  const consent = await getParentCoppaConsentState(parent.id, { serviceClient, env });
-
-  if (
-    consent.required &&
-    (consent.status !== COPPA_CONSENT_STATUS.granted || consent.method !== STRIPE_VERIFICATION_CONSENT_METHOD)
-  ) {
-    throw new ApiError(
-      409,
-      "billing_parent_verification_required",
-      "Verify a parent payment method before starting the family trial."
-    );
-  }
 
   const { providerCustomerId } = await ensureStripeCustomerForParent(parent, {
     serviceClient,
@@ -337,7 +325,7 @@ export async function createStripeCheckoutSessionForParent(parent, options = {})
     config
   });
 
-  const session = await stripeClient.checkout.sessions.create({
+  const sessionPayload = {
     mode: "subscription",
     customer: providerCustomerId,
     allow_promotion_codes: true,
@@ -354,18 +342,25 @@ export async function createStripeCheckoutSessionForParent(parent, options = {})
       coppa_policy_version: String(parent.coppa_policy_version || "")
     },
     subscription_data: {
-      trial_period_days: STRIPE_TRIAL_DAYS,
       metadata: {
         parent_id: parent.id,
         coppa_policy_version: String(parent.coppa_policy_version || "")
       }
     }
-  });
+  };
+
+  if (config.stripe.introCouponIdFirstMonth) {
+    sessionPayload.discounts = [{ coupon: config.stripe.introCouponIdFirstMonth }];
+  }
+
+  const session = await stripeClient.checkout.sessions.create(sessionPayload);
 
   return {
     id: session.id,
     url: session.url,
-    trial_days: STRIPE_TRIAL_DAYS
+    intro_offer: {
+      first_month_discount_coupon_applied: Boolean(config.stripe.introCouponIdFirstMonth)
+    }
   };
 }
 
@@ -600,9 +595,39 @@ async function syncFromCheckoutSession(session, { serviceClient, config, env }) 
     { serviceClient }
   );
 
+  let consent = null;
+  if (String(session.payment_status || "").trim().toLowerCase() === "paid") {
+    consent = await setParentCoppaConsentState(
+      parentId,
+      {
+        status: COPPA_CONSENT_STATUS.granted,
+        method: STRIPE_SUBSCRIPTION_CHECKOUT_CONSENT_METHOD,
+        actorParentId: parentId
+      },
+      { serviceClient, env }
+    );
+
+    await upsertBillingSubscription(
+      {
+        parent_id: parentId,
+        provider_customer_id: providerCustomerId,
+        provider_subscription_id: providerSubscriptionId,
+        provider_price_id: config.stripe.priceIdFamilyMonthly,
+        parent_verification_completed_at: new Date().toISOString(),
+        parent_verification_payment_intent_id:
+          typeof session.payment_intent === "string" ? session.payment_intent : null,
+        parent_verification_amount_cents:
+          typeof session.amount_total === "number" ? session.amount_total : null,
+        parent_verification_currency: String(session.currency || "").trim().toLowerCase() || null
+      },
+      { serviceClient }
+    );
+  }
+
   return {
     skipped: false,
-    row
+    row,
+    consent
   };
 }
 

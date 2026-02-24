@@ -120,8 +120,8 @@ export default function HomePage() {
           <h2 id="pricing-heading" className={styles.howItWorksTitle}>Family plan pricing</h2>
           <div className={`${styles.ctaCard} card card--elevated`}>
             <p className="section-muted">
-              <strong>$1 to get started for a 1-week trial</strong>, then <strong>$10/month</strong>.
-              Parent payment verification is required before the 1-week trial starts. You can cancel anytime
+              <strong>$1.99 for the first month</strong>, then <strong>$9.99/month</strong>.
+              We use the initial parent payment as part of our COPPA consent workflow before child sessions begin. You can cancel anytime
               from the parent billing portal.
             </p>
             <p className="section-muted">

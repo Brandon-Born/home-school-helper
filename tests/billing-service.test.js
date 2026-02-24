@@ -18,6 +18,7 @@ function buildBillingConfig() {
       secretKey: "sk_test_123",
       webhookSecret: "whsec_123",
       priceIdFamilyMonthly: "price_test_123",
+      introCouponIdFirstMonth: null,
       billingPortalConfigId: null,
       parentVerificationAmountCents: 100,
       parentVerificationCurrency: "usd"
@@ -125,6 +126,38 @@ function buildVerificationCheckoutCompletedEvent({
   };
 }
 
+function buildSubscriptionCheckoutCompletedEvent({
+  id = "evt_checkout_sub_1",
+  created = 1_770_000_000,
+  parentId = "parent_1",
+  customerId = "cus_1",
+  subscriptionId = "sub_1",
+  paymentStatus = "paid",
+  amountTotal = 199,
+  currency = "usd"
+} = {}) {
+  return {
+    id,
+    type: "checkout.session.completed",
+    created,
+    data: {
+      object: {
+        id: "cs_sub_1",
+        object: "checkout.session",
+        mode: "subscription",
+        customer: customerId,
+        subscription: subscriptionId,
+        payment_status: paymentStatus,
+        amount_total: amountTotal,
+        currency,
+        metadata: {
+          parent_id: parentId
+        }
+      }
+    }
+  };
+}
+
 test("processStripeWebhookEvent grants COPPA consent from verification checkout payment", async () => {
   const serviceClient = createFakeServiceClient({
     parents: [buildParent()],
@@ -186,10 +219,10 @@ test("createStripeCheckoutSessionForParent enables promotion codes in Stripe Che
 
   assert.equal(checkout.id, "cs_test_123");
   assert.equal(recordedCheckoutPayload.allow_promotion_codes, true);
-  assert.equal(recordedCheckoutPayload.subscription_data.trial_period_days, 7);
+  assert.equal(recordedCheckoutPayload.subscription_data?.trial_period_days, undefined);
 });
 
-test("createStripeCheckoutSessionForParent requires completed parent verification consent first", async () => {
+test("createStripeCheckoutSessionForParent no longer requires pre-granted COPPA consent", async () => {
   const serviceClient = createFakeServiceClient({
     parents: [buildParent({ consentStatus: "pending" })],
     billing_subscriptions: []
@@ -200,20 +233,15 @@ test("createStripeCheckoutSessionForParent requires completed parent verificatio
     checkout: { sessions: { create: async () => ({ id: "cs_test_123", url: "https://checkout" }) } }
   };
 
-  await assert.rejects(
-    () =>
-      createStripeCheckoutSessionForParent(buildParent({ consentStatus: "pending" }), {
-        serviceClient,
-        stripeClient,
-        config: buildBillingConfig(),
-        env: buildEnv(),
-        request: new Request("https://example.test/api/billing/checkout-session", { method: "POST" })
-      }),
-    (error) =>
-      error instanceof ApiError &&
-      error.status === 409 &&
-      error.code === "billing_parent_verification_required"
-  );
+  const result = await createStripeCheckoutSessionForParent(buildParent({ consentStatus: "pending" }), {
+    serviceClient,
+    stripeClient,
+    config: buildBillingConfig(),
+    env: buildEnv(),
+    request: new Request("https://example.test/api/billing/checkout-session", { method: "POST" })
+  });
+
+  assert.equal(result.id, "cs_test_123");
 });
 
 test("createStripeParentVerificationSessionForParent creates a card payment checkout with future usage", async () => {
@@ -290,6 +318,28 @@ test("processStripeWebhookEvent does not grant COPPA consent from active subscri
   assert.equal(serviceClient.tables.parents[0].coppa_consent_status, "pending");
   assert.equal(serviceClient.tables.parent_consents.length, 0);
   assert.equal(serviceClient.tables.billing_subscriptions[0].status, "active");
+});
+
+test("processStripeWebhookEvent grants COPPA consent from paid subscription checkout completion", async () => {
+  const serviceClient = createFakeServiceClient({
+    parents: [buildParent()],
+    billing_subscriptions: [],
+    billing_webhook_events: [],
+    parent_consents: []
+  });
+
+  const result = await processStripeWebhookEvent(buildSubscriptionCheckoutCompletedEvent(), {
+    serviceClient,
+    config: buildBillingConfig(),
+    env: buildEnv()
+  });
+
+  assert.equal(result.processed, true);
+  assert.equal(result.outcome.skipped, false);
+  assert.equal(serviceClient.tables.parents[0].coppa_consent_status, "granted");
+  assert.equal(serviceClient.tables.parent_consents.length, 1);
+  assert.equal(serviceClient.tables.parent_consents[0].method, "stripe_subscription_checkout_payment");
+  assert.equal(serviceClient.tables.billing_subscriptions[0].parent_verification_amount_cents, 199);
 });
 
 test("processStripeWebhookEvent skips stale subscription event updates but still marks event processed", async () => {

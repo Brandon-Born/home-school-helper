@@ -80,10 +80,10 @@ tests/                         Unit tests
 | GET | `/api/privacy/consent` | Parent | Get parent consent checkpoint state |
 | POST | `/api/privacy/consent` | Parent | Revoke parent consent checkpoint (direct grant is blocked when billing-backed verification is required) |
 | GET | `/api/billing/subscription` | Parent | Get normalized billing subscription state |
-| POST | `/api/billing/verification-session` | Parent | Create Stripe Checkout session URL for parent payment verification (COPPA step) |
-| POST | `/api/billing/checkout-session` | Parent | Create Stripe Checkout session URL for family subscription |
+| POST | `/api/billing/verification-session` | Parent | Legacy/deprecated: separate parent payment verification checkout (older 2-step flow) |
+| POST | `/api/billing/checkout-session` | Parent | Create Stripe Checkout session URL for family subscription signup (single-step flow) |
 | POST | `/api/billing/portal-session` | Parent | Create Stripe Billing Portal session URL |
-| POST | `/api/billing/webhook` | Stripe | Process Stripe billing webhooks (parent verification + subscription lifecycle sync) |
+| POST | `/api/billing/webhook` | Stripe | Process Stripe billing webhooks (paid signup consent + subscription lifecycle sync) |
 | GET | `/api/privacy/child-data-summary` | Parent | Get aggregate child-data category summary |
 | GET | `/api/privacy/requests` | Parent | List recent privacy export/delete requests |
 | POST | `/api/privacy/export` | Parent | Generate a child-data export snapshot |

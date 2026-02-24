@@ -68,29 +68,29 @@ export function CoppaConsentPanel({
   const trialEndLabel = formatConsentTimestamp(billingSubscription?.trial_end_at);
   const trialWarningLabel = getTrialWarningLabel(billingSubscription?.trial_end_at);
   const canOpenBillingPortal = Boolean(billingEnabled && billingSubscription?.provider_customer_id && onOpenBillingPortal);
-  const canStartFreeTrial = Boolean(billingEnabled && hasCoppaConsent && !hasSubscriptionStarted && onStartBillingCheckout);
+  const canStartSubscription = Boolean(billingEnabled && hasCoppaConsent && !hasSubscriptionStarted && onStartBillingCheckout);
   const primaryActionLabel = billingEnabled && focusMode
-    ? (hasCoppaConsent ? "Start your 1-week trial" : "Get started for $1")
+    ? (hasCoppaConsent ? "Complete subscription signup" : "Start subscription for $1.99")
     : hasCoppaConsent
-      ? "Start 1-week trial"
+      ? "Complete subscription signup"
       : billingEnabled
-        ? "Verify parent payment method"
+        ? "Start subscription for $1.99"
         : "I am the parent or legal guardian";
-  const focusStepLabel = !hasCoppaConsent ? "Step 1 of 2: Verify parent payment method" : "Step 2 of 2: Start your 1-week trial";
-  const title = focusMode && billingEnabled ? "Get started for $1 (1-week trial)" : "Parental consent";
+  const focusStepLabel = "Subscription setup";
+  const title = focusMode && billingEnabled ? "Start for $1.99 (first month)" : "Parental consent";
   const introText = focusMode && billingEnabled
     ? hasCoppaConsent
-      ? "Your parent verification is complete. Finish checkout to start your 1-week family trial."
-      : "Get started for $1 for a 1-week family trial. First, we verify a parent payment method, then you will complete trial checkout."
+      ? "Your parent billing verification is on file. Complete checkout to activate your family subscription."
+      : "Start your family subscription for $1.99 for the first month, then $9.99/month."
     : hasCoppaConsent
       ? billingEnabled && !hasSubscriptionStarted
-        ? "Parent verification is complete. Start your 1-week family trial to activate your family subscription."
+        ? "Parent billing verification is complete. Finish checkout to activate your family subscription."
         : "Consent is on file. New child profiles and sessions are allowed."
       : billingEnabled
-        ? "COPPA parental consent is required before adding child profiles or starting new sessions. Verify a parent payment method first (you may see a $1.00 temporary authorization or refundable verification charge), then start your 1-week family trial."
+        ? "COPPA parental consent is required before adding child profiles or starting new sessions. Start subscription checkout first ($1.99 for the first month, then $9.99/month)."
         : "COPPA parental consent is required before adding child profiles or starting new sessions.";
   const secondaryCoppaText = focusMode && billingEnabled
-    ? "We use parent payment-method verification (you may see a $1.00 temporary authorization or refundable verification charge) as part of our COPPA parental consent workflow before child profiles and tutoring sessions can begin."
+    ? "We use the initial parent subscription payment as part of our COPPA parental consent workflow before child profiles and tutoring sessions can begin."
     : "";
 
   return (
@@ -116,11 +116,11 @@ export function CoppaConsentPanel({
             <span className={`pill${billingSubscription?.has_access ? "" : " pill--muted"}`}>
               Billing: {billingStatus || "not started"}
             </span>
-            <span className="pill pill--muted">Family plan: $10/month</span>
+            <span className="pill pill--muted">Family plan: $9.99/month</span>
           </div>
           <p className="section-muted" style={{ marginTop: 8 }}>
-            $1 to get started for a 1-week trial, then $10/month.
-            {!hasCoppaConsent ? " The 1-week trial starts after parent payment verification succeeds." : ""}
+            $1.99 for the first month, then $9.99/month.
+            {!hasCoppaConsent ? " Checkout completion is required before children and tutoring sessions are unlocked." : ""}
             {trialEndLabel ? ` Trial ends: ${trialEndLabel}.` : ""}
           </p>
           {trialWarningLabel ? (
@@ -144,7 +144,7 @@ export function CoppaConsentPanel({
       <div className="btn-row" style={{ marginTop: 10 }}>
         {hasCoppaConsent ? (
           <>
-            {canStartFreeTrial ? (
+            {canStartSubscription ? (
               <button type="button" onClick={onStartBillingCheckout} disabled={loading} className="btn btn--primary">
                 {primaryActionLabel}
               </button>

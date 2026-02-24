@@ -20,30 +20,28 @@ export default function BillingPolicyPage() {
         <section>
           <h2 className={styles.heading}>1. Family Plan Pricing</h2>
           <p>
-            Our standard family plan is <strong>$10 USD per month</strong> for one parent
-            account with unlimited child profiles, unless a valid promotion code applies.
+            Our family plan is <strong>$1.99 USD for the first month</strong>, then
+            <strong> $9.99 USD per month</strong> for one parent account with unlimited child
+            profiles, unless a valid promotion code applies.
           </p>
         </section>
 
         <section>
-          <h2 className={styles.heading}>2. 1-Week Trial</h2>
+          <h2 className={styles.heading}>2. Introductory First Month</h2>
           <p>
-            We offer a 1-week trial for the family plan. A $1.00 parent payment verification
-            charge is collected first, and the trial starts after parent payment verification
-            succeeds and the parent completes subscription checkout.
+            We offer an introductory first month at $1.99. The initial subscription payment is
+            collected at signup and is used as part of our parental consent verification workflow.
           </p>
           <p>
-            If you cancel before the trial ends, you will not be charged the monthly subscription
-            fee.
+            If you cancel before renewal, you will not be charged the next monthly subscription fee.
           </p>
         </section>
 
         <section>
-          <h2 className={styles.heading}>3. Parent Payment Verification</h2>
+          <h2 className={styles.heading}>3. Parent Billing Verification</h2>
           <p>
-            Before activating a trial, we verify a parent payment method. This may appear as
-            a $1.00 temporary authorization or a $1.00 refundable verification charge. Banks may
-            display pending authorizations or reversals on different timelines.
+            We use the initial parent subscription payment transaction as part of our parental
+            consent verification workflow before child profiles and tutoring sessions are enabled.
           </p>
         </section>
 

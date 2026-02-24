@@ -13,7 +13,7 @@ export function CoppaConsentBanner({ onGrantConsent, loading, actionAlert, billi
                     under the Children&rsquo;s Online Privacy Protection Act (COPPA). This helps
                     us keep your child&rsquo;s data safe.
                     {billingEnabled
-                        ? " Verify a parent payment method first (you may see a $1.00 temporary authorization or refundable verification charge), then start your 1-week family trial."
+                        ? " Start subscription checkout first ($1.99 for the first month, then $9.99/month). We use the initial parent payment as part of our COPPA consent workflow."
                         : ""}
                 </p>
                 <div className="btn-row" style={{ marginTop: 12 }}>
@@ -24,7 +24,7 @@ export function CoppaConsentBanner({ onGrantConsent, loading, actionAlert, billi
                         disabled={loading}
                         data-testid="coppa-consent-banner-grant"
                     >
-                        {billingEnabled ? "Verify parent payment method" : "I am the parent or legal guardian"}
+                        {billingEnabled ? "Start subscription for $1.99" : "I am the parent or legal guardian"}
                     </button>
                     <a href="/privacy" className="btn btn--secondary">
                         Review privacy policy

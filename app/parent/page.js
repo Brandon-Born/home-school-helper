@@ -60,9 +60,9 @@ export default function ParentPage() {
       !state.billingHasAccess &&
       (!state.hasCoppaConsent || !hasBillingSubscriptionStarted)
   );
-  const shellTitle = showTrialSetupOnboarding ? "Get started for $1" : "Your command center";
+  const shellTitle = showTrialSetupOnboarding ? "Start for $1.99" : "Your command center";
   const shellSubtitle = showTrialSetupOnboarding
-    ? "Complete two quick steps to unlock child profiles and tutoring sessions with a 1-week trial."
+    ? "Start your family subscription and unlock child profiles and tutoring sessions."
     : "Set up sessions, share a code, and quietly guide the session while your child learns.";
 
   return (
@@ -152,10 +152,10 @@ export default function ParentPage() {
           <div className="stack" data-testid="parent-trial-onboarding">
             <section className="card card--glass parent-workspace__summary" aria-live="polite">
               <p className="parent-workspace__eyebrow">Get started</p>
-              <h2 className="section-title">Get started for $1 (1-week trial)</h2>
+              <h2 className="section-title">Start for $1.99 (first month)</h2>
               <p className="section-muted">
-                We will walk you through two steps: verify a parent payment method, then complete trial checkout for a 1-week family trial.
-                After that, you can add children and start tutoring sessions.
+                Start your family subscription for $1.99 for the first month, then $9.99/month.
+                We use the initial parent payment as part of our COPPA consent workflow before child profiles and tutoring sessions can begin.
               </p>
             </section>
 
@@ -177,10 +177,10 @@ export default function ParentPage() {
               <h3 className="section-title" style={{ fontSize: "1.05rem" }}>What happens next</h3>
               <div className="stack" style={{ gap: 10 }}>
                 <p className="section-muted" style={{ margin: 0 }}>
-                  1. Verify a parent payment method (you may see a $1.00 temporary authorization or refundable verification charge).
+                  1. Complete secure subscription checkout ($1.99 first month, then $9.99/month).
                 </p>
                 <p className="section-muted" style={{ margin: 0 }}>
-                  2. Start your 1-week trial and unlock your family workspace.
+                  2. We confirm parental consent from the initial billing transaction.
                 </p>
                 <p className="section-muted" style={{ margin: 0 }}>
                   3. Add children and begin tutoring sessions.

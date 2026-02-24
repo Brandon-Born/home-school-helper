@@ -6,10 +6,9 @@ Status: Ready to use
 
 ## Purpose
 Set up a Stripe account correctly for this app’s billing model:
-- Family plan: `$10/month`
-- 7-day free trial
+- Family plan: `$1.99` first month, then `$9.99/month`
 - One parent account per subscription, unlimited kids
-- Separate parent payment verification step before trial activation (conservative COPPA VPC)
+- Single-step subscription checkout (initial paid signup transaction used for COPPA billing-backed consent workflow)
 - Hosted Stripe Checkout + Stripe Billing Portal + webhooks
 
 This runbook is the human/Dashboard companion to:
@@ -23,13 +22,13 @@ This runbook is the human/Dashboard companion to:
 - Customer portal configured in **test mode** and **live mode**
 - Webhook endpoint created in **test mode** and **live mode**
 - Required Stripe values copied into app environment variables
-- Test parent verification checkout + trial checkout + webhook + portal flow verified
+- Test subscription signup checkout + webhook + portal flow verified
 
 ## Important Warnings (Read First)
 - Stripe has separate **test** and **live** modes. Settings, products, prices, portal configs, and webhooks are separate.
 - Do not reuse test IDs in production.
 - For this app, COPPA consent should be granted by the server after Stripe webhook verification (not by the client redirect alone).
-- This app uses the conservative COPPA flow: a small parent payment verification charge/authorization must complete before the 7-day subscription trial starts.
+- This app uses a simplified billing-backed COPPA flow: the initial paid subscription signup transaction is used in the server-authoritative consent workflow before child use is unlocked.
 
 ## Information You Should Gather Before Starting
 - Legal business name and address
@@ -86,8 +85,14 @@ Create product:
 - Description: `One parent account, unlimited kids`
 
 Create recurring price:
-- Amount: `10.00 USD`
+- Amount: `9.99 USD`
 - Billing period: `Monthly`
+
+Create intro coupon (optional, recommended to achieve `$1.99` first month automatically):
+- Coupon type: fixed amount off
+- Amount off: `8.00 USD`
+- Duration: `Once`
+- Copy coupon id into app env as `STRIPE_COUPON_ID_FIRST_MONTH_INTRO`
 - Usage type: Fixed price (not metered)
 - Quantity: Keep as standard; this app treats it as one household subscription (no seat quantity UI)
 
@@ -131,22 +136,21 @@ Save the configuration, then note the portal configuration ID if you plan to pin
 
 Repeat the same setup in **live mode**.
 
-## 6. Configure Trial / Subscription Messaging Settings
-Your plan includes a **7-day free trial**, so configure messaging/reminders carefully.
+## 6. Configure Intro Pricing / Subscription Messaging Settings
+Your plan includes an **introductory first month price** (`$1.99`), then renews at `9.99/month`, so configure messaging/reminders carefully.
 
 Recommended:
 - Enable Stripe customer emails relevant to billing/subscription updates
-- Enable trial-ending reminders (important for card-network trial compliance expectations)
 - Ensure cancellation URL/flow is clear (customer portal or your app link)
 
 Why this matters:
-- Stripe supports trial messaging, but you are still responsible for compliant disclosures and cancellation transparency.
+- Stripe handles subscription billing mechanics, but you are still responsible for compliant disclosures and cancellation transparency.
 
-## 7. Document the Trial + COPPA Verification Policy (Canonical)
+## 7. Document the Intro Pricing + COPPA Billing Policy (Canonical)
 Approved policy for this app:
-- Parent card is verified using a small reversible authorization/transaction
-- App grants COPPA consent after verification webhook processing
-- Parent then starts the 7-day subscription trial
+- Parent completes the initial hosted subscription checkout payment transaction (`$1.99` first month offer)
+- App grants COPPA consent after webhook processing of the completed paid checkout
+- Subscription renews at `9.99/month` unless canceled
 
 This policy should be reflected in:
 - Parent-facing direct notice copy
@@ -230,17 +234,17 @@ The app plan expects these environment variables.
 Run these tests in **test mode**:
 
 1. Start checkout from the app (or test endpoint) and confirm redirect to Stripe Checkout.
-2. Start the parent verification checkout and confirm parents see a small verification charge amount (for example `$1.00`) and card entry form.
-3. Complete parent verification checkout with a Stripe test card (for example `4242 4242 4242 4242`).
+2. Start the subscription checkout and confirm parents see the introductory price and card entry form.
+3. Complete subscription checkout with a Stripe test card (for example `4242 4242 4242 4242`).
 4. Confirm your app receives webhook events and grants COPPA consent after webhook processing (not just return redirect).
-5. Confirm the parent console now shows a separate `Start free week` subscription step.
-6. Start the subscription checkout and confirm Checkout shows:
+5. Confirm the parent console now shows subscription active/trialing access without a separate verification step.
+6. Confirm Checkout shows:
 - correct plan name
-- `7-day free trial`
-- future recurring charge of `$10/month`
+- introductory first-month pricing of `$1.99` (via coupon/discount)
+- future recurring charge of `$9.99/month`
 7. Optionally test a promotion code (including tester/friends/family `100% off` code) in subscription checkout.
-8. Complete subscription checkout and confirm your app receives webhook events and marks subscription state/trial end.
-9. Confirm parent can create a child and start a session after consent is granted and trial/subscription access is active.
+8. Confirm your app receives webhook events and marks subscription state/access details.
+9. Confirm parent can create a child and start a session after consent is granted and subscription access is active.
 10. Open Billing Portal from the app and confirm:
 - payment method management works
 - cancellation flow is visible

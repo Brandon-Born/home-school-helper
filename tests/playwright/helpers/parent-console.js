@@ -104,7 +104,7 @@ export async function openParentConsole(page, { section = "children" } = {}) {
 export async function ensureCoppaConsentGranted(page) {
   const addChildButton = page.getByTestId("child-add-button");
   const grantButton = page.getByRole("button", {
-    name: /I am the parent or legal guardian|Verify parent payment method|Start free week|Start 1-week trial|Get started for \$1|Start your free trial/i
+    name: /I am the parent or legal guardian|Verify parent payment method|Start free week|Start 1-week trial|Start subscription for \$1\.99|Get started for \$1(?:\.99)?|Start your free trial|Complete subscription signup/i
   });
 
   const deadline = Date.now() + 30_000;
@@ -147,6 +147,8 @@ export async function ensureCoppaConsentGranted(page) {
         buttonLabel.includes("verify parent payment method") ||
         buttonLabel.includes("start free week") ||
         buttonLabel.includes("start 1-week trial") ||
+        buttonLabel.includes("start subscription for $1.99") ||
+        buttonLabel.includes("complete subscription signup") ||
         buttonLabel.includes("get started for $1") ||
         buttonLabel.includes("start your free trial");
 

@@ -40,9 +40,8 @@ export default function TermsPage() {
             profiles under that parent account, subject to fair use and service availability.
           </p>
           <p>
-            Current standard pricing is <strong>$10 USD per month</strong> after a
-            <strong> 1-week trial</strong> that begins after a <strong>$1.00 parent verification
-            charge</strong>, unless a valid promotion code applies.
+            Current standard pricing is <strong>$1.99 USD for the first month</strong>, then
+            <strong> $9.99 USD per month</strong>, unless a valid promotion code applies.
           </p>
           <p>
             Pricing, features, and availability may change in the future. Any material billing
@@ -51,20 +50,19 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className={styles.heading}>4. Parent Payment Method Verification</h2>
+          <h2 className={styles.heading}>4. Parent Billing Transaction and Consent Verification</h2>
           <p>
-            Before a trial is activated, we verify a parent payment method as part of our
-            parental consent workflow. You may see a $1.00 temporary authorization or refundable
-            verification charge before the trial begins.
+            We use the initial parent subscription payment transaction as part of our parental
+            consent workflow before child profiles and tutoring sessions are enabled.
           </p>
         </section>
 
         <section>
-          <h2 className={styles.heading}>5. Trial and Renewal</h2>
+          <h2 className={styles.heading}>5. Introductory Month and Renewal</h2>
           <p>
-            The 1-week trial begins only after parent payment verification succeeds and trial
-            checkout is completed. After the trial ends, the subscription renews monthly unless
-            canceled before renewal.
+            The introductory first-month price is charged at signup. After the first billing
+            period, the subscription renews monthly at the standard rate unless canceled before
+            renewal.
           </p>
         </section>
 

@@ -108,10 +108,10 @@ export default function PrivacyPage() {
                     </p>
                     <p>
                         Before creating a child profile or starting a session, the parent
-                        must complete our parental consent checkpoint. Our current flow requires
-                        a parent payment-method verification step (which may include a $1.00
-                        temporary authorization or refundable verification charge) before free
-                        trial activation. We record consent status, policy version, timestamp,
+                        must complete our parental consent checkpoint. Our current flow uses the
+                        initial parent subscription payment transaction (for the first-month
+                        signup offer) as part of our parental consent verification workflow before
+                        child profile creation or session start. We record consent status, policy version, timestamp,
                         and related request metadata for auditing.
                     </p>
                     <p>

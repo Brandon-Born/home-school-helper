@@ -19,7 +19,10 @@ const COPPA_SCHEMA_FALLBACK_ENV_KEY = "ALLOW_COPPA_SCHEMA_FALLBACK";
 const DEFAULT_POLICY_VERSION = "2026-02-19";
 const DEFAULT_POLICY_URL = "/privacy";
 const DEFAULT_CONSENT_METHOD = "parent_self_attestation";
-const BILLING_VERIFIED_CONSENT_METHOD = "stripe_card_verification_charge";
+const BILLING_VERIFIED_CONSENT_METHODS = new Set([
+  "stripe_card_verification_charge",
+  "stripe_subscription_checkout_payment"
+]);
 
 const PARENT_CONSENT_SELECT =
   "coppa_consent_status, coppa_consent_updated_at, coppa_policy_version, coppa_consent_method";
@@ -169,11 +172,11 @@ export async function ensureParentHasCoppaConsent(parentId, options = {}) {
     );
   }
 
-  if (isBillingEnabled(env) && consent.method !== BILLING_VERIFIED_CONSENT_METHOD) {
+  if (isBillingEnabled(env) && !BILLING_VERIFIED_CONSENT_METHODS.has(String(consent.method || "").trim())) {
     throw new ApiError(
       403,
       "coppa_parent_verification_required",
-      "Parent payment verification is required before creating child profiles or starting sessions."
+      "A completed parent billing transaction is required before creating child profiles or starting sessions."
     );
   }
 

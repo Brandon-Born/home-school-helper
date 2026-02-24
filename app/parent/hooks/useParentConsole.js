@@ -290,7 +290,7 @@ export function createUseParentConsole({
         fallbackErrorMessage: "We couldn't record parental consent. Please try again.",
         run: async () => {
           if (isBillingEnabled) {
-            return parentRequest("/api/billing/verification-session", {
+            return parentRequest("/api/billing/checkout-session", {
               method: "POST"
             });
           }
@@ -303,20 +303,12 @@ export function createUseParentConsole({
           });
         },
         onSuccess: (payload) => {
-          const verificationUrl = payload?.verification?.url;
-          if (typeof verificationUrl === "string" && verificationUrl) {
-            if (typeof window !== "undefined" && window.location) {
-              window.location.assign(verificationUrl);
-            }
-            return "Redirecting to secure parent verification…";
-          }
-
           const checkoutUrl = payload?.checkout?.url;
           if (typeof checkoutUrl === "string" && checkoutUrl) {
             if (typeof window !== "undefined" && window.location) {
               window.location.assign(checkoutUrl);
             }
-            return "Redirecting to secure checkout…";
+            return "Redirecting to secure subscription checkout…";
           }
 
           applyConsentToParentProfile(payload?.consent);
@@ -503,7 +495,7 @@ export function createUseParentConsole({
     const hasCoppaConsent =
       !coppaConsentRequired ||
       (coppaConsentStatus === "granted" &&
-        (!billingEnabled || coppaConsentMethod === "stripe_card_verification_charge"));
+        (!billingEnabled || coppaConsentMethod.startsWith("stripe_")));
     const billingSubscription = billing?.subscription ?? null;
     const billingHasAccess = !billingEnabled || Boolean(billingSubscription?.has_access);
 

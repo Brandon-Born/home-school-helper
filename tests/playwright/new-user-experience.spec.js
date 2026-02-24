@@ -113,9 +113,9 @@ test("new parent can complete first-time onboarding workflow", async ({ baseURL,
 
     await expect(page.getByTestId("parent-trial-onboarding")).toBeVisible({ timeout: 30000 });
     await expect(
-      page.getByTestId("parent-trial-setup-card").getByRole("heading", { name: "Get started for $1 (1-week trial)" })
+      page.getByTestId("parent-trial-setup-card").getByRole("heading", { name: "Start for $1.99 (first month)" })
     ).toBeVisible({ timeout: 30000 });
-    await expect(page.getByRole("button", { name: "Get started for $1" })).toBeVisible({
+    await expect(page.getByRole("button", { name: "Start subscription for $1.99" })).toBeVisible({
       timeout: 30000
     });
 

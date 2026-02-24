@@ -49,6 +49,7 @@ export function getStripeBillingConfig(env = process.env) {
       secretKey: String(env.STRIPE_SECRET_KEY || "").trim(),
       webhookSecret: String(env.STRIPE_WEBHOOK_SECRET || "").trim(),
       priceIdFamilyMonthly: String(env.STRIPE_PRICE_ID_FAMILY_MONTHLY || "").trim(),
+      introCouponIdFirstMonth: String(env.STRIPE_COUPON_ID_FIRST_MONTH_INTRO || "").trim() || null,
       billingPortalConfigId: String(env.STRIPE_BILLING_PORTAL_CONFIG_ID || "").trim() || null,
       parentVerificationAmountCents: parseIntegerEnv(env.STRIPE_PARENT_VERIFICATION_AMOUNT_CENTS, 100),
       parentVerificationCurrency:
@@ -73,6 +74,7 @@ export function getStripeBillingConfig(env = process.env) {
       throw new Error(`Missing required billing environment variables: ${missing.join(", ")}`);
     }
 
+    // Legacy two-step verification flow support. The simplified subscription signup flow may not use this.
     if (
       !Number.isInteger(config.stripe.parentVerificationAmountCents) ||
       config.stripe.parentVerificationAmountCents <= 0
@@ -86,6 +88,10 @@ export function getStripeBillingConfig(env = process.env) {
       throw new Error(
         "Invalid STRIPE_PARENT_VERIFICATION_CURRENCY: must be a 3-letter ISO currency code."
       );
+    }
+
+    if (config.stripe.introCouponIdFirstMonth && !/^coupon_/.test(config.stripe.introCouponIdFirstMonth)) {
+      throw new Error("Invalid STRIPE_COUPON_ID_FIRST_MONTH_INTRO: expected a Stripe coupon id (coupon_...).");
     }
 
     const nodeEnv = String(env.NODE_ENV ?? "").trim().toLowerCase();
