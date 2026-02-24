@@ -101,6 +101,7 @@ test("processStripeWebhookEvent grants COPPA consent from trialing subscription 
   });
 
   assert.equal(result.processed, true);
+  assert.equal(result.outcome.skipped, false);
   assert.equal(serviceClient.tables.billing_subscriptions.length, 1);
   assert.equal(serviceClient.tables.billing_subscriptions[0].status, "trialing");
   assert.equal(serviceClient.tables.parents[0].coppa_consent_status, "granted");
@@ -177,6 +178,8 @@ test("processStripeWebhookEvent skips stale subscription event updates but still
   });
 
   assert.equal(result.processed, true);
+  assert.equal(result.outcome.skipped, true);
+  assert.equal(result.outcome.reason, "stale_event");
   assert.equal(serviceClient.tables.billing_subscriptions[0].status, "active");
   const logged = serviceClient.tables.billing_webhook_events.find((row) => row.provider_event_id === "evt_stale");
   assert.ok(logged?.processed_at);
@@ -207,9 +210,34 @@ test("processStripeWebhookEvent re-processes duplicate event that was stored but
 
   assert.equal(result.duplicate, true);
   assert.equal(result.processed, true);
+  assert.equal(result.outcome.skipped, false);
   assert.equal(serviceClient.tables.billing_subscriptions.length, 1);
   const logged = serviceClient.tables.billing_webhook_events.find((row) => row.provider_event_id === "evt_retry");
   assert.ok(logged?.processed_at);
+});
+
+test("processStripeWebhookEvent returns ignored outcome for unsupported event types", async () => {
+  const serviceClient = createFakeServiceClient({
+    billing_webhook_events: []
+  });
+
+  const result = await processStripeWebhookEvent(
+    {
+      id: "evt_ignored",
+      type: "invoice.upcoming",
+      created: 1_770_000_000,
+      data: { object: { id: "in_1" } }
+    },
+    {
+      serviceClient,
+      config: buildBillingConfig(),
+      env: buildEnv()
+    }
+  );
+
+  assert.equal(result.processed, true);
+  assert.equal(result.outcome.skipped, true);
+  assert.equal(result.outcome.reason, "ignored_event_type");
 });
 
 test("ensureParentHasBillingAccess allows trialing and blocks canceled/past_due when billing enabled", async () => {

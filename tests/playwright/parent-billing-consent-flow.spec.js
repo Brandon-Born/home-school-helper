@@ -14,7 +14,8 @@ async function mockParentWorkspaceApis(page, {
   children = [],
   sessions = [],
   billing,
-  checkoutUrl = null
+  checkoutUrl = null,
+  portalUrl = null
 } = {}) {
   await page.route("**/api/parent/me", async (route) => {
     await jsonResponse(route, {
@@ -75,6 +76,24 @@ async function mockParentWorkspaceApis(page, {
               ? `${origin}/parent?billing=checkout_success`
               : checkoutUrl,
           trial_days: 7
+        }
+      });
+    });
+  }
+
+  if (portalUrl) {
+    await page.route("**/api/billing/portal-session", async (route) => {
+      if (route.request().method() !== "POST") {
+        await route.continue();
+        return;
+      }
+      const origin = new URL(route.request().url()).origin;
+      await jsonResponse(route, {
+        portal: {
+          url:
+            portalUrl === "__same_origin_parent_portal_return__"
+              ? `${origin}/parent?billing=portal_return`
+              : portalUrl
         }
       });
     });
@@ -172,4 +191,53 @@ test("session controls disable start when billing is past_due", async ({ page })
   await expect(page.getByRole("heading", { name: /Session for Ava/ })).toBeVisible({ timeout: 30000 });
   await expect(page.getByText(/Billing status is past due/i)).toBeVisible({ timeout: 30000 });
   await expect(page.getByTestId("session-start-submit")).toBeDisabled({ timeout: 30000 });
+});
+
+test("managed consent panel shows trial warning and opens billing portal when subscription exists", async ({ page }) => {
+  await mockParentWorkspaceApis(page, {
+    parent: {
+      id: "parent_1",
+      email: "parent@example.test",
+      full_name: "Parent",
+      coppa_consent_required: true,
+      coppa_consent_status: "granted",
+      coppa_policy_version: "2026-02-19",
+      coppa_consent_updated_at: "2026-02-24T00:00:00.000Z"
+    },
+    billing: {
+      enabled: true,
+      provider: "stripe",
+      subscription: {
+        provider: "stripe",
+        status: "trialing",
+        has_access: true,
+        provider_customer_id: "cus_123",
+        provider_subscription_id: "sub_123",
+        provider_price_id: "price_123",
+        trial_start_at: "2026-02-23T00:00:00.000Z",
+        trial_end_at: "2026-02-25T00:00:00.000Z",
+        current_period_start_at: "2026-02-23T00:00:00.000Z",
+        current_period_end_at: "2026-03-23T00:00:00.000Z",
+        cancel_at_period_end: false,
+        canceled_at: null,
+        updated_at: "2026-02-24T00:00:00.000Z"
+      }
+    },
+    portalUrl: "__same_origin_parent_portal_return__"
+  });
+
+  await page.goto("/parent", { waitUntil: "domcontentloaded" });
+  await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
+
+  await goToParentSection(page, "managed");
+  await expect(page.getByRole("button", { name: "Manage billing" })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText(/Trial ends in 1 day|Trial ends in 2 days/i)).toBeVisible({ timeout: 30000 });
+
+  const portalResponsePromise = page.waitForResponse(
+    (response) => response.url().includes("/api/billing/portal-session") && response.request().method() === "POST"
+  );
+  await page.getByRole("button", { name: "Manage billing" }).click();
+  const portalResponse = await portalResponsePromise;
+  expect(portalResponse.status()).toBe(200);
+  await expect(page).toHaveURL(/billing=portal_return/, { timeout: 30000 });
 });

@@ -47,3 +47,18 @@ test("billing config disables self-attestation grant by default when billing ena
   assert.equal(config.enabled, true);
   assert.equal(config.allowSelfAttestationConsentGrant, false);
 });
+
+test("billing config requires webhook secret and app url in production when billing enabled", () => {
+  resetBillingConfigCache();
+
+  assert.throws(
+    () =>
+      getStripeBillingConfig({
+        NODE_ENV: "production",
+        BILLING_ENABLED: "true",
+        STRIPE_SECRET_KEY: "sk_live_123",
+        STRIPE_PRICE_ID_FAMILY_MONTHLY: "price_live_123"
+      }),
+    /Missing required production billing environment variables/
+  );
+});

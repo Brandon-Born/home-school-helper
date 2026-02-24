@@ -69,6 +69,22 @@ export function getStripeBillingConfig(env = process.env) {
     if (missing.length > 0) {
       throw new Error(`Missing required billing environment variables: ${missing.join(", ")}`);
     }
+
+    const nodeEnv = String(env.NODE_ENV ?? "").trim().toLowerCase();
+    if (nodeEnv === "production") {
+      const productionMissing = [];
+      if (!config.stripe.webhookSecret) {
+        productionMissing.push("STRIPE_WEBHOOK_SECRET");
+      }
+      if (!config.appUrl) {
+        productionMissing.push("NEXT_PUBLIC_APP_URL");
+      }
+      if (productionMissing.length > 0) {
+        throw new Error(
+          `Missing required production billing environment variables: ${productionMissing.join(", ")}`
+        );
+      }
+    }
   }
 
   if (env === process.env) {

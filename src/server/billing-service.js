@@ -464,22 +464,22 @@ async function markWebhookEventProcessed(event, { serviceClient }) {
 
 async function syncFromCheckoutSession(session, { serviceClient, config }) {
   if (session.mode !== "subscription") {
-    return null;
+    return { skipped: true, reason: "non_subscription_checkout" };
   }
 
   const parentId = String(session.metadata?.parent_id || "").trim();
   if (!parentId) {
-    return null;
+    return { skipped: true, reason: "missing_parent" };
   }
 
   const providerCustomerId = typeof session.customer === "string" ? session.customer : null;
   const providerSubscriptionId = typeof session.subscription === "string" ? session.subscription : null;
 
   if (!providerCustomerId) {
-    return null;
+    return { skipped: true, reason: "missing_customer" };
   }
 
-  return upsertBillingSubscription(
+  const row = await upsertBillingSubscription(
     {
       parent_id: parentId,
       provider_customer_id: providerCustomerId,
@@ -489,6 +489,11 @@ async function syncFromCheckoutSession(session, { serviceClient, config }) {
     },
     { serviceClient }
   );
+
+  return {
+    skipped: false,
+    row
+  };
 }
 
 async function syncFromStripeSubscription(subscription, options = {}) {
@@ -548,11 +553,20 @@ export async function processStripeWebhookEvent(event, options = {}) {
   }
 
   const object = event?.data?.object;
+  let outcome = {
+    skipped: false,
+    reason: null
+  };
 
   if (event.type === "checkout.session.completed") {
-    await syncFromCheckoutSession(object, { serviceClient, config });
+    outcome = (await syncFromCheckoutSession(object, { serviceClient, config })) ?? outcome;
   } else if (SYNCABLE_STRIPE_EVENT_TYPES.has(event.type)) {
-    await syncFromStripeSubscription(object, { env, config, serviceClient, event });
+    outcome = (await syncFromStripeSubscription(object, { env, config, serviceClient, event })) ?? outcome;
+  } else {
+    outcome = {
+      skipped: true,
+      reason: "ignored_event_type"
+    };
   }
 
   await markWebhookEventProcessed(event, { serviceClient });
@@ -560,6 +574,10 @@ export async function processStripeWebhookEvent(event, options = {}) {
   return {
     duplicate: receipt.duplicate,
     processed: true,
-    event_type: event.type
+    event_type: event.type,
+    outcome: {
+      skipped: Boolean(outcome?.skipped),
+      reason: outcome?.reason ?? null
+    }
   };
 }
