@@ -147,7 +147,7 @@ test("startSessionForParent seeds a child-visible assistant greeting based on pa
 
 test("startSessionForParent rejects when billing is enabled and subscription is not trialing/active", async () => {
   const serviceClient = createFakeServiceClient({
-    parents: [buildConsentReadyParent()],
+    parents: [buildConsentReadyParent({ coppa_consent_method: "stripe_card_verification_charge" })],
     children: [
       {
         id: "child_1",
@@ -190,6 +190,37 @@ test("startSessionForParent rejects when billing is enabled and subscription is 
       error instanceof ApiError &&
       error.status === 402 &&
       error.code === "billing_subscription_required"
+  );
+});
+
+test("createChildForParent rejects self-attested consent when billing-backed verification is enabled", async () => {
+  const serviceClient = createFakeServiceClient({
+    parents: [buildConsentReadyParent({ coppa_consent_method: "parent_self_attestation" })]
+  });
+
+  await assert.rejects(
+    () =>
+      createChildForParent(
+        "parent_1",
+        {
+          child_name: "Ava",
+          age: 9,
+          grade: "4",
+          subjects: ["Math"]
+        },
+        {
+          serviceClient,
+          env: {
+            BILLING_ENABLED: "true",
+            STRIPE_SECRET_KEY: "sk_test_123",
+            STRIPE_PRICE_ID_FAMILY_MONTHLY: "price_test_123"
+          }
+        }
+      ),
+    (error) =>
+      error instanceof ApiError &&
+      error.status === 403 &&
+      error.code === "coppa_parent_verification_required"
   );
 });
 

@@ -18,6 +18,8 @@ test("billing config defaults to disabled and self-attestation allowed", () => {
   const config = getStripeBillingConfig(env);
   assert.equal(config.enabled, false);
   assert.equal(config.provider, "stripe");
+  assert.equal(config.stripe.parentVerificationAmountCents, 100);
+  assert.equal(config.stripe.parentVerificationCurrency, "usd");
 });
 
 test("billing config requires Stripe secret key and price id when enabled", () => {
@@ -46,6 +48,34 @@ test("billing config disables self-attestation grant by default when billing ena
   const config = getStripeBillingConfig(env);
   assert.equal(config.enabled, true);
   assert.equal(config.allowSelfAttestationConsentGrant, false);
+  assert.equal(config.stripe.parentVerificationAmountCents, 100);
+  assert.equal(config.stripe.parentVerificationCurrency, "usd");
+});
+
+test("billing config validates parent verification amount and currency", () => {
+  resetBillingConfigCache();
+
+  assert.throws(
+    () =>
+      getStripeBillingConfig({
+        BILLING_ENABLED: "true",
+        STRIPE_SECRET_KEY: "sk_test_123",
+        STRIPE_PRICE_ID_FAMILY_MONTHLY: "price_test_123",
+        STRIPE_PARENT_VERIFICATION_AMOUNT_CENTS: "0"
+      }),
+    /STRIPE_PARENT_VERIFICATION_AMOUNT_CENTS/
+  );
+
+  assert.throws(
+    () =>
+      getStripeBillingConfig({
+        BILLING_ENABLED: "true",
+        STRIPE_SECRET_KEY: "sk_test_123",
+        STRIPE_PRICE_ID_FAMILY_MONTHLY: "price_test_123",
+        STRIPE_PARENT_VERIFICATION_CURRENCY: "USDX"
+      }),
+    /STRIPE_PARENT_VERIFICATION_CURRENCY/
+  );
 });
 
 test("billing config requires webhook secret and app url in production when billing enabled", () => {

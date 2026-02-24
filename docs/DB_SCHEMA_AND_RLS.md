@@ -122,6 +122,10 @@
 - `current_period_end_at timestamptz`
 - `cancel_at_period_end boolean not null default false`
 - `canceled_at timestamptz`
+- `parent_verification_completed_at timestamptz`
+- `parent_verification_payment_intent_id text`
+- `parent_verification_amount_cents integer`
+- `parent_verification_currency text`
 - `last_webhook_event_id text`
 - `last_webhook_event_created_at timestamptz`
 - `created_at timestamptz default now()`
@@ -178,4 +182,5 @@ using (auth.uid() = auth_user_id);
   - `20260219141000_coppa_consent_gate.sql` (adds consent state columns + `parent_consents` audit table)
   - `20260219193000_privacy_requests.sql` (adds privacy export/delete request tracking table + RLS)
   - `20260223103000_billing_subscriptions.sql` (adds Stripe-backed billing subscription state + webhook event ledger)
+  - `20260224143000_billing_parent_verification_fields.sql` (adds parent payment verification evidence fields to `billing_subscriptions`)
 - Every schema or policy change requires docs and handoff updates.

@@ -10,6 +10,8 @@ import {
 
 const BILLING_PROVIDER = "stripe";
 const STRIPE_TRIAL_DAYS = 7;
+const STRIPE_VERIFICATION_FLOW = "coppa_parent_payment_verification";
+const STRIPE_VERIFICATION_CONSENT_METHOD = "stripe_card_verification_charge";
 const BILLING_ACCESS_STATUSES = new Set(["trialing", "active"]);
 const SYNCABLE_STRIPE_EVENT_TYPES = new Set([
   "customer.subscription.created",
@@ -67,6 +69,10 @@ function normalizeBillingRow(row) {
     current_period_end_at: row.current_period_end_at ?? null,
     cancel_at_period_end: Boolean(row.cancel_at_period_end),
     canceled_at: row.canceled_at ?? null,
+    parent_verification_completed_at: row.parent_verification_completed_at ?? null,
+    parent_verification_payment_intent_id: row.parent_verification_payment_intent_id ?? null,
+    parent_verification_amount_cents: row.parent_verification_amount_cents ?? null,
+    parent_verification_currency: row.parent_verification_currency ?? null,
     last_webhook_event_created_at: row.last_webhook_event_created_at ?? null,
     updated_at: row.updated_at ?? null
   };
@@ -88,7 +94,7 @@ async function findBillingRowByParent(parentId, { serviceClient }) {
   const { data, error } = await serviceClient
     .from("billing_subscriptions")
     .select(
-      "id, parent_id, provider, provider_customer_id, provider_subscription_id, provider_price_id, status, trial_start_at, trial_end_at, current_period_start_at, current_period_end_at, cancel_at_period_end, canceled_at, last_webhook_event_created_at, updated_at"
+      "id, parent_id, provider, provider_customer_id, provider_subscription_id, provider_price_id, status, trial_start_at, trial_end_at, current_period_start_at, current_period_end_at, cancel_at_period_end, canceled_at, parent_verification_completed_at, parent_verification_payment_intent_id, parent_verification_amount_cents, parent_verification_currency, last_webhook_event_created_at, updated_at"
     )
     .eq("parent_id", parentId)
     .eq("provider", BILLING_PROVIDER)
@@ -134,7 +140,7 @@ async function upsertBillingSubscription(row, { serviceClient }) {
     .from("billing_subscriptions")
     .upsert(payload, { onConflict: "parent_id,provider" })
     .select(
-      "id, parent_id, provider, provider_customer_id, provider_subscription_id, provider_price_id, status, trial_start_at, trial_end_at, current_period_start_at, current_period_end_at, cancel_at_period_end, canceled_at, last_webhook_event_created_at, updated_at"
+      "id, parent_id, provider, provider_customer_id, provider_subscription_id, provider_price_id, status, trial_start_at, trial_end_at, current_period_start_at, current_period_end_at, cancel_at_period_end, canceled_at, parent_verification_completed_at, parent_verification_payment_intent_id, parent_verification_amount_cents, parent_verification_currency, last_webhook_event_created_at, updated_at"
     )
     .single();
 
@@ -227,17 +233,9 @@ async function resolveParentIdForStripeSubscription(subscription, { serviceClien
   return existing?.parent_id ?? null;
 }
 
-async function maybeGrantCoppaConsentFromBilling(parentId, subscriptionStatus, options = {}) {
+async function maybeGrantCoppaConsentFromVerification(parentId, options = {}) {
   const env = options.env ?? process.env;
-  const config = options.config ?? getStripeBillingConfig(env);
   const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
-
-  const canGrantOnStatus =
-    subscriptionStatus === "active" || (config.grantCoppaOnTrialSignup && subscriptionStatus === "trialing");
-
-  if (!canGrantOnStatus) {
-    return null;
-  }
 
   const currentConsent = await getParentCoppaConsentState(parentId, { serviceClient, env });
   if (currentConsent.status === COPPA_CONSENT_STATUS.granted) {
@@ -248,7 +246,7 @@ async function maybeGrantCoppaConsentFromBilling(parentId, subscriptionStatus, o
     parentId,
     {
       status: COPPA_CONSENT_STATUS.granted,
-      method: subscriptionStatus === "trialing" ? "stripe_subscription_trial_signup" : "stripe_subscription_active_charge",
+      method: STRIPE_VERIFICATION_CONSENT_METHOD,
       actorParentId: parentId
     },
     { serviceClient, env }
@@ -319,6 +317,18 @@ export async function createStripeCheckoutSessionForParent(parent, options = {})
   const stripeClient = options.stripeClient ?? getStripeClient(env);
   const request = options.request;
   const baseUrl = resolveBaseUrl(request, config);
+  const consent = await getParentCoppaConsentState(parent.id, { serviceClient, env });
+
+  if (
+    consent.required &&
+    (consent.status !== COPPA_CONSENT_STATUS.granted || consent.method !== STRIPE_VERIFICATION_CONSENT_METHOD)
+  ) {
+    throw new ApiError(
+      409,
+      "billing_parent_verification_required",
+      "Verify a parent payment method before starting the family trial."
+    );
+  }
 
   const { providerCustomerId } = await ensureStripeCustomerForParent(parent, {
     serviceClient,
@@ -356,6 +366,66 @@ export async function createStripeCheckoutSessionForParent(parent, options = {})
     id: session.id,
     url: session.url,
     trial_days: STRIPE_TRIAL_DAYS
+  };
+}
+
+export async function createStripeParentVerificationSessionForParent(parent, options = {}) {
+  const env = options.env ?? process.env;
+  const config = options.config ?? getStripeBillingConfig(env);
+  if (!config.enabled) {
+    throw new ApiError(409, "billing_not_enabled", "Subscription billing is not enabled.");
+  }
+
+  const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
+  const stripeClient = options.stripeClient ?? getStripeClient(env);
+  const request = options.request;
+  const baseUrl = resolveBaseUrl(request, config);
+
+  const { providerCustomerId } = await ensureStripeCustomerForParent(parent, {
+    serviceClient,
+    stripeClient,
+    env,
+    config
+  });
+
+  const session = await stripeClient.checkout.sessions.create({
+    mode: "payment",
+    customer: providerCustomerId,
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price_data: {
+          currency: config.stripe.parentVerificationCurrency,
+          unit_amount: config.stripe.parentVerificationAmountCents,
+          product_data: {
+            name: "Parent payment method verification"
+          }
+        },
+        quantity: 1
+      }
+    ],
+    success_url: `${baseUrl}/parent?billing=verification_success`,
+    cancel_url: `${baseUrl}/parent?billing=verification_canceled`,
+    metadata: {
+      parent_id: parent.id,
+      billing_flow: STRIPE_VERIFICATION_FLOW,
+      coppa_policy_version: String(parent.coppa_policy_version || "")
+    },
+    payment_intent_data: {
+      setup_future_usage: "off_session",
+      metadata: {
+        parent_id: parent.id,
+        billing_flow: STRIPE_VERIFICATION_FLOW,
+        coppa_policy_version: String(parent.coppa_policy_version || "")
+      }
+    }
+  });
+
+  return {
+    id: session.id,
+    url: session.url,
+    verification_amount_cents: config.stripe.parentVerificationAmountCents,
+    verification_currency: config.stripe.parentVerificationCurrency
   };
 }
 
@@ -463,9 +533,48 @@ async function markWebhookEventProcessed(event, { serviceClient }) {
   }
 }
 
-async function syncFromCheckoutSession(session, { serviceClient, config }) {
+async function syncFromCheckoutSession(session, { serviceClient, config, env }) {
+  if (session.mode === "payment" && session.metadata?.billing_flow === STRIPE_VERIFICATION_FLOW) {
+    const parentId = String(session.metadata?.parent_id || "").trim();
+    if (!parentId) {
+      return { skipped: true, reason: "missing_parent" };
+    }
+
+    const providerCustomerId = typeof session.customer === "string" ? session.customer : null;
+    if (!providerCustomerId) {
+      return { skipped: true, reason: "missing_customer" };
+    }
+
+    if (String(session.payment_status || "").trim().toLowerCase() !== "paid") {
+      return { skipped: true, reason: "verification_payment_not_paid" };
+    }
+
+    const row = await upsertBillingSubscription(
+      {
+        parent_id: parentId,
+        provider_customer_id: providerCustomerId,
+        provider_price_id: config.stripe.priceIdFamilyMonthly,
+        parent_verification_completed_at: new Date().toISOString(),
+        parent_verification_payment_intent_id:
+          typeof session.payment_intent === "string" ? session.payment_intent : null,
+        parent_verification_amount_cents:
+          typeof session.amount_total === "number" ? session.amount_total : null,
+        parent_verification_currency: String(session.currency || "").trim().toLowerCase() || null
+      },
+      { serviceClient }
+    );
+
+    const consent = await maybeGrantCoppaConsentFromVerification(parentId, { serviceClient, env });
+
+    return {
+      skipped: false,
+      row,
+      consent
+    };
+  }
+
   if (session.mode !== "subscription") {
-    return { skipped: true, reason: "non_subscription_checkout" };
+    return { skipped: true, reason: "unsupported_checkout_mode" };
   }
 
   const parentId = String(session.metadata?.parent_id || "").trim();
@@ -499,7 +608,6 @@ async function syncFromCheckoutSession(session, { serviceClient, config }) {
 
 async function syncFromStripeSubscription(subscription, options = {}) {
   const env = options.env ?? process.env;
-  const config = options.config ?? getStripeBillingConfig(env);
   const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
   const event = options.event ?? null;
   const incomingEventCreatedAt = eventCreatedAtIso(event);
@@ -530,12 +638,6 @@ async function syncFromStripeSubscription(subscription, options = {}) {
     }
   );
 
-  await maybeGrantCoppaConsentFromBilling(parentId, normalizeStatus(subscription.status), {
-    env,
-    config,
-    serviceClient
-  });
-
   return { skipped: false, row };
 }
 
@@ -560,7 +662,7 @@ export async function processStripeWebhookEvent(event, options = {}) {
   };
 
   if (event.type === "checkout.session.completed") {
-    outcome = (await syncFromCheckoutSession(object, { serviceClient, config })) ?? outcome;
+    outcome = (await syncFromCheckoutSession(object, { serviceClient, config, env })) ?? outcome;
   } else if (SYNCABLE_STRIPE_EVENT_TYPES.has(event.type)) {
     outcome = (await syncFromStripeSubscription(object, { env, config, serviceClient, event })) ?? outcome;
   } else {

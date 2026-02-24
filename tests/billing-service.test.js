@@ -4,12 +4,13 @@ import assert from "node:assert/strict";
 import { ApiError } from "../src/server/api-error.js";
 import {
   createStripeCheckoutSessionForParent,
+  createStripeParentVerificationSessionForParent,
   ensureParentHasBillingAccess,
   processStripeWebhookEvent
 } from "../src/server/billing-service.js";
 import { createFakeServiceClient } from "./helpers/fake-service-client.js";
 
-function buildBillingConfig({ grantCoppaOnTrialSignup = true } = {}) {
+function buildBillingConfig() {
   return {
     enabled: true,
     provider: "stripe",
@@ -17,11 +18,12 @@ function buildBillingConfig({ grantCoppaOnTrialSignup = true } = {}) {
       secretKey: "sk_test_123",
       webhookSecret: "whsec_123",
       priceIdFamilyMonthly: "price_test_123",
-      billingPortalConfigId: null
+      billingPortalConfigId: null,
+      parentVerificationAmountCents: 100,
+      parentVerificationCurrency: "usd"
     },
     appUrl: "https://example.test",
-    allowSelfAttestationConsentGrant: false,
-    grantCoppaOnTrialSignup
+    allowSelfAttestationConsentGrant: false
   };
 }
 
@@ -33,7 +35,7 @@ function buildEnv() {
   };
 }
 
-function buildParent({ consentStatus = "pending" } = {}) {
+function buildParent({ consentStatus = "pending", ...overrides } = {}) {
   return {
     id: "parent_1",
     auth_user_id: "auth_parent_1",
@@ -44,7 +46,8 @@ function buildParent({ consentStatus = "pending" } = {}) {
     coppa_consent_updated_at: consentStatus === "granted" ? "2026-02-19T00:00:00.000Z" : null,
     coppa_policy_version: "2026-02-19",
     coppa_consent_method: consentStatus === "granted" ? "parent_self_attestation" : null,
-    created_at: "2026-02-19T00:00:00.000Z"
+    created_at: "2026-02-19T00:00:00.000Z",
+    ...overrides
   };
 }
 
@@ -90,7 +93,40 @@ function buildSubscriptionEvent({
   };
 }
 
-test("processStripeWebhookEvent grants COPPA consent from trialing subscription when enabled", async () => {
+function buildVerificationCheckoutCompletedEvent({
+  id = "evt_verify_1",
+  created = 1_770_000_000,
+  parentId = "parent_1",
+  customerId = "cus_1",
+  paymentIntentId = "pi_1",
+  amountTotal = 100,
+  currency = "usd",
+  paymentStatus = "paid"
+} = {}) {
+  return {
+    id,
+    type: "checkout.session.completed",
+    created,
+    data: {
+      object: {
+        id: "cs_verify_1",
+        object: "checkout.session",
+        mode: "payment",
+        customer: customerId,
+        payment_intent: paymentIntentId,
+        payment_status: paymentStatus,
+        amount_total: amountTotal,
+        currency,
+        metadata: {
+          parent_id: parentId,
+          billing_flow: "coppa_parent_payment_verification"
+        }
+      }
+    }
+  };
+}
+
+test("processStripeWebhookEvent grants COPPA consent from verification checkout payment", async () => {
   const serviceClient = createFakeServiceClient({
     parents: [buildParent()],
     billing_subscriptions: [],
@@ -98,23 +134,25 @@ test("processStripeWebhookEvent grants COPPA consent from trialing subscription 
     parent_consents: []
   });
 
-  const result = await processStripeWebhookEvent(buildSubscriptionEvent(), {
+  const result = await processStripeWebhookEvent(buildVerificationCheckoutCompletedEvent(), {
     serviceClient,
-    config: buildBillingConfig({ grantCoppaOnTrialSignup: true }),
+    config: buildBillingConfig(),
     env: buildEnv()
   });
 
   assert.equal(result.processed, true);
   assert.equal(result.outcome.skipped, false);
   assert.equal(serviceClient.tables.billing_subscriptions.length, 1);
-  assert.equal(serviceClient.tables.billing_subscriptions[0].status, "trialing");
+  assert.equal(serviceClient.tables.billing_subscriptions[0].provider_customer_id, "cus_1");
+  assert.equal(serviceClient.tables.billing_subscriptions[0].parent_verification_amount_cents, 100);
   assert.equal(serviceClient.tables.parents[0].coppa_consent_status, "granted");
   assert.equal(serviceClient.tables.parent_consents.length, 1);
-  assert.equal(serviceClient.tables.parent_consents[0].method, "stripe_subscription_trial_signup");
+  assert.equal(serviceClient.tables.parent_consents[0].method, "stripe_card_verification_charge");
 });
 
 test("createStripeCheckoutSessionForParent enables promotion codes in Stripe Checkout", async () => {
   const serviceClient = createFakeServiceClient({
+    parents: [buildParent({ consentStatus: "granted", coppa_consent_method: "stripe_card_verification_charge" })],
     billing_subscriptions: []
   });
 
@@ -136,19 +174,88 @@ test("createStripeCheckoutSessionForParent enables promotion codes in Stripe Che
     }
   };
 
-  const checkout = await createStripeCheckoutSessionForParent(buildParent(), {
-    serviceClient,
-    stripeClient,
-    config: buildBillingConfig(),
-    request: new Request("https://example.test/api/billing/checkout-session", { method: "POST" })
-  });
+  const checkout = await createStripeCheckoutSessionForParent(
+    buildParent({ consentStatus: "granted", coppa_consent_method: "stripe_card_verification_charge" }),
+    {
+      serviceClient,
+      stripeClient,
+      config: buildBillingConfig(),
+      env: buildEnv(),
+      request: new Request("https://example.test/api/billing/checkout-session", { method: "POST" })
+    }
+  );
 
   assert.equal(checkout.id, "cs_test_123");
   assert.equal(recordedCheckoutPayload.allow_promotion_codes, true);
   assert.equal(recordedCheckoutPayload.subscription_data.trial_period_days, 7);
 });
 
-test("processStripeWebhookEvent does not grant trial-based consent when trial grant policy is disabled", async () => {
+test("createStripeCheckoutSessionForParent requires completed parent verification consent first", async () => {
+  const serviceClient = createFakeServiceClient({
+    parents: [buildParent({ consentStatus: "pending" })],
+    billing_subscriptions: []
+  });
+
+  const stripeClient = {
+    customers: { create: async () => ({ id: "cus_123" }) },
+    checkout: { sessions: { create: async () => ({ id: "cs_test_123", url: "https://checkout" }) } }
+  };
+
+  await assert.rejects(
+    () =>
+      createStripeCheckoutSessionForParent(buildParent({ consentStatus: "pending" }), {
+        serviceClient,
+        stripeClient,
+        config: buildBillingConfig(),
+        env: buildEnv(),
+        request: new Request("https://example.test/api/billing/checkout-session", { method: "POST" })
+      }),
+    (error) =>
+      error instanceof ApiError &&
+      error.status === 409 &&
+      error.code === "billing_parent_verification_required"
+  );
+});
+
+test("createStripeParentVerificationSessionForParent creates a card payment checkout with future usage", async () => {
+  const serviceClient = createFakeServiceClient({
+    billing_subscriptions: []
+  });
+
+  let recordedCheckoutPayload = null;
+  const stripeClient = {
+    customers: {
+      create: async () => ({ id: "cus_123" })
+    },
+    checkout: {
+      sessions: {
+        create: async (payload) => {
+          recordedCheckoutPayload = payload;
+          return {
+            id: "cs_verify_123",
+            url: "https://checkout.stripe.test/verify"
+          };
+        }
+      }
+    }
+  };
+
+  const verification = await createStripeParentVerificationSessionForParent(buildParent(), {
+    serviceClient,
+    stripeClient,
+    config: buildBillingConfig(),
+    request: new Request("https://example.test/api/billing/verification-session", { method: "POST" })
+  });
+
+  assert.equal(verification.id, "cs_verify_123");
+  assert.equal(recordedCheckoutPayload.mode, "payment");
+  assert.deepEqual(recordedCheckoutPayload.payment_method_types, ["card"]);
+  assert.equal(recordedCheckoutPayload.line_items[0].price_data.unit_amount, 100);
+  assert.equal(recordedCheckoutPayload.payment_intent_data.setup_future_usage, "off_session");
+  assert.equal(recordedCheckoutPayload.metadata.billing_flow, "coppa_parent_payment_verification");
+});
+
+test("processStripeWebhookEvent does not grant COPPA consent from subscription trial events", async () => {
   const serviceClient = createFakeServiceClient({
     parents: [buildParent()],
     billing_subscriptions: [],
@@ -158,15 +265,16 @@ test("processStripeWebhookEvent does not grant trial-based consent when trial gr
 
   await processStripeWebhookEvent(buildSubscriptionEvent({ id: "evt_trial_no_grant" }), {
     serviceClient,
-    config: buildBillingConfig({ grantCoppaOnTrialSignup: false }),
+    config: buildBillingConfig(),
     env: buildEnv()
   });
 
   assert.equal(serviceClient.tables.parents[0].coppa_consent_status, "pending");
   assert.equal(serviceClient.tables.parent_consents.length, 0);
+  assert.equal(serviceClient.tables.billing_subscriptions[0].status, "trialing");
 });
 
-test("processStripeWebhookEvent grants COPPA consent from active subscription even when trial grant policy is disabled", async () => {
+test("processStripeWebhookEvent does not grant COPPA consent from active subscription events", async () => {
   const serviceClient = createFakeServiceClient({
     parents: [buildParent()],
     billing_subscriptions: [],
@@ -176,12 +284,13 @@ test("processStripeWebhookEvent grants COPPA consent from active subscription ev
 
   await processStripeWebhookEvent(buildSubscriptionEvent({ id: "evt_active", status: "active" }), {
     serviceClient,
-    config: buildBillingConfig({ grantCoppaOnTrialSignup: false }),
+    config: buildBillingConfig(),
     env: buildEnv()
   });
 
-  assert.equal(serviceClient.tables.parents[0].coppa_consent_status, "granted");
-  assert.equal(serviceClient.tables.parent_consents[0].method, "stripe_subscription_active_charge");
+  assert.equal(serviceClient.tables.parents[0].coppa_consent_status, "pending");
+  assert.equal(serviceClient.tables.parent_consents.length, 0);
+  assert.equal(serviceClient.tables.billing_subscriptions[0].status, "active");
 });
 
 test("processStripeWebhookEvent skips stale subscription event updates but still marks event processed", async () => {
@@ -251,6 +360,7 @@ test("processStripeWebhookEvent re-processes duplicate event that was stored but
   assert.equal(result.processed, true);
   assert.equal(result.outcome.skipped, false);
   assert.equal(serviceClient.tables.billing_subscriptions.length, 1);
+  assert.equal(serviceClient.tables.parent_consents.length, 0);
   const logged = serviceClient.tables.billing_webhook_events.find((row) => row.provider_event_id === "evt_retry");
   assert.ok(logged?.processed_at);
 });

@@ -17,7 +17,7 @@ function resolveConsentStatusFromAction(action, options = {}) {
       throw new ApiError(
         409,
         "billing_required_for_coppa_grant",
-        "Complete subscription billing verification to grant parental consent."
+        "Complete parent payment verification to grant parental consent."
       );
     }
     return COPPA_CONSENT_STATUS.granted;

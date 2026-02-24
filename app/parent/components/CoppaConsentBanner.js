@@ -12,7 +12,9 @@ export function CoppaConsentBanner({ onGrantConsent, loading, actionAlert, billi
                     Before you can add children or start tutoring sessions, we need your consent
                     under the Children&rsquo;s Online Privacy Protection Act (COPPA). This helps
                     us keep your child&rsquo;s data safe.
-                    {billingEnabled ? " Start your 7-day family trial to verify a parent payment method." : ""}
+                    {billingEnabled
+                        ? " Verify a parent payment method first (you may see a small temporary authorization or refundable verification charge), then start your 7-day family trial."
+                        : ""}
                 </p>
                 <div className="btn-row" style={{ marginTop: 12 }}>
                     <button
@@ -22,7 +24,7 @@ export function CoppaConsentBanner({ onGrantConsent, loading, actionAlert, billi
                         disabled={loading}
                         data-testid="coppa-consent-banner-grant"
                     >
-                        {billingEnabled ? "Start free week" : "I am the parent or legal guardian"}
+                        {billingEnabled ? "Verify parent payment method" : "I am the parent or legal guardian"}
                     </button>
                     <a href="/privacy" className="btn btn--secondary">
                         Review privacy policy

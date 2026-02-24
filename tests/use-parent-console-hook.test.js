@@ -342,8 +342,8 @@ test("useParentConsole grantCoppaConsent updates parent profile consent state", 
   await renderer.unmount();
 });
 
-test("useParentConsole grantCoppaConsent starts billing checkout when available", async () => {
-  let checkoutRequested = false;
+test("useParentConsole grantCoppaConsent starts parent verification when billing is enabled", async () => {
+  let verificationRequested = false;
   const parentRequest = async (path, options = {}) => {
     if (path === "/api/parent/me") {
       return {
@@ -369,13 +369,13 @@ test("useParentConsole grantCoppaConsent starts billing checkout when available"
     if (path === "/api/billing/subscription") {
       return { billing: { enabled: true, provider: "stripe", subscription: null } };
     }
-    if (path === "/api/billing/checkout-session" && options.method === "POST") {
-      checkoutRequested = true;
+    if (path === "/api/billing/verification-session" && options.method === "POST") {
+      verificationRequested = true;
       return {
-        checkout: {
-          id: "cs_test_123",
-          url: "http://localhost/parent?billing=checkout_success",
-          trial_days: 7
+        verification: {
+          id: "cs_test_verify_123",
+          url: "http://localhost/parent?billing=verification_success",
+          verification_amount_cents: 100
         }
       };
     }
@@ -406,9 +406,9 @@ test("useParentConsole grantCoppaConsent starts billing checkout when available"
   });
 
   const hookValue = renderer.getCurrent();
-  assert.equal(checkoutRequested, true);
+  assert.equal(verificationRequested, true);
   assert.equal(hookValue.state.actionAlerts.consent.tone, "success");
-  assert.equal(hookValue.state.actionAlerts.consent.message, "Redirecting to secure checkout…");
+  assert.equal(hookValue.state.actionAlerts.consent.message, "Redirecting to secure parent verification…");
   await renderer.unmount();
 });
 

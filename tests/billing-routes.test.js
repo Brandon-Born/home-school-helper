@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { ApiError } from "../src/server/api-error.js";
+import { createBillingVerificationSessionPostHandler } from "../app/api/billing/verification-session/route.js";
 import { createBillingCheckoutSessionPostHandler } from "../app/api/billing/checkout-session/route.js";
 import { createBillingPortalSessionPostHandler } from "../app/api/billing/portal-session/route.js";
 import { createBillingSubscriptionGetHandler } from "../app/api/billing/subscription/route.js";
@@ -25,6 +26,27 @@ test("createBillingCheckoutSessionPostHandler returns checkout session url for a
   assert.equal(recordedParent.id, "parent_1");
   const payload = await response.json();
   assert.equal(payload.checkout.url, "https://checkout.stripe.test/session");
+});
+
+test("createBillingVerificationSessionPostHandler returns verification session url for authenticated parent", async () => {
+  let recordedParent = null;
+  const handler = createBillingVerificationSessionPostHandler({
+    requireParentContext: async () => ({
+      parent: { id: "parent_1", email: "parent@example.test", full_name: "Parent" }
+    }),
+    createStripeParentVerificationSessionForParent: async (parent) => {
+      recordedParent = parent;
+      return { id: "cs_test_verify_123", url: "https://checkout.stripe.test/verify", verification_amount_cents: 100 };
+    }
+  });
+
+  const response = await handler(
+    new Request("https://example.test/api/billing/verification-session", { method: "POST" })
+  );
+  assert.equal(response.status, 200);
+  assert.equal(recordedParent.id, "parent_1");
+  const payload = await response.json();
+  assert.equal(payload.verification.url, "https://checkout.stripe.test/verify");
 });
 
 test("createBillingPortalSessionPostHandler returns portal url", async () => {

@@ -280,6 +280,7 @@ export function createUseParentConsole({
     });
 
     const grantCoppaConsent = useCallback(async () => {
+      const isBillingEnabled = Boolean(billing?.enabled);
       const outcome = await runAsyncActionStatus({
         actionKey: "consent",
         setLoadingState,
@@ -288,20 +289,28 @@ export function createUseParentConsole({
         setActionAlert,
         fallbackErrorMessage: "We couldn't record parental consent. Please try again.",
         run: async () => {
-          try {
-            return await parentRequest("/api/billing/checkout-session", {
+          if (isBillingEnabled) {
+            return parentRequest("/api/billing/verification-session", {
               method: "POST"
             });
-          } catch {
-            return parentRequest("/api/privacy/consent", {
-              method: "POST",
-              body: {
-                action: "grant"
-              }
-            });
           }
+
+          return parentRequest("/api/privacy/consent", {
+            method: "POST",
+            body: {
+              action: "grant"
+            }
+          });
         },
         onSuccess: (payload) => {
+          const verificationUrl = payload?.verification?.url;
+          if (typeof verificationUrl === "string" && verificationUrl) {
+            if (typeof window !== "undefined" && window.location) {
+              window.location.assign(verificationUrl);
+            }
+            return "Redirecting to secure parent verification…";
+          }
+
           const checkoutUrl = payload?.checkout?.url;
           if (typeof checkoutUrl === "string" && checkoutUrl) {
             if (typeof window !== "undefined" && window.location) {
@@ -316,7 +325,35 @@ export function createUseParentConsole({
       });
 
       return outcome.ok;
-    }, [applyConsentToParentProfile, clearActionAlert, parentRequest, setActionAlert, setError, setLoadingState]);
+    }, [applyConsentToParentProfile, billing?.enabled, clearActionAlert, parentRequest, setActionAlert, setError, setLoadingState]);
+
+    const startParentVerification = useCallback(async () => {
+      const outcome = await runAsyncActionStatus({
+        actionKey: "consent",
+        setLoadingState,
+        setError,
+        clearActionAlert,
+        setActionAlert,
+        fallbackErrorMessage: "We couldn't start parent verification. Please try again.",
+        run: async () =>
+          parentRequest("/api/billing/verification-session", {
+            method: "POST"
+          }),
+        onSuccess: (payload) => {
+          const url = payload?.verification?.url;
+          if (typeof url === "string" && url) {
+            if (typeof window !== "undefined" && window.location) {
+              window.location.assign(url);
+            }
+            return "Redirecting to secure parent verification…";
+          }
+
+          return "Parent verification is ready.";
+        }
+      });
+
+      return outcome.ok ? outcome.result : null;
+    }, [clearActionAlert, parentRequest, setActionAlert, setError, setLoadingState]);
 
     const revokeCoppaConsent = useCallback(async () => {
       const outcome = await runAsyncActionStatus({
@@ -461,8 +498,12 @@ export function createUseParentConsole({
 
     const coppaConsentRequired = parentProfile?.coppa_consent_required !== false;
     const coppaConsentStatus = String(parentProfile?.coppa_consent_status || "pending").toLowerCase();
-    const hasCoppaConsent = !coppaConsentRequired || coppaConsentStatus === "granted";
     const billingEnabled = Boolean(billing?.enabled);
+    const coppaConsentMethod = String(parentProfile?.coppa_consent_method || "").trim();
+    const hasCoppaConsent =
+      !coppaConsentRequired ||
+      (coppaConsentStatus === "granted" &&
+        (!billingEnabled || coppaConsentMethod === "stripe_card_verification_charge"));
     const billingSubscription = billing?.subscription ?? null;
     const billingHasAccess = !billingEnabled || Boolean(billingSubscription?.has_access);
 
@@ -507,6 +548,7 @@ export function createUseParentConsole({
         sendNudge,
         setOverride,
         grantCoppaConsent,
+        startParentVerification,
         revokeCoppaConsent,
         startBillingCheckout,
         openBillingPortal,

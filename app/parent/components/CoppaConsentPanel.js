@@ -45,6 +45,7 @@ export function CoppaConsentPanel({
   loading,
   actionAlert,
   onGrantConsent,
+  onStartBillingCheckout,
   onOpenBillingPortal,
   onRevokeConsent
 }) {
@@ -61,10 +62,12 @@ export function CoppaConsentPanel({
   const policyVersion = parentProfile.coppa_policy_version || "2026-02-19";
   const billingEnabled = Boolean(billing?.enabled);
   const billingSubscription = billing?.subscription ?? null;
+  const hasSubscriptionStarted = Boolean(billingSubscription?.provider_subscription_id);
   const billingStatus = billingSubscription?.status ? String(billingSubscription.status).replaceAll("_", " ") : "";
   const trialEndLabel = formatConsentTimestamp(billingSubscription?.trial_end_at);
   const trialWarningLabel = getTrialWarningLabel(billingSubscription?.trial_end_at);
   const canOpenBillingPortal = Boolean(billingEnabled && billingSubscription?.provider_customer_id && onOpenBillingPortal);
+  const canStartFreeTrial = Boolean(billingEnabled && hasCoppaConsent && !hasSubscriptionStarted && onStartBillingCheckout);
 
   return (
     <section className={`card ${hasCoppaConsent ? "card--accent" : "card--elevated"}`} aria-busy={loading}>
@@ -75,9 +78,11 @@ export function CoppaConsentPanel({
 
       <p className="section-muted">
         {hasCoppaConsent
-          ? "Consent is on file. New child profiles and sessions are allowed."
+          ? billingEnabled && !hasSubscriptionStarted
+            ? "Parent verification is complete. Start your 7-day family trial to activate your family subscription."
+            : "Consent is on file. New child profiles and sessions are allowed."
           : billingEnabled
-            ? "COPPA parental consent is required before adding child profiles or starting new sessions. Start your 7-day family trial to verify a parent payment method."
+            ? "COPPA parental consent is required before adding child profiles or starting new sessions. Verify a parent payment method first (small temporary authorization or refundable verification charge), then start your 7-day family trial."
             : "COPPA parental consent is required before adding child profiles or starting new sessions."}
       </p>
 
@@ -91,6 +96,7 @@ export function CoppaConsentPanel({
           </div>
           <p className="section-muted" style={{ marginTop: 8 }}>
             7-day free trial before monthly billing.
+            {!hasCoppaConsent ? " The free trial starts after parent payment verification succeeds." : ""}
             {trialEndLabel ? ` Trial ends: ${trialEndLabel}.` : ""}
           </p>
           {trialWarningLabel ? (
@@ -108,12 +114,19 @@ export function CoppaConsentPanel({
 
       <div className="btn-row" style={{ marginTop: 10 }}>
         {hasCoppaConsent ? (
-          <button type="button" onClick={onRevokeConsent} disabled={loading} className="btn btn--ghost">
-            Revoke consent
-          </button>
+          <>
+            {canStartFreeTrial ? (
+              <button type="button" onClick={onStartBillingCheckout} disabled={loading} className="btn btn--primary">
+                Start free week
+              </button>
+            ) : null}
+            <button type="button" onClick={onRevokeConsent} disabled={loading} className="btn btn--ghost">
+              Revoke consent
+            </button>
+          </>
         ) : (
           <button type="button" onClick={onGrantConsent} disabled={loading} className="btn btn--primary">
-            {billingEnabled ? "Start free week" : "I am the parent or legal guardian"}
+            {billingEnabled ? "Verify parent payment method" : "I am the parent or legal guardian"}
           </button>
         )}
 

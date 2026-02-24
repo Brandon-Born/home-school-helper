@@ -218,12 +218,31 @@ Allowed `action` values:
 
 ### Errors
 - `400 validation_error`: Action must be `grant` or `revoke`.
-- `409 billing_required_for_coppa_grant`: Billing-backed verification is required before `grant`.
+- `409 billing_required_for_coppa_grant`: Parent payment verification is required before `grant`.
 - `500 coppa_consent_update_failed`: Consent state could not be persisted.
 - `500 coppa_consent_audit_failed`: Consent audit event could not be persisted.
 
+## POST `/api/billing/verification-session`
+Creates a Stripe Checkout Session URL for the authenticated parent payment verification step (COPPA VPC), before the subscription trial begins.
+
+### Response (200)
+```json
+{
+  "verification": {
+    "id": "cs_123",
+    "url": "https://checkout.stripe.com/c/pay/...",
+    "verification_amount_cents": 100,
+    "verification_currency": "usd"
+  }
+}
+```
+
 ## POST `/api/billing/checkout-session`
-Creates a Stripe Checkout Session URL for the authenticated parent family subscription.
+Creates a Stripe Checkout Session URL for the authenticated parent family subscription trial (`7 days free`, then `$10/month`).
+
+Notes:
+- Requires completed parent payment verification / COPPA consent first.
+- Stripe Checkout allows promotion codes for tester/friends/family discounts.
 
 ### Response (200)
 ```json
@@ -235,6 +254,9 @@ Creates a Stripe Checkout Session URL for the authenticated parent family subscr
   }
 }
 ```
+
+### Errors
+- `409 billing_parent_verification_required`: Parent payment verification / billing-backed COPPA consent is required before starting the trial checkout.
 
 ## POST `/api/billing/portal-session`
 Creates a Stripe Billing Portal session URL for the authenticated parent.
@@ -249,7 +271,7 @@ Creates a Stripe Billing Portal session URL for the authenticated parent.
 ```
 
 ## POST `/api/billing/webhook`
-Consumes Stripe webhook events for subscription lifecycle updates and billing-linked COPPA consent activation.
+Consumes Stripe webhook events for parent verification completion and subscription lifecycle updates.
 
 ### Headers
 - `stripe-signature: <signed-header>`
@@ -261,7 +283,11 @@ Consumes Stripe webhook events for subscription lifecycle updates and billing-li
   "result": {
     "duplicate": false,
     "processed": true,
-    "event_type": "customer.subscription.updated"
+    "event_type": "checkout.session.completed",
+    "outcome": {
+      "skipped": false,
+      "reason": null
+    }
   }
 }
 ```

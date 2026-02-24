@@ -1,6 +1,6 @@
 # Stripe Account Setup Runbook (Human Guide)
 
-Last updated: 2026-02-23
+Last updated: 2026-02-24
 Audience: Founder / Ops / PM / Engineer (Dashboard setup)
 Status: Ready to use
 
@@ -9,6 +9,7 @@ Set up a Stripe account correctly for this app’s billing model:
 - Family plan: `$10/month`
 - 7-day free trial
 - One parent account per subscription, unlimited kids
+- Separate parent payment verification step before trial activation (conservative COPPA VPC)
 - Hosted Stripe Checkout + Stripe Billing Portal + webhooks
 
 This runbook is the human/Dashboard companion to:
@@ -22,13 +23,13 @@ This runbook is the human/Dashboard companion to:
 - Customer portal configured in **test mode** and **live mode**
 - Webhook endpoint created in **test mode** and **live mode**
 - Required Stripe values copied into app environment variables
-- Test checkout + trial + webhook + portal flow verified
+- Test parent verification checkout + trial checkout + webhook + portal flow verified
 
 ## Important Warnings (Read First)
 - Stripe has separate **test** and **live** modes. Settings, products, prices, portal configs, and webhooks are separate.
 - Do not reuse test IDs in production.
 - For this app, COPPA consent should be granted by the server after Stripe webhook verification (not by the client redirect alone).
-- Legal should confirm whether a free-trial signup with card-on-file is sufficient for your COPPA VPC approach, or whether a small verification transaction is required before enabling child data collection.
+- This app uses the conservative COPPA flow: a small parent payment verification charge/authorization must complete before the 7-day subscription trial starts.
 
 ## Information You Should Gather Before Starting
 - Legal business name and address
@@ -141,20 +142,13 @@ Recommended:
 Why this matters:
 - Stripe supports trial messaging, but you are still responsible for compliant disclosures and cancellation transparency.
 
-## 7. Decide and Document Your Trial + COPPA Verification Policy
-Before launch, record one approved policy internally:
-
-Option A (simpler, legal review required)
-- Parent enters card during Checkout for 7-day trial signup
-- Webhook confirms successful subscription signup
-- App grants COPPA consent (billing-backed method)
-
-Option B (more conservative)
+## 7. Document the Trial + COPPA Verification Policy (Canonical)
+Approved policy for this app:
 - Parent card is verified using a small reversible authorization/transaction
-- App grants COPPA consent after verification
-- 7-day subscription trial starts
+- App grants COPPA consent after verification webhook processing
+- Parent then starts the 7-day subscription trial
 
-This decision should be reflected in:
+This policy should be reflected in:
 - Parent-facing direct notice copy
 - Engineering webhook logic
 - Audit trail / consent method labels
@@ -166,6 +160,8 @@ For this app, you will need at minimum:
 - `STRIPE_SECRET_KEY` (server-side only)
 - `STRIPE_WEBHOOK_SECRET` (from each webhook endpoint)
 - `STRIPE_PRICE_ID_FAMILY_MONTHLY`
+- `STRIPE_PARENT_VERIFICATION_AMOUNT_CENTS` (for example `100` for `$1.00`)
+- `STRIPE_PARENT_VERIFICATION_CURRENCY` (for example `usd`)
 - `STRIPE_BILLING_PORTAL_CONFIG_ID` (recommended)
 
 Notes:
@@ -234,19 +230,22 @@ The app plan expects these environment variables.
 Run these tests in **test mode**:
 
 1. Start checkout from the app (or test endpoint) and confirm redirect to Stripe Checkout.
-2. Confirm Checkout shows:
+2. Start the parent verification checkout and confirm parents see a small verification charge amount (for example `$1.00`) and card entry form.
+3. Complete parent verification checkout with a Stripe test card (for example `4242 4242 4242 4242`).
+4. Confirm your app receives webhook events and grants COPPA consent after webhook processing (not just return redirect).
+5. Confirm the parent console now shows a separate `Start free week` subscription step.
+6. Start the subscription checkout and confirm Checkout shows:
 - correct plan name
 - `7-day free trial`
 - future recurring charge of `$10/month`
-3. Complete checkout with a Stripe test card (for example `4242 4242 4242 4242`).
-4. Confirm your app receives webhook events and marks subscription state.
-5. Confirm the app grants COPPA consent only after webhook processing (not just return redirect).
-6. Confirm parent can create a child and start a session after consent is granted.
-7. Open Billing Portal from the app and confirm:
+7. Optionally test a promotion code (including tester/friends/family `100% off` code) in subscription checkout.
+8. Complete subscription checkout and confirm your app receives webhook events and marks subscription state/trial end.
+9. Confirm parent can create a child and start a session after consent is granted and trial/subscription access is active.
+10. Open Billing Portal from the app and confirm:
 - payment method management works
 - cancellation flow is visible
 - return URL comes back to the app
-8. Test a failed renewal scenario and confirm app behavior matches policy (for example, block new sessions).
+11. Test a failed renewal scenario and confirm app behavior matches policy (for example, block new sessions).
 
 ## 12. Live Mode Go-Live Checklist
 Before enabling production billing:

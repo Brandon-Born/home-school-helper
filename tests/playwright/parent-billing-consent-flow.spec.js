@@ -14,6 +14,7 @@ async function mockParentWorkspaceApis(page, {
   children = [],
   sessions = [],
   billing,
+  verificationUrl = null,
   checkoutUrl = null,
   portalUrl = null
 } = {}) {
@@ -61,6 +62,27 @@ async function mockParentWorkspaceApis(page, {
     await jsonResponse(route, { billing });
   });
 
+  if (verificationUrl) {
+    await page.route("**/api/billing/verification-session", async (route) => {
+      if (route.request().method() !== "POST") {
+        await route.continue();
+        return;
+      }
+      const origin = new URL(route.request().url()).origin;
+      await jsonResponse(route, {
+        verification: {
+          id: "cs_verify_mock_123",
+          url:
+            verificationUrl === "__same_origin_parent_verification_success__"
+              ? `${origin}/parent?billing=verification_success`
+              : verificationUrl,
+          verification_amount_cents: 100,
+          verification_currency: "usd"
+        }
+      });
+    });
+  }
+
   if (checkoutUrl) {
     await page.route("**/api/billing/checkout-session", async (route) => {
       if (route.request().method() !== "POST") {
@@ -100,7 +122,7 @@ async function mockParentWorkspaceApis(page, {
   }
 }
 
-test("managed consent panel shows Stripe trial CTA and starts checkout when billing is enabled", async ({ page }) => {
+test("managed consent panel starts parent verification checkout when consent is pending", async ({ page }) => {
   await mockParentWorkspaceApis(page, {
     parent: {
       id: "parent_1",
@@ -115,7 +137,7 @@ test("managed consent panel shows Stripe trial CTA and starts checkout when bill
       provider: "stripe",
       subscription: null
     },
-    checkoutUrl: "__same_origin_parent_success__"
+    verificationUrl: "__same_origin_parent_verification_success__"
   });
 
   await page.goto("/parent", { waitUntil: "domcontentloaded" });
@@ -123,16 +145,60 @@ test("managed consent panel shows Stripe trial CTA and starts checkout when bill
 
   await goToParentSection(page, "managed");
   await expect(page.getByRole("heading", { name: "Parental consent" })).toBeVisible({ timeout: 30000 });
-  await expect(page.getByRole("button", { name: "Start free week" })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole("button", { name: "Verify parent payment method" })).toBeVisible({ timeout: 30000 });
   await expect(page.getByText("Family plan: $10/month")).toBeVisible({ timeout: 30000 });
   await expect(page.getByText(/7-day free trial/i)).toBeVisible({ timeout: 30000 });
+
+  const verificationResponsePromise = page.waitForResponse(
+    (response) => response.url().includes("/api/billing/verification-session") && response.request().method() === "POST"
+  );
+
+  await page.getByRole("button", { name: "Verify parent payment method" }).click();
+
+  const verificationResponse = await verificationResponsePromise;
+  expect(verificationResponse.status()).toBe(200);
+  await expect(page).toHaveURL(/billing=verification_success/, { timeout: 30000 });
+});
+
+test("managed consent panel shows free-trial CTA after parent verification and starts subscription checkout", async ({ page }) => {
+  await mockParentWorkspaceApis(page, {
+    parent: {
+      id: "parent_1",
+      email: "parent@example.test",
+      full_name: "Parent",
+      coppa_consent_required: true,
+      coppa_consent_status: "granted",
+      coppa_consent_method: "stripe_card_verification_charge",
+      coppa_consent_updated_at: "2026-02-24T00:00:00.000Z",
+      coppa_policy_version: "2026-02-19"
+    },
+    billing: {
+      enabled: true,
+      provider: "stripe",
+      subscription: {
+        provider: "stripe",
+        status: "incomplete",
+        has_access: false,
+        provider_customer_id: "cus_123",
+        provider_subscription_id: null,
+        provider_price_id: "price_123",
+        parent_verification_completed_at: "2026-02-24T00:00:00.000Z",
+        parent_verification_amount_cents: 100,
+        parent_verification_currency: "usd"
+      }
+    },
+    checkoutUrl: "__same_origin_parent_success__"
+  });
+
+  await page.goto("/parent", { waitUntil: "domcontentloaded" });
+  await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
+  await goToParentSection(page, "managed");
+  await expect(page.getByRole("button", { name: "Start free week" })).toBeVisible({ timeout: 30000 });
 
   const checkoutResponsePromise = page.waitForResponse(
     (response) => response.url().includes("/api/billing/checkout-session") && response.request().method() === "POST"
   );
-
   await page.getByRole("button", { name: "Start free week" }).click();
-
   const checkoutResponse = await checkoutResponsePromise;
   expect(checkoutResponse.status()).toBe(200);
   await expect(page).toHaveURL(/billing=checkout_success/, { timeout: 30000 });
@@ -146,6 +212,7 @@ test("session controls disable start when billing is past_due", async ({ page })
       full_name: "Parent",
       coppa_consent_required: true,
       coppa_consent_status: "granted",
+      coppa_consent_method: "stripe_card_verification_charge",
       coppa_policy_version: "2026-02-19",
       coppa_consent_updated_at: "2026-02-24T00:00:00.000Z"
     },
@@ -201,6 +268,7 @@ test("managed consent panel shows trial warning and opens billing portal when su
       full_name: "Parent",
       coppa_consent_required: true,
       coppa_consent_status: "granted",
+      coppa_consent_method: "stripe_card_verification_charge",
       coppa_policy_version: "2026-02-19",
       coppa_consent_updated_at: "2026-02-24T00:00:00.000Z"
     },

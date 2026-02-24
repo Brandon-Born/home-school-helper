@@ -242,6 +242,7 @@ export default function ParentPage() {
                     loading={state.loading.consent}
                     actionAlert={state.actionAlerts.consent}
                     onGrantConsent={actions.grantCoppaConsent}
+                    onStartBillingCheckout={actions.startBillingCheckout}
                     onOpenBillingPortal={actions.openBillingPortal}
                     onRevokeConsent={actions.revokeCoppaConsent}
                   />

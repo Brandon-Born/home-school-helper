@@ -118,7 +118,7 @@ test("createPrivacyConsentPostHandler blocks self-attestation grant when billing
   await assertApiErrorResponse(response, {
     status: 409,
     error: "billing_required_for_coppa_grant",
-    message: "Complete subscription billing verification to grant parental consent."
+    message: "Complete parent payment verification to grant parental consent."
   });
 });
 

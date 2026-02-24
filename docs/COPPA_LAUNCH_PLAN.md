@@ -29,12 +29,12 @@ Known gaps already documented:
 
 ## VPC Direction (2026-02-19)
 Selected direction for first production VPC method:
-- Use subscription billing (payment method transaction/authorization to a parent-controlled account) as the primary VPC method.
+- Use subscription billing with a separate parent payment verification transaction/authorization (before trial activation) as the primary VPC method.
 
 Implementation requirements before launch:
 - Present COPPA direct notice before billing-backed consent completion.
 - Record consent as `granted` only after successful billing verification callback.
-- Store auditable linkage from consent record to billing verification event.
+- Store auditable linkage from consent record to billing verification event (Stripe webhook event / payment intent evidence).
 - Keep child profile creation and session start blocked until billing-backed consent is verified.
 
 Important constraint:
@@ -87,7 +87,7 @@ Implemented behavior:
 - Backward compatibility fallback: if consent schema migration is missing in local/dev, consent gating auto-disables (`required=false`) to prevent deadlock.
 
 Remaining Phase B upgrade for launch:
-- Replace self-attestation grant path with billing-verified VPC grant path (subscription-backed).
+- Replace self-attestation grant path with billing-verified VPC grant path (separate parent payment verification, then subscription trial).
 
 ### Phase C: Parent Rights Workflows
 Status: Baseline implemented
