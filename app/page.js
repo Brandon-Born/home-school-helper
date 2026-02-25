@@ -31,6 +31,25 @@ export default function HomePage() {
         title="Your child's AI tutor — guided by you."
         subtitle="Homeschool Sidekick is an AI-powered tutor your child can talk to — by voice or keyboard. You set the lesson focus, monitor the conversation, and send private hints, all while your child gets patient, step-by-step help."
       >
+        <section className={styles.howItWorks} aria-labelledby="pricing-heading">
+          <h2 id="pricing-heading" className={styles.howItWorksTitle}>Family plan pricing</h2>
+          <div className={`${styles.ctaCard} card card--elevated`}>
+            <p className="section-muted">
+              <strong>$1.99 for the first month</strong>, then <strong>$9.99/month</strong>.
+              You can cancel anytime from the parent billing portal.
+            </p>
+            <p style={{ marginTop: 12, marginBottom: 12 }}>
+              <Link href="/parent" className="btn btn--primary">
+                Start family plan
+              </Link>
+            </p>
+            <p className="section-muted">
+              See our <Link href="/billing-policy">Billing Policy</Link> and{" "}
+              <Link href="/terms">Terms of Service</Link> for full details.
+            </p>
+          </div>
+        </section>
+
         {/* ── How it works ────────────────────────── */}
         <section className={`${styles.howItWorks} reveal`}>
           <h2 className={styles.howItWorksTitle}>How it works</h2>
@@ -113,26 +132,6 @@ export default function HomePage() {
             <Link href="/child" className="btn btn--secondary">
               Join a lesson
             </Link>
-          </div>
-        </section>
-
-        <section className={`${styles.howItWorks} reveal`} aria-labelledby="pricing-heading">
-          <h2 id="pricing-heading" className={styles.howItWorksTitle}>Family plan pricing</h2>
-          <div className={`${styles.ctaCard} card card--elevated`}>
-            <p className="section-muted">
-              <strong>$1.99 for the first month</strong>, then <strong>$9.99/month</strong>.
-              We use the initial parent payment as part of our COPPA consent workflow before child sessions begin. You can cancel anytime
-              from the parent billing portal.
-            </p>
-            <p style={{ marginTop: 12, marginBottom: 12 }}>
-              <Link href="/parent" className="btn btn--primary">
-                Start family plan
-              </Link>
-            </p>
-            <p className="section-muted">
-              See our <Link href="/billing-policy">Billing Policy</Link> and{" "}
-              <Link href="/terms">Terms of Service</Link> for full details.
-            </p>
           </div>
         </section>
 
