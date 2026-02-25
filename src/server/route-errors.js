@@ -16,6 +16,15 @@ export function toPublicApiError(error, fallbackCode) {
 }
 
 export function handleRouteError(error, fallbackCode) {
+  console.error("[route_error]", {
+    fallbackCode,
+    name: error?.name ?? null,
+    status: error?.status ?? null,
+    code: error?.code ?? null,
+    message: error?.message ?? null,
+    stack: error?.stack ?? null
+  });
+
   const apiError = toPublicApiError(error, fallbackCode);
 
   return Response.json(
