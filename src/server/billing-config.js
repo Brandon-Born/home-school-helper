@@ -90,8 +90,10 @@ export function getStripeBillingConfig(env = process.env) {
       );
     }
 
-    if (config.stripe.introCouponIdFirstMonth && !/^coupon_/.test(config.stripe.introCouponIdFirstMonth)) {
-      throw new Error("Invalid STRIPE_COUPON_ID_FIRST_MONTH_INTRO: expected a Stripe coupon id (coupon_...).");
+    if (config.stripe.introCouponIdFirstMonth && /^promo_/.test(config.stripe.introCouponIdFirstMonth)) {
+      throw new Error(
+        "Invalid STRIPE_COUPON_ID_FIRST_MONTH_INTRO: expected a Stripe coupon id, not a promotion code id (promo_...)."
+      );
     }
 
     const nodeEnv = String(env.NODE_ENV ?? "").trim().toLowerCase();
