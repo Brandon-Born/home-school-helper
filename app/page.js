@@ -124,6 +124,11 @@ export default function HomePage() {
               We use the initial parent payment as part of our COPPA consent workflow before child sessions begin. You can cancel anytime
               from the parent billing portal.
             </p>
+            <p style={{ marginTop: 12, marginBottom: 12 }}>
+              <Link href="/parent" className="btn btn--primary">
+                Start family plan
+              </Link>
+            </p>
             <p className="section-muted">
               See our <Link href="/billing-policy">Billing Policy</Link> and{" "}
               <Link href="/terms">Terms of Service</Link> for full details.

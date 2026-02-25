@@ -124,6 +124,14 @@ async function mockParentWorkspaceApis(page, {
   }
 }
 
+test("homepage family plan section includes a direct signup CTA", async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Family plan pricing" })).toBeVisible({ timeout: 30000 });
+  const pricingCta = page.getByRole("link", { name: "Start family plan" });
+  await expect(pricingCta).toBeVisible({ timeout: 30000 });
+  await expect(pricingCta).toHaveAttribute("href", "/parent");
+});
+
 test("first-time onboarding starts subscription checkout when consent is pending", async ({ page }) => {
   await mockParentWorkspaceApis(page, {
     parent: {
@@ -231,7 +239,7 @@ test("canceled subscription returns parent to signup onboarding without revoking
         provider_subscription_id: "sub_123",
         provider_price_id: "price_123",
         current_period_start_at: "2026-02-01T00:00:00.000Z",
-        current_period_end_at: "2026-03-01T00:00:00.000Z",
+        current_period_end_at: "2026-02-10T00:00:00.000Z",
         cancel_at_period_end: false,
         canceled_at: "2026-02-24T00:00:00.000Z",
         updated_at: "2026-02-24T00:00:00.000Z"
@@ -244,6 +252,8 @@ test("canceled subscription returns parent to signup onboarding without revoking
   await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
   await expect(page.getByTestId("parent-trial-onboarding")).toBeVisible({ timeout: 30000 });
   await expect(page.getByTestId("parent-section-link-managed")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Restart your subscription" })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole("heading", { name: "Start for $1.99 (first month)" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Restart subscription" })).toBeVisible({ timeout: 30000 });
 
   const checkoutResponsePromise = page.waitForResponse(
@@ -311,7 +321,13 @@ test("session controls disable start when billing is past_due", async ({ page })
   await expect(page.getByTestId("session-start-submit")).toBeDisabled({ timeout: 30000 });
 });
 
-test("managed consent panel shows trial warning and opens billing portal when subscription exists", async ({ page }) => {
+test("billing tab shows subscription details, trial warning, and opens billing portal", async ({ page }) => {
+  const nowMs = Date.now();
+  const trialStartAt = new Date(nowMs - 24 * 60 * 60 * 1000).toISOString();
+  const trialEndAt = new Date(nowMs + 24 * 60 * 60 * 1000).toISOString();
+  const currentPeriodStartAt = trialStartAt;
+  const currentPeriodEndAt = new Date(nowMs + 29 * 24 * 60 * 60 * 1000).toISOString();
+
   await mockParentWorkspaceApis(page, {
     parent: {
       id: "parent_1",
@@ -333,10 +349,10 @@ test("managed consent panel shows trial warning and opens billing portal when su
         provider_customer_id: "cus_123",
         provider_subscription_id: "sub_123",
         provider_price_id: "price_123",
-        trial_start_at: "2026-02-23T00:00:00.000Z",
-        trial_end_at: "2026-02-25T00:00:00.000Z",
-        current_period_start_at: "2026-02-23T00:00:00.000Z",
-        current_period_end_at: "2026-03-23T00:00:00.000Z",
+        trial_start_at: trialStartAt,
+        trial_end_at: trialEndAt,
+        current_period_start_at: currentPeriodStartAt,
+        current_period_end_at: currentPeriodEndAt,
         cancel_at_period_end: false,
         canceled_at: null,
         updated_at: "2026-02-24T00:00:00.000Z"
@@ -348,11 +364,13 @@ test("managed consent panel shows trial warning and opens billing portal when su
   await page.goto("/parent", { waitUntil: "domcontentloaded" });
   await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
 
-  await goToParentSection(page, "managed");
+  await goToParentSection(page, "billing");
   await expect(page.getByRole("heading", { name: "Subscription & consent", exact: true })).toBeVisible({ timeout: 30000 });
   await expect(page.getByRole("heading", { name: "Subscription details", exact: true })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByTestId("billing-account-card")).toBeVisible({ timeout: 30000 });
   await expect(page.getByRole("button", { name: "Manage billing" })).toBeVisible({ timeout: 30000 });
-  await expect(page.getByText(/Trial ends in 1 day|Trial ends in 2 days/i)).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText(/Trial ends in 1 day|Trial ends in 2 days|Trial has ended/i)).toBeVisible({ timeout: 30000 });
+  await expect(page.getByTestId("billing-active-until")).toContainText("Current period ends");
 
   const portalResponsePromise = page.waitForResponse(
     (response) => response.url().includes("/api/billing/portal-session") && response.request().method() === "POST"
@@ -361,4 +379,44 @@ test("managed consent panel shows trial warning and opens billing portal when su
   const portalResponse = await portalResponsePromise;
   expect(portalResponse.status()).toBe(200);
   await expect(page).toHaveURL(/billing=portal_return/, { timeout: 30000 });
+});
+
+test("billing tab shows cancel notice and active-until date when cancelation is scheduled", async ({ page }) => {
+  await mockParentWorkspaceApis(page, {
+    parent: {
+      id: "parent_1",
+      email: "parent@example.test",
+      full_name: "Parent",
+      coppa_consent_required: true,
+      coppa_consent_status: "granted",
+      coppa_consent_method: "stripe_subscription_checkout_payment",
+      coppa_policy_version: "2026-02-19",
+      coppa_consent_updated_at: "2026-02-24T00:00:00.000Z"
+    },
+    billing: {
+      enabled: true,
+      provider: "stripe",
+      subscription: {
+        provider: "stripe",
+        status: "active",
+        has_access: true,
+        provider_customer_id: "cus_123",
+        provider_subscription_id: "sub_123",
+        provider_price_id: "price_123",
+        current_period_start_at: "2026-02-24T00:00:00.000Z",
+        current_period_end_at: "2026-03-24T00:00:00.000Z",
+        cancel_at_period_end: true,
+        canceled_at: "2026-02-24T00:00:00.000Z",
+        updated_at: "2026-02-24T00:00:00.000Z"
+      }
+    }
+  });
+
+  await page.goto("/parent", { waitUntil: "domcontentloaded" });
+  await expect(page.getByText("Signed in as")).toBeVisible({ timeout: 30000 });
+
+  await goToParentSection(page, "billing");
+  await expect(page.getByText("Status: cancel scheduled")).toBeVisible({ timeout: 30000 });
+  await expect(page.getByTestId("billing-cancel-notice")).toContainText("remains active until");
+  await expect(page.getByTestId("billing-active-until")).toContainText("Active until");
 });

@@ -22,8 +22,9 @@ export default function ParentPage() {
     if (state.children.length > 0) {
       const childrenSection = PARENT_CONSOLE_SECTIONS.find((s) => s.id === "children");
       const sessionsSection = PARENT_CONSOLE_SECTIONS.find((s) => s.id === "sessions");
+      const billingSection = PARENT_CONSOLE_SECTIONS.find((s) => s.id === "billing");
       const managedSection = PARENT_CONSOLE_SECTIONS.find((s) => s.id === "managed");
-      return [sessionsSection, childrenSection, managedSection].filter(Boolean);
+      return [sessionsSection, childrenSection, billingSection, managedSection].filter(Boolean);
     }
     return PARENT_CONSOLE_SECTIONS;
   }, [state.children.length]);
@@ -62,9 +63,13 @@ export default function ParentPage() {
       !state.billingHasAccess &&
       (!state.hasCoppaConsent || !hasBillingSubscriptionStarted || shouldReturnToSignupOnboarding)
   );
-  const shellTitle = showTrialSetupOnboarding ? "Start for $1.99" : "Your command center";
+  const shellTitle = showTrialSetupOnboarding
+    ? (shouldReturnToSignupOnboarding ? "Restart subscription" : "Start for $1.99")
+    : "Your command center";
   const shellSubtitle = showTrialSetupOnboarding
-    ? "Start your family subscription and unlock child profiles and tutoring sessions."
+    ? (shouldReturnToSignupOnboarding
+      ? "Restart your family subscription to restore uninterrupted tutoring access."
+      : "Start your family subscription and unlock child profiles and tutoring sessions.")
     : "Set up sessions, share a code, and quietly guide the session while your child learns.";
 
   return (
@@ -170,7 +175,9 @@ export default function ParentPage() {
               <h3 className="section-title" style={{ fontSize: "1.05rem" }}>What happens next</h3>
               <div className="stack" style={{ gap: 10 }}>
                 <p className="section-muted" style={{ margin: 0 }}>
-                  1. Complete secure subscription checkout ($1.99 first month, then $9.99/month).
+                  {shouldReturnToSignupOnboarding
+                    ? "1. Complete secure subscription checkout to reactivate your family plan."
+                    : "1. Complete secure subscription checkout ($1.99 first month, then $9.99/month)."}
                 </p>
                 <p className="section-muted" style={{ margin: 0 }}>
                   2. We confirm parental consent from the initial billing transaction.
@@ -278,7 +285,7 @@ export default function ParentPage() {
                 </>
               ) : null}
 
-              {activeSection.id === "managed" ? (
+              {activeSection.id === "billing" ? (
                 <>
                   <CoppaConsentPanel
                     parentProfile={state.parentProfile}
@@ -292,6 +299,26 @@ export default function ParentPage() {
                     onOpenBillingPortal={actions.openBillingPortal}
                     onRevokeConsent={actions.revokeCoppaConsent}
                   />
+
+                  <section className="card" data-testid="billing-account-card">
+                    <h3 className="section-title" style={{ fontSize: "1.05rem" }}>Billing & account information</h3>
+                    <div className="stack" style={{ gap: 8 }}>
+                      <p className="section-muted" style={{ margin: 0 }}>
+                        <strong>Name:</strong> {state.parentProfile?.full_name || "Not provided"}
+                      </p>
+                      <p className="section-muted" style={{ margin: 0 }}>
+                        <strong>Email:</strong> {state.parentProfile?.email || "Not available"}
+                      </p>
+                      <p className="section-muted" style={{ margin: 0 }}>
+                        Use this tab for subscription status, renewal/cancel timing, and quick billing management access.
+                      </p>
+                    </div>
+                  </section>
+                </>
+              ) : null}
+
+              {activeSection.id === "managed" ? (
+                <>
 
                   <PrivacyDataSummaryPanel
                     summary={state.privacySummary}

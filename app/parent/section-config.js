@@ -12,6 +12,12 @@ export const PARENT_CONSOLE_SECTIONS = [
     description: "Start a new session, send join codes to your kids, and follow along live."
   },
   {
+    id: "billing",
+    label: "Billing & Account",
+    title: "Billing and account",
+    description: "See subscription status, active-through timing, billing actions, and account details in one place."
+  },
+  {
     id: "managed",
     label: "Privacy & Data",
     title: "Consent and data controls",

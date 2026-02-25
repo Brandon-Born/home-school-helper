@@ -264,6 +264,66 @@ test("createStripeCheckoutSessionForParent applies intro coupon and disables pro
   assert.equal(checkout.intro_offer?.first_month_discount_coupon_applied, true);
 });
 
+test("createStripeCheckoutSessionForParent does not auto-apply intro coupon for resubscribing parents", async () => {
+  const serviceClient = createFakeServiceClient({
+    parents: [buildParent({ consentStatus: "granted", coppa_consent_method: "stripe_subscription_checkout_payment" })],
+    billing_subscriptions: [
+      {
+        id: "billing_1",
+        parent_id: "parent_1",
+        provider: "stripe",
+        provider_customer_id: "cus_123",
+        provider_subscription_id: "sub_old_123",
+        provider_price_id: "price_test_123",
+        status: "canceled",
+        current_period_start_at: "2026-01-01T00:00:00.000Z",
+        current_period_end_at: "2026-02-01T00:00:00.000Z",
+        cancel_at_period_end: false,
+        canceled_at: "2026-02-01T00:00:00.000Z"
+      }
+    ]
+  });
+
+  let recordedCheckoutPayload = null;
+  const stripeClient = {
+    customers: {
+      create: async () => {
+        throw new Error("customers.create should not be called when billing customer already exists");
+      }
+    },
+    checkout: {
+      sessions: {
+        create: async (payload) => {
+          recordedCheckoutPayload = payload;
+          return {
+            id: "cs_test_456",
+            url: "https://checkout.stripe.test/session-resubscribe"
+          };
+        }
+      }
+    }
+  };
+
+  const config = buildBillingConfig();
+  config.stripe.introCouponIdFirstMonth = "coupon_first_month_intro_199";
+
+  const checkout = await createStripeCheckoutSessionForParent(
+    buildParent({ consentStatus: "granted", coppa_consent_method: "stripe_subscription_checkout_payment" }),
+    {
+      serviceClient,
+      stripeClient,
+      config,
+      env: buildEnv(),
+      request: new Request("https://example.test/api/billing/checkout-session", { method: "POST" })
+    }
+  );
+
+  assert.equal(checkout.id, "cs_test_456");
+  assert.equal("discounts" in recordedCheckoutPayload, false);
+  assert.equal(recordedCheckoutPayload.allow_promotion_codes, true);
+  assert.equal(checkout.intro_offer?.first_month_discount_coupon_applied, false);
+});
+
 test("createStripeCheckoutSessionForParent no longer requires pre-granted COPPA consent", async () => {
   const serviceClient = createFakeServiceClient({
     parents: [buildParent({ consentStatus: "pending" })],
@@ -384,6 +444,46 @@ test("processStripeWebhookEvent grants COPPA consent from paid subscription chec
   assert.equal(serviceClient.tables.billing_subscriptions[0].parent_verification_amount_cents, 199);
 });
 
+test("processStripeWebhookEvent syncs Stripe subscription status on checkout completion to avoid lingering incomplete state", async () => {
+  const serviceClient = createFakeServiceClient({
+    parents: [buildParent()],
+    billing_subscriptions: [],
+    billing_webhook_events: [],
+    parent_consents: []
+  });
+
+  const stripeClient = {
+    subscriptions: {
+      retrieve: async (subscriptionId) => {
+        assert.equal(subscriptionId, "sub_1");
+        return {
+          id: "sub_1",
+          object: "subscription",
+          customer: "cus_1",
+          status: "active",
+          trial_start: null,
+          trial_end: null,
+          current_period_start: 1_770_000_000,
+          current_period_end: 1_772_592_000,
+          cancel_at_period_end: false,
+          canceled_at: null,
+          metadata: { parent_id: "parent_1" },
+          items: { data: [{ price: { id: "price_test_123" } }] }
+        };
+      }
+    }
+  };
+
+  await processStripeWebhookEvent(buildSubscriptionCheckoutCompletedEvent(), {
+    serviceClient,
+    stripeClient,
+    config: buildBillingConfig(),
+    env: buildEnv()
+  });
+
+  assert.equal(serviceClient.tables.billing_subscriptions[0].status, "active");
+});
+
 test("processStripeWebhookEvent skips stale subscription event updates but still marks event processed", async () => {
   const serviceClient = createFakeServiceClient({
     parents: [buildParent({ consentStatus: "granted" })],
@@ -480,7 +580,7 @@ test("processStripeWebhookEvent returns ignored outcome for unsupported event ty
   assert.equal(result.outcome.reason, "ignored_event_type");
 });
 
-test("ensureParentHasBillingAccess allows trialing and blocks canceled/past_due when billing enabled", async () => {
+test("ensureParentHasBillingAccess allows trialing and canceled-until-period-end, then blocks expired canceled subscriptions", async () => {
   const serviceClient = createFakeServiceClient({
     parents: [buildParent({ consentStatus: "granted" })],
     billing_subscriptions: [
@@ -506,6 +606,17 @@ test("ensureParentHasBillingAccess allows trialing and blocks canceled/past_due 
   assert.equal(allowed.status, "trialing");
 
   serviceClient.tables.billing_subscriptions[0].status = "canceled";
+  serviceClient.tables.billing_subscriptions[0].current_period_end_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+  const stillAllowed = await ensureParentHasBillingAccess("parent_1", {
+    serviceClient,
+    config: buildBillingConfig(),
+    env: buildEnv()
+  });
+  assert.equal(stillAllowed.has_access, true);
+  assert.equal(stillAllowed.status, "canceled");
+
+  serviceClient.tables.billing_subscriptions[0].current_period_end_at = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
   await assert.rejects(
     () =>

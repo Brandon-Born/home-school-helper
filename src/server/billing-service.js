@@ -40,6 +40,36 @@ function normalizeStatus(rawStatus) {
   return value || "incomplete";
 }
 
+function parseIsoDateMs(value) {
+  if (!value) {
+    return NaN;
+  }
+
+  const parsed = Date.parse(String(value));
+  return Number.isNaN(parsed) ? NaN : parsed;
+}
+
+function hasCanceledAccessUntilPeriodEnd(status, currentPeriodEndAt) {
+  if (status !== "canceled") {
+    return false;
+  }
+
+  const endMs = parseIsoDateMs(currentPeriodEndAt);
+  if (Number.isNaN(endMs)) {
+    return false;
+  }
+
+  return endMs > Date.now();
+}
+
+function hasBillingAccessForRow(status, row) {
+  if (BILLING_ACCESS_STATUSES.has(status)) {
+    return true;
+  }
+
+  return hasCanceledAccessUntilPeriodEnd(status, row?.current_period_end_at);
+}
+
 function parsePositiveInteger(value, fallbackValue) {
   const parsed = Number.parseInt(String(value ?? "").trim(), 10);
   if (!Number.isInteger(parsed) || parsed <= 0) {
@@ -73,10 +103,11 @@ function normalizeBillingRow(row) {
   }
 
   const status = normalizeStatus(row.status);
+  const hasAccess = hasBillingAccessForRow(status, row);
   return {
     provider: row.provider,
     status,
-    has_access: BILLING_ACCESS_STATUSES.has(status),
+    has_access: hasAccess,
     provider_customer_id: row.provider_customer_id ?? null,
     provider_subscription_id: row.provider_subscription_id ?? null,
     provider_price_id: row.provider_price_id ?? null,
@@ -397,12 +428,20 @@ export async function createStripeCheckoutSessionForParent(parent, options = {})
   const request = options.request;
   const baseUrl = resolveBaseUrl(request, config);
 
-  const { providerCustomerId } = await ensureStripeCustomerForParent(parent, {
+  const { providerCustomerId, billingRow } = await ensureStripeCustomerForParent(parent, {
     serviceClient,
     stripeClient,
     env,
     config
   });
+  const hasPriorSubscriptionHistory = Boolean(
+    billingRow?.provider_subscription_id ||
+      billingRow?.trial_start_at ||
+      billingRow?.trial_end_at ||
+      billingRow?.current_period_start_at ||
+      billingRow?.current_period_end_at ||
+      billingRow?.canceled_at
+  );
 
   const sessionPayload = {
     mode: "subscription",
@@ -427,7 +466,9 @@ export async function createStripeCheckoutSessionForParent(parent, options = {})
     }
   };
 
-  if (config.stripe.introCouponIdFirstMonth) {
+  const shouldApplyIntroCoupon = Boolean(config.stripe.introCouponIdFirstMonth && !hasPriorSubscriptionHistory);
+
+  if (shouldApplyIntroCoupon) {
     // Stripe Checkout rejects `allow_promotion_codes` together with `discounts`.
     // We prioritize the automatic intro coupon to preserve the advertised $1.99 first month flow.
     sessionPayload.discounts = [{ coupon: config.stripe.introCouponIdFirstMonth }];
@@ -441,7 +482,7 @@ export async function createStripeCheckoutSessionForParent(parent, options = {})
     id: session.id,
     url: session.url,
     intro_offer: {
-      first_month_discount_coupon_applied: Boolean(config.stripe.introCouponIdFirstMonth)
+      first_month_discount_coupon_applied: shouldApplyIntroCoupon
     }
   };
 }
@@ -610,7 +651,7 @@ async function markWebhookEventProcessed(event, { serviceClient }) {
   }
 }
 
-async function syncFromCheckoutSession(session, { serviceClient, config, env }) {
+async function syncFromCheckoutSession(session, { serviceClient, config, env, stripeClient }) {
   if (session.mode === "payment" && session.metadata?.billing_flow === STRIPE_VERIFICATION_FLOW) {
     const parentId = String(session.metadata?.parent_id || "").trim();
     if (!parentId) {
@@ -666,7 +707,7 @@ async function syncFromCheckoutSession(session, { serviceClient, config, env }) 
     return { skipped: true, reason: "missing_customer" };
   }
 
-  const row = await upsertBillingSubscription(
+  let row = await upsertBillingSubscription(
     {
       parent_id: parentId,
       provider_customer_id: providerCustomerId,
@@ -676,6 +717,25 @@ async function syncFromCheckoutSession(session, { serviceClient, config, env }) 
     },
     { serviceClient }
   );
+
+  if (providerSubscriptionId && stripeClient?.subscriptions?.retrieve) {
+    try {
+      const subscription = await stripeClient.subscriptions.retrieve(providerSubscriptionId, {
+        expand: ["items.data.price"]
+      });
+      const syncOutcome = await syncFromStripeSubscription(subscription, {
+        env,
+        config,
+        serviceClient,
+        event: null
+      });
+      if (syncOutcome?.row) {
+        row = syncOutcome.row;
+      }
+    } catch {
+      // Keep the optimistic/incomplete row and rely on webhook/reconcile if Stripe subscription fetch fails.
+    }
+  }
 
   let consent = null;
   if (String(session.payment_status || "").trim().toLowerCase() === "paid") {
@@ -956,6 +1016,7 @@ export async function processStripeWebhookEvent(event, options = {}) {
   const env = options.env ?? process.env;
   const config = options.config ?? getStripeBillingConfig(env);
   const serviceClient = options.serviceClient ?? getServiceSupabaseClient();
+  const stripeClient = options.stripeClient ?? (options.config ? null : getStripeClient(env));
 
   if (!config.enabled) {
     throw new ApiError(404, "billing_not_enabled", "Subscription billing is not enabled.");
@@ -973,7 +1034,7 @@ export async function processStripeWebhookEvent(event, options = {}) {
   };
 
   if (event.type === "checkout.session.completed") {
-    outcome = (await syncFromCheckoutSession(object, { serviceClient, config, env })) ?? outcome;
+    outcome = (await syncFromCheckoutSession(object, { serviceClient, config, env, stripeClient })) ?? outcome;
   } else if (SYNCABLE_STRIPE_EVENT_TYPES.has(event.type)) {
     outcome = (await syncFromStripeSubscription(object, { env, config, serviceClient, event })) ?? outcome;
   } else {

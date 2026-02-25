@@ -9,7 +9,7 @@ import {
 test("parent console sections keep expected order for nav rendering", () => {
   assert.deepEqual(
     PARENT_CONSOLE_SECTIONS.map((section) => section.id),
-    ["children", "sessions", "managed"]
+    ["children", "sessions", "billing", "managed"]
   );
 });
 
@@ -19,6 +19,6 @@ test("resolveParentConsoleSection falls back to children section", () => {
 });
 
 test("resolveParentConsoleSection returns matching section", () => {
-  const resolved = resolveParentConsoleSection("managed");
-  assert.equal(resolved.label, "Privacy & Data");
+  const resolved = resolveParentConsoleSection("billing");
+  assert.equal(resolved.label, "Billing & Account");
 });

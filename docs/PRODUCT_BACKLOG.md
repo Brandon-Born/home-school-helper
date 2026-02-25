@@ -1,6 +1,6 @@
 # Product Backlog (Rolling Open Items)
 
-Last updated: 2026-02-23
+Last updated: 2026-02-25
 
 Purpose:
 - Capture high-impact product and engineering improvements beyond the current "working" baseline.
@@ -171,6 +171,89 @@ Definition of done:
 Validation:
 - `npm run build`
 - `node --test tests/security-headers.test.js`
+
+### 29) Billing eligibility guard: no first-month intro coupon on resubscribe
+Status: Open
+Why:
+- The current Stripe checkout flow automatically applies the first-month intro coupon (`$8 off`, advertised as `$1.99 first month`) when configured.
+- Returning parents who are resubscribing should not receive the intro discount intended for first-time subscribers.
+Scope:
+- Detect resubscribe/returning-subscriber eligibility before creating subscription checkout sessions.
+- Apply the first-month intro coupon only for first-time subscription starts; suppress it for resubscribe flows.
+- Preserve support for manual promotion codes where applicable when the intro coupon is not auto-applied.
+- Update parent-facing pricing/checkout copy if needed so resubscribing users are not shown first-month intro messaging.
+Implementation notes (starter files):
+- `src/server/billing-service.js`
+- `src/server/billing-config.js` (only if eligibility needs a config flag/override)
+- `app/api/billing/checkout-session/route.js`
+- `tests/billing-service.test.js`
+- `tests/billing-routes.test.js`
+- `tests/playwright/parent-billing-consent-flow.spec.js`
+Definition of done:
+- Resubscribing users do not receive the automatic first-month intro coupon in Stripe Checkout session payloads.
+- First-time subscribers still receive the configured intro coupon behavior.
+- Automated tests cover both first-time and returning-subscriber checkout paths.
+Validation:
+- `node --test tests/billing-service.test.js tests/billing-routes.test.js`
+- `npx playwright test tests/playwright/parent-billing-consent-flow.spec.js`
+
+### 30) Billing lifecycle status correctness (cancel, active-through, resubscribe)
+Status: Open
+Why:
+- Parent-facing billing state can be misleading after cancel/resubscribe events (for example showing `active` after cancellation without an expiry date, or showing `incomplete` after a renewed/recreated subscription).
+- Incorrect lifecycle status messaging increases support burden and creates avoidable trust issues around access/renewal.
+Scope:
+- Audit and fix subscription status normalization for Stripe lifecycle transitions:
+- canceled but still active-through-period (`cancel_at_period_end = true`)
+- fully canceled/expired access
+- resubscribe/recreated subscription after cancellation
+- Ensure the app surfaces `active until` / `current_period_end_at` when cancellation is scheduled so parents know access end timing without leaving the app.
+- Add an in-app notice/banner for "canceled, still active until <date>" state.
+- Fix post-renewal/recreated subscription state so the app does not remain stuck on `Incomplete` when Stripe reports an active/trialing subscription.
+- Verify webhook + reconcile flows correctly update local billing rows for the above transitions.
+Implementation notes (starter files):
+- `src/server/billing-service.js`
+- `app/api/billing/subscription/route.js`
+- `app/parent/hooks/useParentConsole.js`
+- `app/parent/components/CoppaConsentPanel.js`
+- `tests/billing-service.test.js`
+- `tests/billing-reconcile-cron-routes.test.js`
+- `tests/playwright/parent-billing-consent-flow.spec.js`
+Definition of done:
+- Cancel-at-period-end subscriptions show accurate status plus visible active-through date in-app.
+- Fully expired subscriptions no longer appear active.
+- Resubscribed/recreated subscriptions resolve to the correct non-`incomplete` state after sync/webhook processing.
+- Automated tests cover cancel, scheduled-cancel active-through, expiry, and resubscribe transitions.
+Validation:
+- `node --test tests/billing-service.test.js tests/billing-reconcile-cron-routes.test.js`
+- `npx playwright test tests/playwright/parent-billing-consent-flow.spec.js`
+
+### 31) Billing/account UX discoverability pass (homepage CTA + in-app account tab)
+Status: Open
+Why:
+- Key subscription actions and billing/account details are harder to find than they should be, especially for stressed/tired parents.
+- Important information (for example subscription timing) is hidden behind "Manage billing" instead of being visible in our app.
+Scope:
+- Make the front-page trial/family plan section support a direct signup/start action (clear path into onboarding/checkout).
+- Add a dedicated parent "Billing & account" tab/section that consolidates subscription status, billing actions, and key account information.
+- Surface `active until` / renewal/cancel timing directly in the app (without requiring a click into the Stripe billing portal).
+- Review and simplify billing-related labels/copy for fast scanning (especially canceled-but-still-active and resubscribe states).
+- Maintain COPPA consent actions while improving separation between consent/legal actions and billing/account management.
+Implementation notes (starter files):
+- `app/page.js`
+- `app/parent/page.js`
+- `app/parent/section-config.js`
+- `app/parent/components/CoppaConsentPanel.js`
+- `app/parent/hooks/useParentConsole.js`
+- `tests/playwright/parent-billing-consent-flow.spec.js`
+- `tests/playwright/new-user-experience.spec.js`
+Definition of done:
+- Parents can start the trial/family plan flow from the homepage pricing/trial section.
+- Parent dashboard includes a clearly labeled billing/account destination with visible subscription timing/status details.
+- Core billing details are understandable without opening the external billing portal.
+- Playwright coverage verifies the new entrypoint and in-app visibility of subscription timing/status.
+Validation:
+- `npx playwright test tests/playwright/new-user-experience.spec.js tests/playwright/parent-billing-consent-flow.spec.js`
 
 ### 14) Parent/child console orchestration refactor
 Status: Open

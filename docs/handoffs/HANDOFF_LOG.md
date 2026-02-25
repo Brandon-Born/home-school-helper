@@ -5,6 +5,50 @@ Notes:
 - Kept the 3 most recent detailed handoffs.
 - Deduplicated older history into a durable summary for fast agent onboarding.
 
+## 2026-02-25T02:53:28Z - Codex
+
+### Scope Worked
+- Implemented billing fixes and UX improvements for resubscribe flows, lifecycle status visibility, and faster billing/account access.
+- Added direct family-plan signup CTA from the homepage pricing section.
+
+### Last Agent Accomplished
+- Prevented automatic first-month intro coupon application for resubscribing parents while preserving promo code entry when the intro coupon is not auto-applied (`src/server/billing-service.js`).
+- Improved billing access normalization so canceled subscriptions with remaining paid period access (`current_period_end_at` in the future) still count as active access.
+- Added immediate Stripe subscription sync on `checkout.session.completed` (when Stripe client is available) to reduce lingering `incomplete` status after checkout.
+- Added a dedicated `Billing & Account` parent dashboard tab and moved subscription/consent UI there, leaving privacy/data controls in the `Privacy & Data` tab.
+- Surfaced in-app subscription timing details (`Current period ends` / `Active until`) plus a cancel-scheduled notice in `CoppaConsentPanel`.
+- Updated resubscribe onboarding copy/title to avoid showing first-month intro messaging in restart flows.
+- Added a homepage pricing CTA button (`Start family plan`) linking directly to `/parent`.
+- Expanded unit and Playwright coverage for coupon eligibility, canceled-active-through access, billing tab UI, and cancel notice visibility.
+
+### Files Touched
+- `src/server/billing-service.js`
+- `app/parent/components/CoppaConsentPanel.js`
+- `app/parent/page.js`
+- `app/parent/section-config.js`
+- `app/page.js`
+- `tests/billing-service.test.js`
+- `tests/parent-section-config.test.js`
+- `tests/playwright/helpers/parent-console.js`
+- `tests/playwright/parent-auth-bootstrap.spec.js`
+- `tests/playwright/parent-billing-consent-flow.spec.js`
+- `docs/PRODUCT_BACKLOG.md`
+- `docs/handoffs/HANDOFF_LOG.md`
+
+### Tests / Checks Run
+- `node --test tests/billing-service.test.js tests/parent-section-config.test.js tests/billing-routes.test.js` (pass)
+- `npx playwright test tests/playwright/parent-billing-consent-flow.spec.js tests/playwright/parent-auth-bootstrap.spec.js` (pass)
+
+### Open Risks / Issues
+- `processStripeWebhookEvent` only performs immediate checkout subscription sync when a Stripe client is available in the current runtime/config path; otherwise webhook/reconcile still resolves status asynchronously.
+
+### Next Steps (Ordered)
+1. Monitor real Stripe resubscribe webhook timing in production/staging to confirm the immediate-sync path reduces `incomplete` UI flashes.
+2. Consider adding a dedicated backend billing-status display field (for example `cancel_scheduled`) if more UI surfaces need consistent wording.
+
+### Blocking Questions
+- None.
+
 ## 2026-02-24T12:59:00Z - Antigravity
 
 ### Scope Worked

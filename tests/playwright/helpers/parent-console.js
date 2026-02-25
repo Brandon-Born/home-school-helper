@@ -149,7 +149,7 @@ export async function ensureCoppaConsentGranted(page) {
       return; // form is already rendering, which implies consent
     }
 
-    await goToParentSection(page, "managed");
+    await goToParentSection(page, "billing");
     if ((await grantButton.count()) > 0 && (await grantButton.isVisible())) {
       const buttonLabel = ((await grantButton.textContent()) || "").trim().toLowerCase();
       const isBillingFlowCta =

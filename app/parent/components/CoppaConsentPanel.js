@@ -38,6 +38,19 @@ function getTrialWarningLabel(trialEndAt) {
   return "";
 }
 
+function formatBillingStatusLabel(subscription) {
+  const rawStatus = String(subscription?.status || "").trim().toLowerCase();
+  if (!rawStatus) {
+    return "not started";
+  }
+
+  if (subscription?.cancel_at_period_end && (rawStatus === "active" || rawStatus === "trialing")) {
+    return "cancel scheduled";
+  }
+
+  return rawStatus.replaceAll("_", " ");
+}
+
 export function CoppaConsentPanel({
   parentProfile,
   consentRequired,
@@ -73,10 +86,18 @@ export function CoppaConsentPanel({
   const billingSubscription = billing?.subscription ?? null;
   const hasSubscriptionStarted = Boolean(billingSubscription?.provider_subscription_id);
   const billingHasAccess = Boolean(billingSubscription?.has_access);
-  const billingStatus = billingSubscription?.status ? String(billingSubscription.status).replaceAll("_", " ") : "";
   const normalizedBillingStatus = String(billingSubscription?.status || "").trim().toLowerCase();
+  const billingStatus = formatBillingStatusLabel(billingSubscription);
   const trialEndLabel = formatConsentTimestamp(billingSubscription?.trial_end_at);
+  const currentPeriodEndLabel = formatConsentTimestamp(billingSubscription?.current_period_end_at);
   const trialWarningLabel = getTrialWarningLabel(billingSubscription?.trial_end_at);
+  const cancelScheduled = Boolean(
+    billingSubscription?.cancel_at_period_end && (normalizedBillingStatus === "active" || normalizedBillingStatus === "trialing")
+  );
+  const canceledWithRemainingAccess = Boolean(
+    normalizedBillingStatus === "canceled" && billingHasAccess && billingSubscription?.current_period_end_at
+  );
+  const showActiveThroughNotice = cancelScheduled || canceledWithRemainingAccess;
   const canOpenBillingPortal = Boolean(billingEnabled && billingSubscription?.provider_customer_id && onOpenBillingPortal);
   const canStartSubscription = Boolean(
     billingEnabled &&
@@ -102,7 +123,7 @@ export function CoppaConsentPanel({
 
   const focusStepLabel = "Subscription setup";
   const title = focusMode && billingEnabled
-    ? "Start for $1.99 (first month)"
+    ? (isCanceledResubscribe ? "Restart your subscription" : "Start for $1.99 (first month)")
     : billingEnabled && hasSubscriptionStarted
       ? "Subscription & consent"
       : "Parental consent";
@@ -148,6 +169,16 @@ export function CoppaConsentPanel({
             <span className="pill pill--muted">Family plan: $9.99/month</span>
           </div>
 
+          {showActiveThroughNotice && currentPeriodEndLabel ? (
+            <p
+              className="section-muted"
+              style={{ marginTop: 8, fontSize: "0.85rem" }}
+              data-testid="billing-cancel-notice"
+            >
+              Your subscription is canceled and remains active until {currentPeriodEndLabel}.
+            </p>
+          ) : null}
+
           {!billingSubscription?.has_access && !hasCoppaConsent ? (
             <p className="section-muted" style={{ marginTop: 8, fontSize: "0.85rem" }}>
               Checkout completion is required before children and tutoring sessions are unlocked.
@@ -157,6 +188,16 @@ export function CoppaConsentPanel({
           {trialEndLabel ? (
             <p className="section-muted" style={{ marginTop: 8, fontSize: "0.85rem" }}>
               Trial ends: {trialEndLabel}.
+            </p>
+          ) : null}
+
+          {currentPeriodEndLabel ? (
+            <p
+              className="section-muted"
+              style={{ marginTop: 8, fontSize: "0.85rem" }}
+              data-testid="billing-active-until"
+            >
+              {showActiveThroughNotice ? "Active until" : "Current period ends"}: {currentPeriodEndLabel}.
             </p>
           ) : null}
 
