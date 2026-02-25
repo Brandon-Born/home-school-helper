@@ -446,6 +446,9 @@ export async function createStripeCheckoutSessionForParent(parent, options = {})
   const sessionPayload = {
     mode: "subscription",
     customer: providerCustomerId,
+    customer_update: {
+      address: "auto"
+    },
     automatic_tax: {
       enabled: true
     },
