@@ -81,8 +81,6 @@ export function CoppaConsentPanel({
   }
 
   const consentLabel = hasCoppaConsent ? "Active" : "Required";
-  const updatedAtLabel = formatConsentTimestamp(parentProfile.coppa_consent_updated_at);
-  const policyVersion = parentProfile.coppa_policy_version || "2026-02-19";
   const billingEnabled = Boolean(billing?.enabled);
   const billingSubscription = billing?.subscription ?? null;
   const hasSubscriptionStarted = Boolean(billingSubscription?.provider_subscription_id);
@@ -209,11 +207,6 @@ export function CoppaConsentPanel({
           ) : null}
         </div>
       ) : null}
-
-      <p className="section-muted consent-panel__meta">
-        Policy version: {policyVersion}
-        {updatedAtLabel ? ` · Last updated: ${updatedAtLabel}` : ""}
-      </p>
 
       <div className="btn-row" style={{ marginTop: 12 }}>
         {hasCoppaConsent ? (
