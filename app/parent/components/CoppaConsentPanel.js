@@ -62,7 +62,8 @@ export function CoppaConsentPanel({
   onStartBillingCheckout,
   onOpenBillingPortal,
   onRevokeConsent,
-  focusMode = false
+  focusMode = false,
+  showRevokeAction = true
 }) {
   const [showConfirmRevoke, setShowConfirmRevoke] = useState(false);
 
@@ -227,7 +228,7 @@ export function CoppaConsentPanel({
                 Manage billing
               </button>
             ) : null}
-            {!focusMode ? (
+            {showRevokeAction && !focusMode ? (
               <>
                 <button type="button" onClick={() => setShowConfirmRevoke(true)} disabled={loading} className="btn btn--ghost text-destructive">
                   Revoke consent

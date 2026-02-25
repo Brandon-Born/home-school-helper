@@ -298,6 +298,7 @@ export default function ParentPage() {
                     onStartBillingCheckout={actions.startBillingCheckout}
                     onOpenBillingPortal={actions.openBillingPortal}
                     onRevokeConsent={actions.revokeCoppaConsent}
+                    showRevokeAction={false}
                   />
 
                   <section className="card" data-testid="billing-account-card">
@@ -312,6 +313,9 @@ export default function ParentPage() {
                       <p className="section-muted" style={{ margin: 0 }}>
                         Use this tab for subscription status, renewal/cancel timing, and quick billing management access.
                       </p>
+                      <p className="section-muted" style={{ margin: 0 }}>
+                        COPPA consent withdrawal and child-data requests are available in Privacy &amp; Data.
+                      </p>
                     </div>
                   </section>
                 </>
@@ -321,12 +325,18 @@ export default function ParentPage() {
                 <>
 
                   <PrivacyDataSummaryPanel
+                    parentProfile={state.parentProfile}
+                    consentRequired={state.coppaConsentRequired}
+                    hasCoppaConsent={state.hasCoppaConsent}
                     summary={state.privacySummary}
                     requests={state.privacyRequests}
                     loading={state.loading.privacyAction}
+                    consentLoading={state.loading.consent}
                     actionAlert={state.actionAlerts.privacyAction}
+                    consentActionAlert={state.actionAlerts.consent}
                     onRequestExport={actions.requestPrivacyExport}
                     onRequestDelete={actions.requestPrivacyDelete}
+                    onRevokeConsent={actions.revokeCoppaConsent}
                   />
                 </>
               ) : null}

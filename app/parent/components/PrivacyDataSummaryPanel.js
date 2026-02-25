@@ -19,25 +19,35 @@ function formatTimestamp(value) {
 }
 
 export function PrivacyDataSummaryPanel({
+  parentProfile,
+  consentRequired = true,
+  hasCoppaConsent = false,
   summary,
   requests = [],
   loading,
+  consentLoading = false,
   actionAlert,
+  consentActionAlert,
   onRequestExport,
-  onRequestDelete
+  onRequestDelete,
+  onRevokeConsent
 }) {
   const [reason, setReason] = useState("");
   const [confirmPhrase, setConfirmPhrase] = useState("");
+  const [showConfirmRevoke, setShowConfirmRevoke] = useState(false);
 
-  if (!summary) {
+  if (!summary && !consentRequired) {
     return null;
   }
 
-  const counts = summary.counts ?? {};
-  const windows = summary.windows ?? {};
-  const retention = summary.retention ?? {};
-  const categories = Array.isArray(summary.categories) ? summary.categories : [];
+  const hasSummary = Boolean(summary);
+  const counts = summary?.counts ?? {};
+  const windows = summary?.windows ?? {};
+  const retention = summary?.retention ?? {};
+  const categories = Array.isArray(summary?.categories) ? summary.categories : [];
   const latestRequests = Array.isArray(requests) ? requests.slice(0, 5) : [];
+  const consentUpdatedAtLabel = formatTimestamp(parentProfile?.coppa_consent_updated_at);
+  const policyVersion = parentProfile?.coppa_policy_version || "2026-02-19";
 
   const handleRequestExport = async () => {
     await onRequestExport?.({ reason });
@@ -47,46 +57,133 @@ export function PrivacyDataSummaryPanel({
     await onRequestDelete?.({ reason, confirmPhrase });
   };
 
+  const handleConfirmRevoke = async () => {
+    const ok = await onRevokeConsent?.();
+    if (ok !== false) {
+      setShowConfirmRevoke(false);
+    }
+  };
+
   return (
-    <section className="card" aria-busy={loading}>
+    <section className="card" aria-busy={loading || consentLoading}>
       <h2 className="section-title">Child data summary</h2>
       <p className="section-muted">
-        Snapshot generated {formatTimestamp(summary.generated_at)}. Raw audio storage:{" "}
-        {retention.raw_audio_stored ? "enabled" : "disabled"}.
-      </p>
-      <p className="section-muted" style={{ marginTop: 6 }}>
-        Transcript retention: {retention.transcript_days ?? 30} days.
+        Review collected child-data categories, request export or deletion, and manage parental consent for future collection.
       </p>
 
-      <div className="privacy-summary-grid">
-        <div className="privacy-summary-item">
-          <span className="privacy-summary-item__label">Children</span>
-          <strong className="privacy-summary-item__value">{counts.children ?? 0}</strong>
-        </div>
-        <div className="privacy-summary-item">
-          <span className="privacy-summary-item__label">Sessions</span>
-          <strong className="privacy-summary-item__value">{counts.sessions ?? 0}</strong>
-        </div>
-        <div className="privacy-summary-item">
-          <span className="privacy-summary-item__label">Transcript messages</span>
-          <strong className="privacy-summary-item__value">{counts.transcript_messages ?? 0}</strong>
-        </div>
-        <div className="privacy-summary-item">
-          <span className="privacy-summary-item__label">Parent-only messages</span>
-          <strong className="privacy-summary-item__value">{counts.parent_only_messages ?? 0}</strong>
-        </div>
-      </div>
+      {consentRequired ? (
+        <div className="card card--glass" style={{ marginTop: 12, padding: "12px 16px" }}>
+          <div className="consent-panel__header" style={{ marginBottom: 8 }}>
+            <h3 className="section-title" style={{ fontSize: "1rem", marginBottom: 0 }}>
+              Parental consent (COPPA)
+            </h3>
+            <span className={`pill${hasCoppaConsent ? "" : " pill--muted"}`}>
+              {hasCoppaConsent ? "Active" : "Not active"}
+            </span>
+          </div>
+          <p className="section-muted" style={{ margin: 0 }}>
+            Withdrawing parental consent blocks new child profiles and new tutoring sessions. This does not automatically cancel your subscription billing.
+          </p>
+          <p className="section-muted" style={{ marginTop: 8, fontSize: "0.85rem" }}>
+            Policy version: {policyVersion}
+            {consentUpdatedAtLabel ? ` · Last updated: ${consentUpdatedAtLabel}` : ""}
+          </p>
+          {hasCoppaConsent ? (
+            <div className="btn-row" style={{ marginTop: 10 }}>
+              <button
+                type="button"
+                onClick={() => setShowConfirmRevoke(true)}
+                disabled={consentLoading}
+                className="btn btn--ghost text-destructive"
+              >
+                Withdraw parental consent (COPPA)
+              </button>
+            </div>
+          ) : (
+            <p className="section-muted" style={{ marginTop: 10 }}>
+              Parental consent is not active. Child profile creation and new sessions are blocked.
+            </p>
+          )}
 
-      {categories.length > 0 ? (
-        <p className="section-muted" style={{ marginTop: 8 }}>
-          Categories: {categories.join(", ")}.
-        </p>
+          {showConfirmRevoke ? (
+            <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div className="card card--elevated" style={{ padding: "24px", maxWidth: "440px", width: "95%", backgroundColor: "var(--surface-color)" }}>
+                <h3 className="section-title text-destructive" style={{ marginTop: 0 }}>
+                  Withdraw parental consent?
+                </h3>
+                <p className="section-muted" style={{ marginBottom: 12 }}>
+                  This immediately blocks new child profiles and new tutoring sessions.
+                </p>
+                <p className="section-muted" style={{ marginBottom: 20 }}>
+                  Your subscription billing is not canceled automatically. Use Billing & Account to manage billing.
+                </p>
+                <div className="btn-row" style={{ justifyContent: "flex-end" }}>
+                  <button type="button" onClick={() => setShowConfirmRevoke(false)} disabled={consentLoading} className="btn btn--ghost">
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmRevoke}
+                    disabled={consentLoading}
+                    className="btn btn--primary text-destructive"
+                    style={{ backgroundColor: "var(--surface-color)", border: "1px solid var(--destructive-color)" }}
+                  >
+                    Yes, withdraw consent
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          <StatusAlert tone={consentActionAlert?.tone} message={consentActionAlert?.message} style={{ marginTop: 10 }} />
+        </div>
       ) : null}
 
-      <p className="section-muted" style={{ marginTop: 8 }}>
-        Message window: {formatTimestamp(windows.first_message_created_at)} to{" "}
-        {formatTimestamp(windows.last_message_created_at)}.
-      </p>
+      {hasSummary ? (
+        <>
+          <p className="section-muted" style={{ marginTop: 12 }}>
+            Snapshot generated {formatTimestamp(summary.generated_at)}. Raw audio storage:{" "}
+            {retention.raw_audio_stored ? "enabled" : "disabled"}.
+          </p>
+          <p className="section-muted" style={{ marginTop: 6 }}>
+            Transcript retention: {retention.transcript_days ?? 30} days.
+          </p>
+
+          <div className="privacy-summary-grid">
+            <div className="privacy-summary-item">
+              <span className="privacy-summary-item__label">Children</span>
+              <strong className="privacy-summary-item__value">{counts.children ?? 0}</strong>
+            </div>
+            <div className="privacy-summary-item">
+              <span className="privacy-summary-item__label">Sessions</span>
+              <strong className="privacy-summary-item__value">{counts.sessions ?? 0}</strong>
+            </div>
+            <div className="privacy-summary-item">
+              <span className="privacy-summary-item__label">Transcript messages</span>
+              <strong className="privacy-summary-item__value">{counts.transcript_messages ?? 0}</strong>
+            </div>
+            <div className="privacy-summary-item">
+              <span className="privacy-summary-item__label">Parent-only messages</span>
+              <strong className="privacy-summary-item__value">{counts.parent_only_messages ?? 0}</strong>
+            </div>
+          </div>
+
+          {categories.length > 0 ? (
+            <p className="section-muted" style={{ marginTop: 8 }}>
+              Categories: {categories.join(", ")}.
+            </p>
+          ) : null}
+
+          <p className="section-muted" style={{ marginTop: 8 }}>
+            Message window: {formatTimestamp(windows.first_message_created_at)} to{" "}
+            {formatTimestamp(windows.last_message_created_at)}.
+          </p>
+        </>
+      ) : (
+        <p className="section-muted" style={{ marginTop: 12 }}>
+          Child-data summary is temporarily unavailable.
+        </p>
+      )}
 
       <div className="form-grid" style={{ marginTop: 12 }}>
         <label className="field">

@@ -176,7 +176,8 @@ export async function ensureCoppaConsentGranted(page) {
       await grantButton.click();
       const consentResponse = await consentResponsePromise;
       expect(consentResponse.status()).toBe(200);
-      await expect(page.getByRole("button", { name: "Revoke consent" })).toBeVisible({
+      await goToParentSection(page, "managed");
+      await expect(page.getByRole("button", { name: /Withdraw parental consent \(COPPA\)/i })).toBeVisible({
         timeout: 30000
       });
       await goToParentSection(page, "children");
